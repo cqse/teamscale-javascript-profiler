@@ -1,0 +1,8 @@
+{
+  "name": "instrument",
+  "version": "0.0.1",
+  "description": "Istanbul-based coverage instrumenter with coverage forwarding via WebSockets",
+  "main": "index.js",
+  "author": "CQSE GmbH",
+  "license": "None"
+}

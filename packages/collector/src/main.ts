@@ -1,26 +1,29 @@
-const { ArgumentParser } = require('argparse');
+import {ArgumentParser} from "argparse";
+import {WebSocketCollectingServer} from "./receiver/CollectingServer";
+
 const { version } = require('../package.json');
 
-const parser = new ArgumentParser({
-  description: 'Argparse example'
-});
+export class Main {
 
-parser.add_argument('-v', '--version', { action: 'version', version });
-parser.add_argument('-f', '--foo', { help: 'foo bar' });
-parser.add_argument('-b', '--bar', { help: 'bar foo' });
-parser.add_argument('--baz', { help: 'baz bar' });
+  private static buildParser(): ArgumentParser {
+    const parser = new ArgumentParser({
+      description: 'Collector of the Teamscale Istanbul Agent'
+    });
 
-console.dir(parser.parse_args());
+    parser.add_argument('-v', '--version', {action: 'version', version});
+    parser.add_argument('-p', '--port', {help: 'The port to receive coverage information on.', default: 54678});
+    parser.add_argument('-f', '--dump-to-file', {help: 'Target file', default: "./coverage.simple"});
 
+    return parser;
+  }
 
-const WebSock = require('ws');
+  public static run(): void {
+    const parser: ArgumentParser= this.buildParser();
+    const config = parser.parse_args();
 
-const wss = new WebSock.Server({ port: 8080 })
+    const server = new WebSocketCollectingServer(config.port);
+  }
 
-wss.on('connection', (ws: any) => {
-  ws.on('message', (message: any) => {
-    console.log(`Received message => ${message}`)
-  })
-  ws.send('ho!')
-})
+}
 
+Main.run();

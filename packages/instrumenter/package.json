@@ -1,5 +1,5 @@
 {
-  "name": "instrument",
+  "name": "teamscale-istanbul-instrumenter",
   "version": "0.0.1",
   "description": "Istanbul-based coverage instrumenter with coverage forwarding via WebSockets",
   "main": "index.js",
@@ -12,6 +12,7 @@
   "devDependencies": {
     "@types/node": "^15.0.1",
     "@types/ws": "^7.4.2",
+    "ts-node": "^9.1.1",
     "typescript": "^4.2.4"
   },
   "dependencies": {

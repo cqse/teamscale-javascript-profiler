@@ -5,7 +5,7 @@ const { ArgumentParser } = require('argparse');
 const { version } = require('../package.json');
 
 const parser = new ArgumentParser({
-    description: 'Argparse example'
+    description: 'Instrumenter of the Teamscale Istanbul Agent'
 });
 
 parser.add_argument('-v', '--version', { action: 'version', version });
@@ -28,7 +28,7 @@ const resolveFrom = require('resolve-from')
 // used in the various execution contexts of nyc:
 // reporting, instrumenting subprocesses, etc.
 
-async function main () {
+async function inst () {
     const { argv, childArgs, yargs } = await configUtil()
 
     if (['check-coverage', 'report', 'instrument', 'merge'].includes(argv._[0])) {
@@ -131,4 +131,4 @@ async function main () {
     })
 }
 
-cliWrapper(main)()
+cliWrapper(inst)()

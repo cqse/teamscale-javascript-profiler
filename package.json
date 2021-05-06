@@ -1,6 +1,6 @@
 {
   "private": true,
-  "name": "Teamscale Istanbul Agent",
+  "name": "teamscale-istanbul-agent",
   "workspaces": [
     "packages/*"
   ]

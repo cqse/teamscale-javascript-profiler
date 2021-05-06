@@ -1,6 +1,6 @@
 {
   "private": true,
-  "name": "js-preinst-coverage",
+  "name": "Teamscale Istanbul Agent",
   "workspaces": [
     "packages/*"
   ]

@@ -1,0 +1,60 @@
+export class CachingSocket {
+
+    private url: string
+    private fallbackUrl: string
+    private socket: WebSocket;
+    private cache: string[] = [];
+    private shouldSendViaFetch = false;
+
+    constructor(url: string, fallbackUrl: string) {
+        this.fallbackUrl = fallbackUrl;
+        this.url = url;
+        this.socket = this.createSocket();
+    }
+
+    private createSocket(): WebSocket {
+        const socket = new WebSocket(this.url);
+        socket.onopen = () => this.onopen();
+        socket.onclose = () => this.onclose();
+        return socket;
+    }
+
+    private onclose() {
+        this.shouldSendViaFetch = true;
+        this.socket = this.createSocket()
+    }
+
+    private onopen() {
+        this.shouldSendViaFetch = false;
+        for (const message of this.cache) {
+            this.socket.send(message);
+        }
+        this.cache = [];
+    }
+
+    send(message: string) {
+        if (this.shouldSendViaFetch) {
+            // socket has been closed by server and we're trying to reconnect
+            this.sendViaFetch(message);
+        } else if (this.socket.readyState === WebSocket.OPEN) {
+            this.socket.send(message);
+        } else {
+            // socket has not been opened yet for the first time
+            this.cache.push(message);
+        }
+    }
+
+    private async sendViaFetch(message: string) {
+        try {
+            await fetch(this.fallbackUrl, {
+                method: "POST",
+                keepalive: true,
+                body: message
+            });
+        } catch (e) {
+            this.cache.push(message);
+        }
+    }
+
+}
+

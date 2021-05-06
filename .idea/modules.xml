@@ -2,7 +2,7 @@
 <project version="4">
   <component name="ProjectModuleManager">
     <modules>
-      <module fileurl="file://$PROJECT_DIR$/.idea/istanbul-collector.iml" filepath="$PROJECT_DIR$/.idea/istanbul-collector.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/teamscale-istanbul-agent.iml" filepath="$PROJECT_DIR$/.idea/teamscale-istanbul-agent.iml" />
     </modules>
   </component>
 </project>

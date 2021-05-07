@@ -4577,6 +4577,11 @@ typedarray-to-buffer@^3.1.5:
   dependencies:
     is-typedarray "^1.0.0"
 
+typescript-optional@^2.0.1:
+  version "2.0.1"
+  resolved "https://registry.yarnpkg.com/typescript-optional/-/typescript-optional-2.0.1.tgz#1dd4826bd751f78756e7eb3f96a16fbbeb3f7ee6"
+  integrity sha512-xuwmqsCjE4OeeMKxbNX3jjNcISGzYh5Q9R1rM5OyxEVNIr94CB5llCkfKW+1nZTKbbUV0axN3QAUuX2fus/DhQ==
+
 typescript@^4.2.4:
   version "4.2.4"
   resolved "https://registry.yarnpkg.com/typescript/-/typescript-4.2.4.tgz#8610b59747de028fda898a8aef0e103f156d0961"

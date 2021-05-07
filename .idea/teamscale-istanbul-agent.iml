@@ -3,10 +3,10 @@
   <component name="NewModuleRootManager" inherit-compiler-output="true">
     <exclude-output />
     <content url="file://$MODULE_DIR$">
-      <sourceFolder url="file://$MODULE_DIR$/packages/collector/src" isTestSource="false" />
-      <sourceFolder url="file://$MODULE_DIR$/packages/instrumenter/src" isTestSource="false" />
-      <sourceFolder url="file://$MODULE_DIR$/packages/collector/test" isTestSource="true" />
-      <sourceFolder url="file://$MODULE_DIR$/packages/instrumenter/test" isTestSource="true" />
+      <sourceFolder url="file://$MODULE_DIR$/packages/teamscale-istanbul-collector/src" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/packages/teamscale-istanbul-instrumenter/src" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/packages/teamscale-istanbul-collector/test" isTestSource="true" />
+      <sourceFolder url="file://$MODULE_DIR$/packages/teamscale-istanbul-instrumenter/test" isTestSource="true" />
     </content>
     <orderEntry type="inheritedJdk" />
     <orderEntry type="sourceFolder" forTests="false" />

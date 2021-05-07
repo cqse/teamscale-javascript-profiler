@@ -1,0 +1,24 @@
+{
+  "name": "cqse-typescript-common",
+  "version": "0.0.1",
+  "description": "A collection of generic functionality for TypeScript projects.",
+  "author": "CQSE GmbH",
+  "license": "None",
+  "scripts": {
+    "build": "npx tsc --declaration",
+    "test": "yarn build && jest --forceExit --coverage --silent=true"
+  },
+  "dependencies": {
+  },
+  "devDependencies": {
+    "@babel/core": "^7.14.0",
+    "@babel/preset-env": "^7.14.1",
+    "@types/jest": "^26.0.23",
+    "@types/node": "^15.0.1",
+    "babel-jest": "^26.6.3",
+    "jest": "^26.6.3",
+    "ts-jest": "^26.5.6",
+    "ts-node": "^9.1.1",
+    "typescript": "^4.2.4"
+  }
+}

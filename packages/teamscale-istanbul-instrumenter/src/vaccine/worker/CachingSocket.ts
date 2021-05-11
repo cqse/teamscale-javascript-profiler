@@ -1,7 +1,8 @@
 export class CachingSocket {
 
-    private url: string
-    private fallbackUrl: string
+    private readonly url: string
+    private readonly fallbackUrl: string
+
     private socket: WebSocket;
     private cache: string[] = [];
     private shouldSendViaFetch = false;

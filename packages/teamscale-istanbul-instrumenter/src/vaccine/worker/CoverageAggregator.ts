@@ -1,7 +1,7 @@
 import { CachingSocket } from "./CachingSocket";
-import { Debounce } from "./debounce";
 
 export class CoverageAggregator {
+
   private cachedCoverage: string = "";
   private numberOfCacheLines = 0;
   private debounce = new Debounce(1000, () => this.flush());
@@ -27,3 +27,26 @@ export class CoverageAggregator {
     this.numberOfCacheLines = 0;
   }
 }
+
+export class Debounce {
+  private timerToken: number | null = null;
+
+  constructor(private milliseconds: number, private onBounce: () => void) {}
+
+  input() {
+    this.reset();
+    this.timerToken = self.setTimeout(() => {
+      this.timerToken = null;
+      this.onBounce();
+    }, this.milliseconds);
+  }
+
+  reset() {
+    if (this.timerToken === null) {
+      return;
+    }
+    self.clearTimeout(this.timerToken);
+    this.timerToken = null;
+  }
+}
+

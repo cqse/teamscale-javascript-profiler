@@ -3,13 +3,6 @@ import {Contract, ImplementMeException} from "@cqse/common-qualities";
 import istanbul = require("istanbul-lib-instrument");
 import * as fs from "fs";
 
-export enum EInstrumentationArtifact {
-    ISTANBUL_COVERAGE,
-    COVERAGE_SOURCEMAP,
-    TRANSPILE_SOURCEMAP,
-    COVERAGE_REPORTER
-}
-
 export interface IInstrumenter {
 
     instrument(task: InstrumentationTask): Promise<TaskResult>;
@@ -22,6 +15,7 @@ export class IstanbulInstrumenter implements IInstrumenter {
 
     constructor(vaccineFilePath: string) {
         this._vaccineFilePath = Contract.requireNonEmpty(vaccineFilePath);
+        Contract.require(fs.existsSync(vaccineFilePath), `The vaccine file to inject must exist!\nCWD:${process.cwd()}`);
     }
 
     instrument(task: InstrumentationTask): Promise<TaskResult> {

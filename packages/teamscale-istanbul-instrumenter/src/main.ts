@@ -44,6 +44,8 @@ export class Main {
      */
     public static runForConfigArguments(config: {}): Promise<TaskResult> {
         const task: InstrumentationTask = this.createInstrumentationTask(config);
+        Contract.require(task.elements.length > 0, "The instrumentation task must not be empty.");
+
         const instrumenter: IInstrumenter = this.createInstrumenter(config);
 
         return instrumenter.instrument(task);
@@ -54,7 +56,7 @@ export class Main {
     }
 
     private static createInstrumenter(config: any): IInstrumenter {
-        return new IstanbulInstrumenter("");
+        return new IstanbulInstrumenter("packages/teamscale-istanbul-instrumenter/dist/vaccine.js");
     }
 }
 

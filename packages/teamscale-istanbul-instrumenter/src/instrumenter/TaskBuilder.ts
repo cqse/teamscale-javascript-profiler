@@ -45,20 +45,24 @@ export class TaskBuilder {
             if (!target) {
                 throw new InvalidConfigurationException("A target path must be specified using `--to`.");
             }
-            this.ensureExistingEmptyDirectory(target);
+            this.ensureExistingDirectory(target);
 
             for (const input of inputs) {
-                if (this.isExistingDirectory(input)) {
-                    const inputFiles = inputs
-                        .map((input) => this.expandToFileSet(input))
-                        .reduce((prev, curr) => {return curr.concat(prev);}, []);
-
-                    inputFiles.forEach((f) => this.addElement(f, path.join(target, path.relative(input, path.basename(f))), sourceMapInfo));
-                } else if (this.isExistingFile(input)) {
+                if (this.isExistingFile(input)) {
                     if (this.specifiesFile(target)) {
                         this.addElement(input, target, sourceMapInfo);
                     } else {
                         throw new ImplementMeException();
+                    }
+                } else if (this.isExistingDirectory(input) || this.isPattern(input)) {
+                    const inputFiles = inputs
+                        .map((input) => this.expandToFileSet(input))
+                        .reduce((prev, curr) => {return curr.concat(prev);}, []);
+
+                    if (this.isPattern(input)) {
+                        inputFiles.forEach((f) => this.addElement(f, path.join(target, path.basename(f)), sourceMapInfo));
+                    } else {
+                        inputFiles.forEach((f) => this.addElement(f, path.join(target, path.relative(input, path.basename(f))), sourceMapInfo));
                     }
                 } else {
                     throw new InvalidConfigurationException(`The specified input '${input}' was not found.`)
@@ -71,6 +75,10 @@ export class TaskBuilder {
 
     build(): InstrumentationTask {
         return new InstrumentationTask(this._elements);
+    }
+
+    private isPattern(text: string): boolean {
+        return text.includes("*") || text.includes("+") || text.includes("?") || text.includes("|");
     }
 
     /**
@@ -88,7 +96,7 @@ export class TaskBuilder {
         return fs.existsSync(path) && fs.lstatSync(path).isDirectory();
     }
 
-    private ensureExistingEmptyDirectory(path: string): void {
+    private ensureExistingDirectory(path: string): void {
         if (!fs.existsSync(path)) {
             mkdirp.sync(path);
         }
@@ -96,10 +104,10 @@ export class TaskBuilder {
         if (!fs.lstatSync(path).isDirectory()) {
             throw new InvalidConfigurationException(`The specified path '${path}' does not point to an existing directory!`);
         }
+    }
 
-        if (fs.readdirSync(path).length > 0) {
-            throw new InvalidConfigurationException(`The specified target directory is not empty!`);
-        }
+    private isDirectoryEmpty(path: string): boolean {
+        return !this.isExistingDirectory(path) || fs.readdirSync(path).length > 0;
     }
 
     private expandToFileSet(toExpand: string): string[] {

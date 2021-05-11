@@ -1,5 +1,5 @@
 import {Optional} from "typescript-optional";
-import {Contract} from "cqse-typescript-common/dist/Contract";
+import {Contract} from "@cqse/common-qualities";
 
 export class TaskElement {
 
@@ -7,18 +7,30 @@ export class TaskElement {
 
     private readonly _toFile: string;
 
-    private readonly _externalSourceMapFile: Optional<string>;
+    private readonly _externalSourceMapFile: Optional<SourceMapReference>;
 
-    constructor(fromFile: string, toFile: string, externalSourceMapFile?: string) {
+    constructor(fromFile: string, toFile: string, externalSourceMap?: SourceMapReference) {
         this._fromFile = Contract.requireDefined(fromFile);
         this._toFile = Contract.requireDefined(toFile);
-        this._externalSourceMapFile = Optional.ofNullable(externalSourceMapFile);
+        this._externalSourceMapFile = Optional.ofNullable(externalSourceMap);
     }
 
     public isInPlace(): boolean {
         // We assume that different file names link to different files on the storage
         // and abstract from the fact that it might be a symlink.
         return this._fromFile == this._toFile;
+    }
+
+    get fromFile(): string {
+        return this._fromFile;
+    }
+
+    get toFile(): string {
+        return this._toFile;
+    }
+
+    get externalSourceMapFile(): Optional<SourceMapReference> {
+        return this._externalSourceMapFile;
     }
 }
 
@@ -80,4 +92,40 @@ export class InstrumentationTask {
 
 export class TaskResult {
 
+    private readonly _translated: number;
+
+    private readonly _translatedFromCache: number;
+
+    constructor(translated: number, translatedFromCache: number) {
+        Contract.require(translated > -1);
+        Contract.require(translatedFromCache > -1);
+        this._translated = translated;
+        this._translatedFromCache = translatedFromCache;
+    }
+
+    get translated(): number {
+        return this._translated;
+    }
+
+    get translatedFromCache(): number {
+        return this._translatedFromCache;
+    }
+}
+
+export class SourceMapReference {
+
+}
+
+export class SourceMapFileReference extends SourceMapReference {
+
+    private readonly _sourceMapFilePath: string;
+
+    constructor(sourceMapFilePath: string) {
+        super();
+        this._sourceMapFilePath = sourceMapFilePath;
+    }
+
+    get sourceMapFilePath(): string {
+        return this._sourceMapFilePath;
+    }
 }

@@ -2,6 +2,12 @@ import {IllegalArgumentException} from "./Exceptions";
 
 export class Contract {
 
+    public static require(condition: boolean, msg?: string): void {
+        if (!condition) {
+            throw new IllegalArgumentException(msg);
+        }
+    }
+
     public static requireDefined<E>(obj: E, message?: string): E {
         if (obj) {
             return obj;

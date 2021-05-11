@@ -12,13 +12,16 @@
   },
   "dependencies": {
     "argparse": "^2.0.1",
+    "async": "^3.2.0",
     "source-map": "^0.7.3",
     "ws": "^7.4.5"
   },
   "devDependencies": {
     "@babel/core": "^7.14.0",
     "@babel/preset-env": "^7.14.1",
+    "@cqse/common-qualities": "0.0.1",
     "@types/argparse": "^2.0.5",
+    "@types/async": "^3.2.6",
     "@types/jest": "^26.0.23",
     "@types/node": "^15.0.1",
     "@types/source-map": "^0.5.7",

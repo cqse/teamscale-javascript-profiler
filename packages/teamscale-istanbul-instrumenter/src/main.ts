@@ -54,7 +54,7 @@ export class Main {
     }
 
     private static createInstrumenter(config: any): IInstrumenter {
-        return new IstanbulInstrumenter();
+        return new IstanbulInstrumenter("");
     }
 }
 

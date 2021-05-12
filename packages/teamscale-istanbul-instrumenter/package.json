@@ -7,7 +7,7 @@
   "license": "None",
   "scripts": {
     "clean": "npx rimraf dist",
-    "build": "npx tsc --project tsconfig.instrumenter.json && npx tsc --project tsconfig.vaccine.json",
+    "build": "npx tsc --project tsconfig.instrumenter.json && npx rollup --config",
     "run": "node src/main.js",
     "test": "yarn build && jest --forceExit --coverage --silent=true"
   },
@@ -24,8 +24,12 @@
     "babel-jest": "^26.6.3",
     "jest": "^26.6.3",
     "rimraf": "^3.0.2",
+    "rollup": "^2.47.0",
+    "rollup-plugin-web-worker-loader": "^1.6.1",
+    "rollup-plugin-typescript2": "^0.30.0",
     "ts-jest": "^26.5.6",
     "ts-node": "^9.1.1",
+    "tslib": "^2.2.0",
     "typescript": "^4.2.4",
     "typescript-optional": "^2.0.1"
   },

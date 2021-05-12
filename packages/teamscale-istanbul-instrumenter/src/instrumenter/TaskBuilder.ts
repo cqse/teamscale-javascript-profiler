@@ -32,7 +32,6 @@ export class TaskBuilder {
             sourceMapInfo = new SourceMapFileReference(sourceMap);
         }
 
-
         if (inPlace) {
             if (target) {
                 throw new InvalidConfigurationException("No target path must be specified in case an in-place instrumetation is enabled.");

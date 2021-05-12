@@ -1,5 +1,5 @@
-import {InstrumentationTask, SourceMapFileReference, SourceMapReference, TaskElement} from "./Task";
-import {ImplementMeException, InvalidConfigurationException} from "@cqse/common-qualities";
+import {CollectorSpecifier, InstrumentationTask, SourceMapFileReference, SourceMapReference, TaskElement} from "./Task";
+import {Contract, ImplementMeException, InvalidConfigurationException} from "@cqse/common-qualities";
 import glob = require ("glob");
 import fs = require ("fs");
 import path = require ("path");
@@ -9,8 +9,17 @@ export class TaskBuilder {
 
     private readonly _elements: TaskElement[];
 
+    private _collector: CollectorSpecifier | null;
+
     constructor() {
         this._elements = [];
+        this._collector = null;
+    }
+
+    setCollectorFromString(spec: string): this {
+        Contract.requireNonEmpty(spec);
+        this._collector = new CollectorSpecifier(spec);
+        return this;
     }
 
     addElement(fromFilePath: string, toFilePath: string, fromFileSourceMap?: SourceMapReference): this {
@@ -23,6 +32,7 @@ export class TaskBuilder {
         const inPlace: boolean = config['in_place'];
         const target: string = config['to'];
         const sourceMap: string = config['source_map'];
+        this.setCollectorFromString(config['collector']);
 
         let sourceMapInfo: SourceMapReference|undefined;
         if (sourceMap) {
@@ -73,7 +83,7 @@ export class TaskBuilder {
     }
 
     build(): InstrumentationTask {
-        return new InstrumentationTask(this._elements);
+        return new InstrumentationTask(Contract.requireDefined(this._collector), this._elements);
     }
 
     private isPattern(text: string): boolean {

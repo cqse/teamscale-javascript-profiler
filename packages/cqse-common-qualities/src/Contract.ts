@@ -1,5 +1,7 @@
 import {IllegalArgumentException} from "./Exceptions";
 
+export type Nullable<Type> = Type | null;
+
 export class Contract {
 
     public static require(condition: boolean, msg?: string): void {
@@ -8,7 +10,7 @@ export class Contract {
         }
     }
 
-    public static requireDefined<E>(obj: E, message?: string): E {
+    public static requireDefined<E>(obj: Nullable<E>, message?: string): E {
         if (obj) {
             return obj;
         }

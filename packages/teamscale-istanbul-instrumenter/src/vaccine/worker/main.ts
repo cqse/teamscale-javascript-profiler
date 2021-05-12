@@ -1,7 +1,7 @@
 import {CachingSocket} from './CachingSocket';
 import {CoverageAggregator} from './CoverageAggregator';
 
-const socket = new CachingSocket("ws://localhost:8087/socket", `http://${location.host}:8087`);
+const socket = new CachingSocket("ws://$REPORT_TO_HOST:$REPORT_TO_PORT/socket", `http://$REPORT_TO_HOST:$REPORT_TO_PORT`);
 const aggregator = new CoverageAggregator(socket);
 
 self.onmessage = (event: MessageEvent) => {

@@ -77,9 +77,12 @@ export class TaskParameters {
 
 export class InstrumentationTask {
 
+    private readonly _collector: CollectorSpecifier;
+
     private readonly _elements: TaskElement[];
 
-    constructor(elements: TaskElement[]) {
+    constructor(collector: CollectorSpecifier, elements: TaskElement[]) {
+        this._collector = Contract.requireDefined(collector);
         this._elements = Contract.requireDefined(elements).slice();
     }
 
@@ -87,6 +90,10 @@ export class InstrumentationTask {
         // Ensure immutability of this object by returning a copy
         // of the list of immutable objects.
         return this._elements.slice();
+    }
+
+    get collector(): CollectorSpecifier {
+        return this._collector;
     }
 }
 

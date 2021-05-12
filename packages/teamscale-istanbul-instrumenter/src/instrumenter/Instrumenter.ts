@@ -43,8 +43,8 @@ export class IstanbulInstrumenter implements IInstrumenter {
             .replace("return actualCoverage", "return makeProxy(actualCoverage, actualCoverage, [])");
 
         const vaccineSource = fs.readFileSync(this._vaccineFilePath, 'utf8')
-            .replace('$REPORT_TO_HOST', collector.host)
-            .replace('$REPORT_TO_PORT', `${collector.port}`);
+            .replace(/\$REPORT_TO_HOST/g, collector.host)
+            .replace(/\$REPORT_TO_PORT/g, `${collector.port}`);
 
         fs.writeFileSync(taskElement.toFile, `${vaccineSource} ${instrumentedSource}`);
 

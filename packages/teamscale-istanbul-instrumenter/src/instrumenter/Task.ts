@@ -42,7 +42,7 @@ export class CollectorSpecifier {
 
     constructor(collector: string) {
         Contract.requireStringPattern(collector, ".+:[0-9]+", "Invalid collector pattern used!");
-        this._host = collector.split(":")[1];
+        this._host = collector.split(":")[0];
         this._port = Number.parseInt(collector.split(":")[1]);
     }
 

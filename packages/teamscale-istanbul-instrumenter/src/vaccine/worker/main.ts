@@ -1,10 +1,11 @@
 import {CachingSocket} from './CachingSocket';
 import {CoverageAggregator} from './CoverageAggregator';
+import {thing} from "../utils";
 
 const socket = new CachingSocket("ws://$REPORT_TO_HOST:$REPORT_TO_PORT/socket", `http://$REPORT_TO_HOST:$REPORT_TO_PORT`);
 const aggregator = new CoverageAggregator(socket);
 
-self.onmessage = (event: MessageEvent) => {
+thing.onmessage = (event: MessageEvent) => {
     const message = event.data;
     if (message.startsWith('s')) {
         socket.send(message)

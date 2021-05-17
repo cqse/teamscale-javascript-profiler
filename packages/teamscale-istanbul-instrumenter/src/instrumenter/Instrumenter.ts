@@ -29,7 +29,7 @@ export class IstanbulInstrumenter implements IInstrumenter {
         const inputFileSource = fs.readFileSync(taskElement.fromFile, 'utf8');
 
         const instrumenter = istanbul.createInstrumenter({
-            coverageVariable: '___COVERAGE___',
+            coverageVariable: '__coverage__',
             esModules: true
         });
 
@@ -40,7 +40,7 @@ export class IstanbulInstrumenter implements IInstrumenter {
         const inputSourceMap = undefined;
         const instrumentedSource = instrumenter
             .instrumentSync(inputFileSource, taskElement.fromFile, inputSourceMap)
-            .replace("return actualCoverage", "return makeProxy(actualCoverage, actualCoverage, [])");
+            .replace(/return actualCoverage/g, "return makeCoverageInterceptor(actualCoverage, actualCoverage, [])");
 
         const vaccineSource = fs.readFileSync(this._vaccineFilePath, 'utf8')
             .replace(/\$REPORT_TO_HOST/g, collector.host)

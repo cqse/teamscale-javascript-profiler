@@ -1,9 +1,11 @@
+const Socket = require('isomorphic-ws');
+
 export class CachingSocket {
 
     private readonly url: string
     private readonly fallbackUrl: string
 
-    private socket: WebSocket;
+    private socket: any;
     private cache: string[] = [];
     private shouldSendViaFetch = false;
 
@@ -13,8 +15,8 @@ export class CachingSocket {
         this.socket = this.createSocket();
     }
 
-    private createSocket(): WebSocket {
-        const socket = new WebSocket(this.url);
+    private createSocket(): any {
+        const socket = new Socket(this.url);
         socket.onopen = () => this.onopen();
         socket.onclose = () => this.onclose();
         return socket;
@@ -48,7 +50,7 @@ export class CachingSocket {
     private async sendViaFetch(message: string) {
         try {
             await fetch(this.fallbackUrl, {
-                method: "POST",
+               method: "POST",
                 keepalive: true,
                 body: message
             });

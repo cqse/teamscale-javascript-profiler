@@ -1,65 +1,74 @@
 // @ts-ignore
 import DataWorker from 'web-worker:./worker/main.ts';
+import {makeProxy} from "./Interceptor";
+import * as unload from "unload";
+import {getWindow, thing, hasWindow} from "./utils";
 
 declare const __coverage__: any;
 
+thing.makeCoverageInterceptor = function(coverage: any, target: any, path: any) {
 
-// @ts-ignore
-window._$Bc = function (coveredLine: string, coveredColumn: string) {
+    // @ts-ignore
+    thing._$Bc = function (coveredLine: string, coveredColumn: string) {
 
-    // TODO: Do not send lines that have already been sent to reduce the network load
+        // TODO: Do not send lines that have already been sent to reduce the network load
 
-    // if (!seen.has(coveredLine + ':' + coveredColumn)) {
-    worker.postMessage(coveredLine + ":" + coveredColumn);
-    // seen.add(coveredLine + ':' + coveredColumn);
-    // }
-};
+        // if (!seen.has(coveredLine + ':' + coveredColumn)) {
+        worker.postMessage(coveredLine + ":" + coveredColumn);
+        // seen.add(coveredLine + ':' + coveredColumn);
+        // }
+    };
 
-const windowAny = window as any;
-if (!windowAny._$BcWorker) {
-    // Create the worker with the worker code
-    const worker = new DataWorker();
-    windowAny._$BcWorker = worker;
+    if (!thing._$BcWorker) {
+        // Create the worker with the worker code
+        const worker = new DataWorker();
+        thing._$BcWorker = worker;
 
-    // Send the source maps (for each of the files described in the coverage map?)
-    // Optimization: The source map for a particular might have already been sent.
-    for (const entry of Object.values(__coverage__)) {
-        const entryAny: any = entry;
-        const sourceMap = entryAny.inputSourceMap;
-        worker.postMessage("s" + JSON.stringify(sourceMap));
-    }
+        (function sendSourceMaps() {
+            // Send the source maps (for each of the files described in the coverage map?)
+            // Optimization: The source map for a particular file might have already been sent.
+            for (const entry of Object.values(__coverage__)) {
+                const entryAny: any = entry;
+                const sourceMap = entryAny.inputSourceMap;
+                worker.postMessage("s" + JSON.stringify(sourceMap));
+            }
+        })();
 
-    const wrapWindowEvent = function (name: string) {
-        // Save the existing handler, wrap it in our handler
-        let wrappedHandler = windowAny[name];
+        const protectWindowEvent = function (name: string) {
+            // Save the existing handler, wrap it in our handler
+            let wrappedHandler = thing[name];
 
-        windowAny[name] = function () {
-            // Ask the worker to send all remaining coverage infos
-            worker.postMessage("unload"); // The string "unload" is by accident the same as the window event
-            if (wrappedHandler) {
-                return wrappedHandler.apply(this, arguments);
+            thing[name] = function () {
+                // Ask the worker to send all remaining coverage infos
+                worker.postMessage("unload"); // The string "unload" is by accident the same as the window event
+                if (wrappedHandler) {
+                    return wrappedHandler.apply(this, arguments);
+                }
+            };
+
+            // Define a proxy that prevents overwriting
+            if (hasWindow()) {
+                Object.defineProperty(getWindow(), name, {
+                    get: function () {
+                        return wrappedHandler;
+                    },
+                    set: function (newHandler: any) {
+                        wrappedHandler = newHandler;
+                    },
+                });
             }
         };
 
-        Object.defineProperty(window, name, {
-            get: function () {
-                return wrappedHandler;
-            },
-            set: function (newHandler: any) {
-                wrappedHandler = newHandler;
-            },
-        });
-    };
+        protectWindowEvent("onunload");
+        protectWindowEvent("onbeforeunload");
 
-    // Register for the different window events
-    wrapWindowEvent("onunload");
-    wrapWindowEvent("onbeforeunload");
+        unload.add(() => worker.postMessage("unload"));
+    }
 
-    window.addEventListener("unload", () => worker.postMessage("unload"));
-    window.addEventListener("beforeunload", () => worker.postMessage("unload"));
+    const worker = thing._$BcWorker;
+
+    return makeProxy(coverage, target, path);
 }
-
-const worker = windowAny._$BcWorker;
 
 // const seen = new Set<string>();
 

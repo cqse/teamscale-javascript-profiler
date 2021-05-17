@@ -1,3 +1,5 @@
+import {thing} from "./utils";
+
 class Interceptor implements ProxyHandler<any> {
 
   constructor(private coverageObj: any, private targetObj: any, private path: any) { }
@@ -15,14 +17,14 @@ class Interceptor implements ProxyHandler<any> {
     const fullPath = [...this.path, prop];
     if (fullPath[0] === "s") {
       const start = this.coverageObj.statementMap[fullPath[1]].start;
-      (window as any)['_$Bc']("" + start.line, "" + start.column);
+      thing['_$Bc']("" + start.line, "" + start.column);
     }
     return true;
   }
 
 }
 
-function makeProxy(coverage: any, target: any, path: any) {
+export function makeProxy(coverage: any, target: any, path: any) {
   return new Proxy(target, new Interceptor(coverage, target, path));
 }
 

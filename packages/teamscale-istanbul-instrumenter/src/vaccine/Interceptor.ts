@@ -1,4 +1,4 @@
-import {thing} from "./utils";
+import {universe} from "./utils";
 
 class Interceptor implements ProxyHandler<any> {
 
@@ -17,7 +17,7 @@ class Interceptor implements ProxyHandler<any> {
     const fullPath = [...this.path, prop];
     if (fullPath[0] === "s") {
       const start = this.coverageObj.statementMap[fullPath[1]].start;
-      thing['_$Bc']("" + start.line, "" + start.column);
+      universe['_$Bc']("" + start.line, "" + start.column);
     }
     return true;
   }

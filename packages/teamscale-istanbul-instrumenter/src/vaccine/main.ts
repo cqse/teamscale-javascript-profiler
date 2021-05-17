@@ -2,14 +2,14 @@
 import DataWorker from 'web-worker:./worker/main.ts';
 import {makeProxy} from "./Interceptor";
 import * as unload from "unload";
-import {getWindow, thing, hasWindow} from "./utils";
+import {getWindow, universe, hasWindow} from "./utils";
 
 declare const __coverage__: any;
 
-thing.makeCoverageInterceptor = function(coverage: any, target: any, path: any) {
+universe.makeCoverageInterceptor = function(coverage: any, target: any, path: any) {
 
     // @ts-ignore
-    thing._$Bc = function (coveredLine: string, coveredColumn: string) {
+    universe._$Bc = function (coveredLine: string, coveredColumn: string) {
 
         // TODO: Do not send lines that have already been sent to reduce the network load
 
@@ -19,10 +19,10 @@ thing.makeCoverageInterceptor = function(coverage: any, target: any, path: any) 
         // }
     };
 
-    if (!thing._$BcWorker) {
+    if (!universe._$BcWorker) {
         // Create the worker with the worker code
         const worker = new DataWorker();
-        thing._$BcWorker = worker;
+        universe._$BcWorker = worker;
 
         (function sendSourceMaps() {
             // Send the source maps (for each of the files described in the coverage map?)
@@ -36,9 +36,9 @@ thing.makeCoverageInterceptor = function(coverage: any, target: any, path: any) 
 
         const protectWindowEvent = function (name: string) {
             // Save the existing handler, wrap it in our handler
-            let wrappedHandler = thing[name];
+            let wrappedHandler = universe[name];
 
-            thing[name] = function () {
+            universe[name] = function () {
                 // Ask the worker to send all remaining coverage infos
                 worker.postMessage("unload"); // The string "unload" is by accident the same as the window event
                 if (wrappedHandler) {
@@ -65,7 +65,7 @@ thing.makeCoverageInterceptor = function(coverage: any, target: any, path: any) 
         unload.add(() => worker.postMessage("unload"));
     }
 
-    const worker = thing._$BcWorker;
+    const worker = universe._$BcWorker;
 
     return makeProxy(coverage, target, path);
 }

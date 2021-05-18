@@ -1,5 +1,6 @@
 import {ArgumentParser} from "argparse";
 import {WebSocketCollectingServer} from "./receiver/CollectingServer";
+import {DataStorage} from "./storage/DataStorage";
 
 const { version } = require('../package.json');
 
@@ -21,7 +22,10 @@ export class Main {
     const parser: ArgumentParser= this.buildParser();
     const config = parser.parse_args();
 
-    const server = new WebSocketCollectingServer(config.port);
+    const storage = new DataStorage();
+    const server = new WebSocketCollectingServer(config.port, storage);
+    server.start();
+    // ATTENTION: The server is executed asynchronously
   }
 
 }

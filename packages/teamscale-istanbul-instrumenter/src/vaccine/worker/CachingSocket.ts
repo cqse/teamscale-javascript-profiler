@@ -36,6 +36,7 @@ export class CachingSocket {
     }
 
     send(message: string) {
+        console.log(`Sending: ${message}`)
         if (this.shouldSendViaFetch) {
             // socket has been closed by server and we're trying to reconnect
             this.sendViaFetch(message);

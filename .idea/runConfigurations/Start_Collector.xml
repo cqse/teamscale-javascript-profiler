@@ -1,0 +1,5 @@
+<component name="ProjectRunConfigurationManager">
+  <configuration default="false" name="Start Collector" type="NodeJSConfigurationType" node-parameters="--require ts-node/register --max-old-space-size=8192" path-to-js-file="packages/teamscale-istanbul-collector/src/main.ts" working-dir="$PROJECT_DIR$">
+    <method v="2" />
+  </configuration>
+</component>

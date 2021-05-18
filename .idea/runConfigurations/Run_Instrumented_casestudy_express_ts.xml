@@ -1,0 +1,5 @@
+<component name="ProjectRunConfigurationManager">
+  <configuration default="false" name="Run Instrumented casestudy/express-ts" type="NodeJSConfigurationType" path-to-js-file="test/casestudies/express-ts/dist-cov/index.js" working-dir="$PROJECT_DIR$">
+    <method v="2" />
+  </configuration>
+</component>

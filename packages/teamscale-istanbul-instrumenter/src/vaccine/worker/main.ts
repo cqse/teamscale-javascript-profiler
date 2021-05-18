@@ -7,6 +7,8 @@ const aggregator = new CoverageAggregator(socket);
 
 universe.onmessage = (event: MessageEvent) => {
     const message = event.data;
+    console.log(`Worker message: ${message}`);
+
     if (message.startsWith('s')) {
         socket.send(message)
     } else if (message === "unload") {

@@ -103,11 +103,19 @@ export class TaskResult {
 
     private readonly _translatedFromCache: number;
 
-    constructor(translated: number, translatedFromCache: number) {
+    private readonly _alreadyInstrumented: number;
+
+    private readonly _unsupported: number;
+
+    constructor(translated: number, translatedFromCache: number, alreadyInstrumented: number, unsupported: number) {
         Contract.require(translated > -1);
         Contract.require(translatedFromCache > -1);
+        Contract.require(alreadyInstrumented > -1);
+        Contract.require(unsupported > -1);
         this._translated = translated;
         this._translatedFromCache = translatedFromCache;
+        this._alreadyInstrumented = alreadyInstrumented;
+        this._unsupported = unsupported;
     }
 
     get translated(): number {
@@ -117,6 +125,26 @@ export class TaskResult {
     get translatedFromCache(): number {
         return this._translatedFromCache;
     }
+
+    get alreadyInstrumented(): number {
+        return this._alreadyInstrumented;
+    }
+
+    get unsupported(): number {
+        return this._unsupported;
+    }
+
+    public withIncrement(incBy: TaskResult) {
+        return new TaskResult(this.translated + incBy.translated,
+            this.translatedFromCache + incBy.translatedFromCache,
+            this.alreadyInstrumented + incBy.alreadyInstrumented,
+            this.unsupported + incBy.unsupported);
+    }
+
+    public static neutral(): TaskResult {
+        return new TaskResult(0, 0, 0, 0);
+    }
+
 }
 
 export class SourceMapReference {

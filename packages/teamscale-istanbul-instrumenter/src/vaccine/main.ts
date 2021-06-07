@@ -3,6 +3,7 @@ import DataWorker from 'web-worker:./worker/main.ts';
 import {makeProxy} from "./Interceptor";
 import * as unload from "unload";
 import {getWindow, universe, hasWindow} from "./utils";
+const Worker = require('web-worker');
 
 declare const __coverage__: any;
 

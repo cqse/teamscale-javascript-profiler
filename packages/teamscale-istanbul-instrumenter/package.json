@@ -45,6 +45,7 @@
     "istanbul-lib-instrument": "^4.0.3",
     "mkdirp": "^1.0.4",
     "nyc": "^15.1.0",
-    "unload": "^2.2.0"
+    "unload": "^2.2.0",
+    "web-worker": "^1.0.0"
   }
 }

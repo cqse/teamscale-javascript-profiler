@@ -128,7 +128,7 @@ export class TaskBuilder {
             }
 
             if (stat.isDirectory()) {
-                globPattern = `${toExpand}${path.delimiter}**`;
+                globPattern = `${toExpand}${path.sep}**`;
             }
         }
 

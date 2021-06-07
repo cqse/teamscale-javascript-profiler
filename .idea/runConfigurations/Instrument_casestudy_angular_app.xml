@@ -1,0 +1,5 @@
+<component name="ProjectRunConfigurationManager">
+  <configuration default="false" name="Instrument casestudy/angular-app" type="NodeJSConfigurationType" folderName="Angular App" application-parameters="test/casestudies/angular-app/dist/ --in-place" node-parameters="--require ts-node/register --max-old-space-size=8192" path-to-js-file="packages/teamscale-istanbul-instrumenter/src/main.ts" working-dir="$PROJECT_DIR$">
+    <method v="2" />
+  </configuration>
+</component>

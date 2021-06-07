@@ -60,7 +60,13 @@ export class Main {
     }
 }
 
-Main.run().catch((reason) => {
+Main.run().then((result) => {
+    console.log("Instrumentation finished.");
+    console.log(`\tInstrumented: ${result.translated}`);
+    console.log(`\tInstrumented from cache: ${result.translatedFromCache}`);
+    console.log(`\tAlready instrumented: ${result.alreadyInstrumented}`);
+    console.log(`\tUnsupported: ${result.unsupported}`);
+}).catch((reason) => {
     console.log("Failed: ", reason);
 }).finally(() => {
     console.log("Bye bye.");

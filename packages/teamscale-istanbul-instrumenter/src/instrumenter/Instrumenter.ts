@@ -36,29 +36,43 @@ export class IstanbulInstrumenter implements IInstrumenter {
 
         if (inputFileSource.startsWith(IS_INSTRUMENTED_TOKEN)) {
             if (taskElement.isInPlace()) {
-                return new TaskResult(0, 0, 1, 0);
+                return new TaskResult(0, 0, 1, 0, 0);
             } else {
                 fs.writeFileSync(taskElement.toFile, inputFileSource);
             }
         }
 
         if (!this.isFileTypeSupported(taskElement.fromFile)) {
-            return new TaskResult(0, 0, 0, 1);
+            return new TaskResult(0, 0, 0, 1, 0);
         }
 
-        const instrumenter = istanbul.createInstrumenter({
-            coverageVariable: '__coverage__',
-            esModules: true
-        });
+        console.log(path.basename(taskElement.fromFile));
 
         if (taskElement.externalSourceMapFile.isPresent()) {
             throw new ImplementMeException();
         }
 
         const inputSourceMap = undefined;
-        const instrumentedSource = instrumenter
-            .instrumentSync(inputFileSource, taskElement.fromFile, inputSourceMap)
-            .replace(/return actualCoverage/g, "return makeCoverageInterceptor(actualCoverage, actualCoverage, [])");
+        let instrumentedSource;
+
+        const configurationAlternatives = this.configurationAlternativesFor(taskElement);
+        for (let i=0; i<configurationAlternatives.length; i++) {
+            try {
+                const instrumenter = istanbul.createInstrumenter(configurationAlternatives[i]);
+
+                instrumentedSource = instrumenter
+                    .instrumentSync(inputFileSource, taskElement.fromFile, inputSourceMap)
+                    .replace(/return actualCoverage/g, "return makeCoverageInterceptor(actualCoverage, actualCoverage, [])")
+                    .replace(/new Function\("return this"\)\(\)/g, "typeof window === 'object' ? window : this");
+
+                break;
+            } catch (e) {
+                if (i == configurationAlternatives.length-1) {
+                    fs.writeFileSync(taskElement.toFile, inputFileSource);
+                    return TaskResult.error(e);
+                }
+            }
+        }
 
         const vaccineSource = fs.readFileSync(this._vaccineFilePath, 'utf8')
             .replace(/\$REPORT_TO_HOST/g, collector.host)
@@ -66,11 +80,20 @@ export class IstanbulInstrumenter implements IInstrumenter {
 
         fs.writeFileSync(taskElement.toFile, `${IS_INSTRUMENTED_TOKEN} ${vaccineSource} ${instrumentedSource}`);
 
-        return new TaskResult(1, 0, 0, 0);
+        return new TaskResult(1, 0, 0, 0, 0);
     }
 
     private isFileTypeSupported(fileName: string) {
         const ext = path.extname(fileName).toLowerCase();
         return ext == ".js";
+    }
+
+    private configurationAlternativesFor(taskElement: TaskElement): {}[] {
+        const baseConfig = {
+            coverageVariable: '__coverage__',
+        };
+
+        return [ { ...baseConfig, ...{   esModules: true }},
+            { ...baseConfig, ...{   esModules: false }} ];
     }
 }

@@ -18,7 +18,7 @@ class Interceptor implements ProxyHandler<any> {
     if (fullPath[0] === "s") {
       const start = this.coverageObj.statementMap[fullPath[1]].start;
       console.log("Statement coverage");
-      universe['_$Bc']("" + start.line, "" + start.column);
+      universe()['_$Bc']("" + start.line, "" + start.column);
     }
     return true;
   }

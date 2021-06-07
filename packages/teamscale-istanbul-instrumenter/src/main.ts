@@ -66,6 +66,7 @@ Main.run().then((result) => {
     console.log(`\tInstrumented from cache: ${result.translatedFromCache}`);
     console.log(`\tAlready instrumented: ${result.alreadyInstrumented}`);
     console.log(`\tUnsupported: ${result.unsupported}`);
+    console.log(`\tFailed: ${result.failed}`);
 }).catch((reason) => {
     console.log("Failed: ", reason);
 }).finally(() => {

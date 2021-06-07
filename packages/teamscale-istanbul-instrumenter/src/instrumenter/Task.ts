@@ -97,6 +97,14 @@ export class InstrumentationTask {
     }
 }
 
+type TaskResultData = {
+    readonly translated: TaskElement[];
+    readonly translatedFromCache: TaskElement[];
+    readonly alreadyInstrumented: TaskElement[];
+    readonly unsupported: TaskElement[];
+    readonly errors: Map<TaskElement, Error>;
+}
+
 export class TaskResult {
 
     private readonly _translated: number;
@@ -107,15 +115,19 @@ export class TaskResult {
 
     private readonly _unsupported: number;
 
-    constructor(translated: number, translatedFromCache: number, alreadyInstrumented: number, unsupported: number) {
+    private readonly _failed: number;
+
+    constructor(translated: number, translatedFromCache: number, alreadyInstrumented: number, unsupported: number, failed: number) {
         Contract.require(translated > -1);
         Contract.require(translatedFromCache > -1);
         Contract.require(alreadyInstrumented > -1);
         Contract.require(unsupported > -1);
+        Contract.require(failed > -1);
         this._translated = translated;
         this._translatedFromCache = translatedFromCache;
         this._alreadyInstrumented = alreadyInstrumented;
         this._unsupported = unsupported;
+        this._failed = failed;
     }
 
     get translated(): number {
@@ -134,17 +146,25 @@ export class TaskResult {
         return this._unsupported;
     }
 
+    get failed(): number {
+        return this._failed;
+    }
+
     public withIncrement(incBy: TaskResult) {
         return new TaskResult(this.translated + incBy.translated,
             this.translatedFromCache + incBy.translatedFromCache,
             this.alreadyInstrumented + incBy.alreadyInstrumented,
-            this.unsupported + incBy.unsupported);
+            this.unsupported + incBy.unsupported,
+            this.failed + incBy.failed);
     }
 
     public static neutral(): TaskResult {
-        return new TaskResult(0, 0, 0, 0);
+        return new TaskResult(0, 0, 0, 0, 0);
     }
 
+    public static error(e: Error): TaskResult {
+        return new TaskResult(0, 0, 0, 0, 1);
+    }
 }
 
 export class SourceMapReference {

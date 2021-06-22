@@ -1,8 +1,17 @@
-import {CollectorSpecifier, InstrumentationTask, TaskElement, TaskResult} from "./Task";
-import {Contract, ImplementMeException} from "@cqse/common-qualities";
-import istanbul = require("istanbul-lib-instrument");
+import {
+    CollectorSpecifier,
+    InstrumentationTask,
+    SourceMapFileReference,
+    SourceMapReference,
+    TaskElement,
+    TaskResult
+} from "./Task";
+import {Contract, IllegalArgumentException, ImplementMeException} from "@cqse/common-qualities";
+import { RawSourceMap } from "source-map";
+import * as istanbul from "istanbul-lib-instrument";
 import * as fs from "fs";
 import path = require ("path");
+import * as convertSourceMap from "convert-source-map";
 
 export const IS_INSTRUMENTED_TOKEN = "/** $IS_TS_AGENT_INSTRUMENTED=true **/"
 
@@ -52,18 +61,21 @@ export class IstanbulInstrumenter implements IInstrumenter {
             throw new ImplementMeException();
         }
 
-        const inputSourceMap = undefined;
+        let finalSourceMap;
         let instrumentedSource;
 
         const configurationAlternatives = this.configurationAlternativesFor(taskElement);
         for (let i=0; i<configurationAlternatives.length; i++) {
             try {
                 const instrumenter = istanbul.createInstrumenter(configurationAlternatives[i]);
+                const inputSourceMap = this.loadInputSoureceMap(inputFileSource, taskElement);
 
                 instrumentedSource = instrumenter
                     .instrumentSync(inputFileSource, taskElement.fromFile, inputSourceMap)
                     .replace(/return actualCoverage/g, "return makeCoverageInterceptor(actualCoverage, actualCoverage, [])")
                     .replace(/new Function\("return this"\)\(\)/g, "typeof window === 'object' ? window : this");
+
+                finalSourceMap = convertSourceMap.fromObject(instrumenter.lastSourceMap()).toComment();
 
                 break;
             } catch (e) {
@@ -78,7 +90,7 @@ export class IstanbulInstrumenter implements IInstrumenter {
             .replace(/\$REPORT_TO_HOST/g, collector.host)
             .replace(/\$REPORT_TO_PORT/g, `${collector.port}`);
 
-        fs.writeFileSync(taskElement.toFile, `${IS_INSTRUMENTED_TOKEN} ${vaccineSource} ${instrumentedSource}`);
+        fs.writeFileSync(taskElement.toFile, `${IS_INSTRUMENTED_TOKEN} ${vaccineSource} ${instrumentedSource} \n${finalSourceMap}`);
 
         return new TaskResult(1, 0, 0, 0, 0);
     }
@@ -91,9 +103,41 @@ export class IstanbulInstrumenter implements IInstrumenter {
     private configurationAlternativesFor(taskElement: TaskElement): {}[] {
         const baseConfig = {
             coverageVariable: '__coverage__',
+            produceSourceMap: true
         };
 
         return [ { ...baseConfig, ...{   esModules: true }},
             { ...baseConfig, ...{   esModules: false }} ];
     }
+
+    private loadInputSoureceMap(inputSource: string, taskElement: TaskElement): RawSourceMap | undefined {
+        if (taskElement.externalSourceMapFile.isPresent()) {
+            const sourceMapOrigin = taskElement.externalSourceMapFile.get();
+            if (!(sourceMapOrigin instanceof SourceMapFileReference)) {
+                throw new IllegalArgumentException("Type of source map not yet supported!");
+            }
+            return sourceMapFromMapFile(sourceMapOrigin.sourceMapFilePath);
+        } else {
+            return sourceMapFromCodeComment(inputSource);
+        }
+    }
+}
+
+export function sourceMapFromCodeComment(sourcecode: string): RawSourceMap | undefined {
+    // Either `//# sourceMappingURL=vendor.5d7ba975.js.map`
+    // or `//# sourceMappingURL=data:application/json;base64,eyJ2ZXJ ...`
+    //
+    // "It is reasonable for tools to also accept “//@” but “//#” is preferred."
+    const re = /\/\/[#@]\s(source(?:Mapping)?URL)=\s*(\S+)/;
+    const matched: RegExpMatchArray | null = re.exec(sourcecode);
+    if (!matched) {
+        return undefined;
+    }
+
+    return convertSourceMap.fromComment(matched[0]).toObject();
+}
+
+export function sourceMapFromMapFile(mapFilePath: string): RawSourceMap | undefined {
+    const content: string = fs.readFileSync(mapFilePath, 'utf8');
+    return JSON.parse(content) as RawSourceMap
 }

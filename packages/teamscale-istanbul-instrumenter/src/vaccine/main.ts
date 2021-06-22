@@ -3,24 +3,26 @@ import DataWorker from 'web-worker:./worker/main.ts';
 import {makeProxy} from "./Interceptor";
 import * as unload from "unload";
 import {getWindow, universe, hasWindow} from "./utils";
+import {MESSAGE_TYPE_SOURCEMAP} from "./protocol";
 
 declare const __coverage__: any;
 
 universe().makeCoverageInterceptor = function(coverage: any, target: any, path: any) {
+    const reported = new Set<string>();
 
     // @ts-ignore
     universe()._$Bc = function (coveredLine: string, coveredColumn: string) {
-
-        // TODO: Do not send lines that have already been sent to reduce the network load
-
-        // if (!seen.has(coveredLine + ':' + coveredColumn)) {
-        worker.postMessage(coveredLine + ":" + coveredColumn);
-        // seen.add(coveredLine + ':' + coveredColumn);
-        // }
+        // Do not send lines that have already been sent to reduce the network load
+        const coverageMessage = coveredLine + ":" + coveredColumn;
+        if (!reported.has(coverageMessage)) {
+            worker.postMessage(coverageMessage);
+            reported.add(coverageMessage);
+        }
     };
 
     if (!universe()._$BcWorker) {
         // Create the worker with the worker code
+        // (we use the tool 'rollup' to produce this object---see rollup.config.js)
         const worker = new DataWorker();
         universe()._$BcWorker = worker;
 
@@ -30,7 +32,9 @@ universe().makeCoverageInterceptor = function(coverage: any, target: any, path: 
             for (const entry of Object.values(__coverage__)) {
                 const entryAny: any = entry;
                 const sourceMap = entryAny.inputSourceMap;
-                worker.postMessage("s" + JSON.stringify(sourceMap));
+                if (sourceMap) {
+                    worker.postMessage(MESSAGE_TYPE_SOURCEMAP + JSON.stringify(sourceMap));
+                }
             }
         })();
 
@@ -69,6 +73,3 @@ universe().makeCoverageInterceptor = function(coverage: any, target: any, path: 
 
     return makeProxy(coverage, target, path);
 }
-
-// const seen = new Set<string>();
-

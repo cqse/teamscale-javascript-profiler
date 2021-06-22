@@ -1,5 +1,7 @@
 import {universe} from "./utils";
 
+const STATEMENT_COVERAGE_ID = "s";
+
 class Interceptor implements ProxyHandler<any> {
 
   constructor(private coverageObj: any, private targetObj: any, private path: any) { }
@@ -7,7 +9,7 @@ class Interceptor implements ProxyHandler<any> {
   get(target: any, prop: any, receiver: any): any {
     const value = target[prop];
     if (value !== Object(value)) {
-      // primitive
+      // Extract the primitive value
       return value;
     }
     return makeProxy(this.coverageObj, value, [...this.path, prop]);
@@ -15,9 +17,9 @@ class Interceptor implements ProxyHandler<any> {
 
   set(obj: any, prop: any, value: any): boolean {
     const fullPath = [...this.path, prop];
-    if (fullPath[0] === "s") {
+    // Handle "Statement" coverage
+    if (fullPath[0] === STATEMENT_COVERAGE_ID) {
       const start = this.coverageObj.statementMap[fullPath[1]].start;
-      console.log("Statement coverage");
       universe()['_$Bc']("" + start.line, "" + start.column);
     }
     return true;

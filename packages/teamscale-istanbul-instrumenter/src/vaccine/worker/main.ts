@@ -1,5 +1,6 @@
 import {CachingSocket} from './CachingSocket';
 import {CoverageAggregator} from './CoverageAggregator';
+import {MESSAGE_TYPE_SOURCEMAP} from "../protocol";
 
 console.log("Starting worker.");
 
@@ -8,17 +9,13 @@ const aggregator = new CoverageAggregator(socket);
 
 onmessage = (event: MessageEvent) => {
     const message = event.data;
-    console.log(`Worker message: ${message}`);
-
-    if (message.startsWith('s')) {
+    if (message.startsWith(MESSAGE_TYPE_SOURCEMAP)) {
         socket.send(message)
     } else if (message === "unload") {
+        // Send all information immediately
         aggregator.flush();
     } else {
+        // Coverage information
         aggregator.add(message);
     }
 };
-
-addEventListener('message', e => {
-    console.log(e.data);
-});

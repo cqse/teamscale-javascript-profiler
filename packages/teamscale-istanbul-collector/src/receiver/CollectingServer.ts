@@ -4,6 +4,9 @@ import {Contract} from "@cqse/common-qualities";
 import {IncomingMessage} from "http";
 import {OpenEvent} from "ws";
 
+const MESSAGE_TYPE_SOURCEMAP = "s";
+const MESSAGE_TYPE_COVERAGE = "c";
+
 export class WebSocketCollectingServer {
 
     private readonly _server: WebSocket.Server;
@@ -21,12 +24,28 @@ export class WebSocketCollectingServer {
         this._server.on('connection', (ws: any, req: IncomingMessage) => {
             console.log(`Connection from: ${req.socket.remoteAddress}`);
             ws.on('message', (message: any) => {
-                console.log(`Received message: ${message}`)
+                this.handleMessage(req, message);
             })
         })
     }
 
     public stop(): void {
+    }
+
+    private handleMessage(reqest: IncomingMessage, message: string): void {
+        if (message.startsWith(MESSAGE_TYPE_SOURCEMAP)) {
+            this.handleSourcemap(message.substring(1));
+        } else if (message.startsWith(MESSAGE_TYPE_COVERAGE)) {
+            this.handleCoverage(message.substring(1));
+        }
+    }
+
+    private handleSourcemap(sourcemap: string) {
+        console.log("Sourcemap received");
+    }
+
+    private handleCoverage(coverage: string) {
+        console.log("Coverage received");
     }
 }
 

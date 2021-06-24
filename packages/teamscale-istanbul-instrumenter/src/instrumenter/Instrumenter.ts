@@ -75,6 +75,7 @@ export class IstanbulInstrumenter implements IInstrumenter {
                     .replace(/return actualCoverage/g, "return makeCoverageInterceptor(actualCoverage, actualCoverage, [])")
                     .replace(/new Function\("return this"\)\(\)/g, "typeof window === 'object' ? window : this");
 
+                console.log("Instrumentation source maps to:", instrumenter.lastSourceMap().sources);
                 finalSourceMap = convertSourceMap.fromObject(instrumenter.lastSourceMap()).toComment();
 
                 break;

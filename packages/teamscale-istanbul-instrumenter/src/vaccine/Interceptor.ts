@@ -19,8 +19,9 @@ class Interceptor implements ProxyHandler<any> {
     const fullPath = [...this.path, prop];
     // Handle "Statement" coverage
     if (fullPath[0] === STATEMENT_COVERAGE_ID) {
+      const fileId = this.coverageObj.hash;
       const start = this.coverageObj.statementMap[fullPath[1]].start;
-      universe()['_$Bc']("" + start.line, "" + start.column);
+      universe()['_$Bc'](fileId, start.line, start.column);
     }
     return true;
   }

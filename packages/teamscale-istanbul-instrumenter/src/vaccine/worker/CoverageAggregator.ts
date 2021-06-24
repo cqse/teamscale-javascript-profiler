@@ -1,30 +1,56 @@
 import { CachingSocket } from "./CachingSocket";
 
+/**
+ * Is supposed to exist once per app and might deal with
+ * different JavaScript files that were instrumented upfront.
+ */
 export class CoverageAggregator {
 
-  private cachedCoverage: string = "";
-  private numberOfCacheLines = 0;
-  private debounce = new Debounce(1000, () => this.flush());
+  private socket: CachingSocket;
+  private cachedCoveredPositions: Map<string, Set<string>>;
+  private numberOfCachedPositions: number;
+  private debounce: Debounce;
 
-  constructor(private socket: CachingSocket) {}
+  constructor(socket: CachingSocket) {
+    this.socket = socket;
+    this.cachedCoveredPositions = new Map();
+    this.numberOfCachedPositions = 0;
+    this.debounce = new Debounce(1000, () => this.flush());
+  }
 
-  add(coveredLine: string) {
-    this.cachedCoverage += coveredLine + "\n";
-    this.numberOfCacheLines += 1;
+  add(positionCoverageInfo: string) {
+    const parts = positionCoverageInfo.split(":");
+    if (parts.length != 3) {
+      return;
+    }
+
+    const [fileId, line, column] = parts;
+    let coveredPositions: Set<string>|undefined = this.cachedCoveredPositions.get(fileId);
+    if (!coveredPositions) {
+      coveredPositions = new Set();
+      this.cachedCoveredPositions.set(fileId, coveredPositions);
+    }
+    coveredPositions.add(`${line}:${column}`);
+
+    this.numberOfCachedPositions += 1;
     this.debounce.input();
-    if (this.numberOfCacheLines >= 20) {
+    if (this.numberOfCachedPositions >= 20) {
       this.flush();
     }
   }
 
   flush() {
-    if (this.numberOfCacheLines == 0) {
+    if (this.numberOfCachedPositions == 0) {
       return;
     }
+
     this.debounce.reset();
-    this.socket.send('c' + this.cachedCoverage);
-    this.cachedCoverage = "";
-    this.numberOfCacheLines = 0;
+    this.cachedCoveredPositions.forEach((positionSet, fileId) => {
+      this.socket.send(`c ${fileId} ${Array.from(positionSet).join(" ")}`);
+    });
+
+    this.cachedCoveredPositions = new Map();
+    this.numberOfCachedPositions = 0;
   }
 }
 

@@ -1,18 +1,24 @@
 
 export interface IDataStorage {
 
-    putSourceMap(): void;
+    putCoverage(project: string, sourceFilePath: string, coveredOriginalLines: number[]): void;
 
-    putCoverage(): void;
+    singalUnmappedCoverage(): void;
 
 }
 
 export class DataStorage implements IDataStorage {
 
-    putCoverage(): void {
+    public putCoverage(project: string, sourceFilePath: string, coveredOriginalLines: number[]): void {
+        const uniformPath = this.makeUniformPath(sourceFilePath);
+        // console.log(`Final Coverage: ${project} ${uniformPath} ${coveredOriginalLines}`);
     }
 
-    putSourceMap(): void {
+    private makeUniformPath(path: string): string {
+        return path.replace("\\", "/");
+    }
+
+    singalUnmappedCoverage(): void {
     }
 
 }

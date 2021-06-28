@@ -1,10 +1,8 @@
 import * as WebSocket from "ws";
-import {DataStorage, IDataStorage} from "../storage/DataStorage";
+import {IDataStorage} from "../storage/DataStorage";
 import {Contract} from "@cqse/common-qualities";
 import {IncomingMessage} from "http";
-import {OpenEvent} from "ws";
 import {Session} from "./Session";
-import {isMainThread} from "worker_threads";
 
 const MESSAGE_TYPE_SOURCEMAP = "s";
 const MESSAGE_TYPE_COVERAGE = "c";
@@ -22,7 +20,7 @@ export class WebSocketCollectingServer {
     }
 
     public start(): void {
-        console.log(`Starting server on port ${this._server.options.port}`);
+        console.log(`Starting server on port ${this._server.options.port}.`);
         this._server.on('connection', (webSocket: WebSocket, req: IncomingMessage) => {
             const session = new Session(req.socket, this._storage);
             console.log(`Connection from: ${req.socket.remoteAddress}`);
@@ -43,10 +41,10 @@ export class WebSocketCollectingServer {
     }
 
     private handleSourcemapMessage(session: Session, body: string) {
-        const fileIdSeperatorPosition = body.indexOf(":");
-        if (fileIdSeperatorPosition > -1) {
-            const fileId = body.substring(0, fileIdSeperatorPosition).trim();
-            const sourcemap = body.substring(fileIdSeperatorPosition+1);
+        const fileIdSeparatorPosition = body.indexOf(":");
+        if (fileIdSeparatorPosition > -1) {
+            const fileId = body.substring(0, fileIdSeparatorPosition).trim();
+            const sourcemap = body.substring(fileIdSeparatorPosition+1);
             session.putSourcemap(fileId, sourcemap);
         }
     }

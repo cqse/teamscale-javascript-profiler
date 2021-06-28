@@ -30,7 +30,7 @@ export class Session {
         if (originalPosition.line && originalPosition.source) {
             this._storage.putCoverage("", originalPosition.source, [originalPosition.line]);
         } else {
-            this._storage.singalUnmappedCoverage();
+            this._storage.signalUnmappedCoverage();
         }
     }
 

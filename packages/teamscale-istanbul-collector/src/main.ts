@@ -1,6 +1,8 @@
 import {ArgumentParser} from "argparse";
 import {WebSocketCollectingServer} from "./receiver/CollectingServer";
 import {DataStorage} from "./storage/DataStorage";
+import {CoveragePersisterBase} from "./storage/CoveragePersiterBase";
+import {SimpleCoveragePersister} from "./storage/SimpleCoveragePersister";
 
 const { version } = require('../package.json');
 
@@ -19,6 +21,7 @@ export class Main {
   }
 
   public static run(): void {
+    console.log(`Starting collector in working directory "${process.cwd()}".`)
     const parser: ArgumentParser= this.buildParser();
     const config = parser.parse_args();
 
@@ -26,6 +29,14 @@ export class Main {
     const server = new WebSocketCollectingServer(config.port, storage);
     server.start();
     // ATTENTION: The server is executed asynchronously
+
+    process.on('SIGINT', function() {
+      console.log("\nCaught interrupt signal. Writing latest coverage.");
+      storage.writeToSimpleCoverageFile(config.dump_to_file);
+
+      console.log("Bye bye.")
+      process.exit();
+    });
   }
 
 }

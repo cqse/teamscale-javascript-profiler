@@ -7,14 +7,24 @@ import {MESSAGE_TYPE_SOURCEMAP} from "./protocol";
 
 declare const __coverage__: any;
 
+const globalAgentObject = universe().__TS_AGENT = universe().__TS_AGENT ?? {};
+
 universe().makeCoverageInterceptor = function(coverage: any, target: any, path: any) {
     const fileId = coverage.hash;
 
-    if (!universe()._$BcWorker) {
+    const getWorker = () => {
+        return globalAgentObject._$BcWorker;
+    }
+
+    const setWorker = (worker: any): any => {
+        globalAgentObject._$BcWorker = worker;
+        return worker;
+    }
+
+    if (!getWorker()) {
         // Create the worker with the worker code
         // (we use the tool 'rollup' to produce this object---see rollup.config.js)
-        const worker = new DataWorker();
-        universe()._$BcWorker = worker;
+        const worker = setWorker(new DataWorker());
 
         (function handleUnloading() {
             const protectWindowEvent = function (name: string) {
@@ -47,30 +57,31 @@ universe().makeCoverageInterceptor = function(coverage: any, target: any, path: 
 
             unload.add(() => worker.postMessage("unload"));
         })();
-
-        (function sendSourceMaps() {
-            // Send the source maps (for each of the files described in the coverage map?)
-            // Optimization: The source map for a particular file might have already been sent.
-            for (const key of Object.keys(__coverage__)) {
-                const value: any = __coverage__[key];
-                const sourceMap = value.inputSourceMap;
-                if (sourceMap) {
-                    worker.postMessage(`${MESSAGE_TYPE_SOURCEMAP} ${fileId}:${JSON.stringify(sourceMap)}`);
-                }
-            }
-        })();
     }
 
-    const worker = universe()._$BcWorker;
+    (function sendSourceMaps() {
+        // Send the source maps
+        const sentMaps = globalAgentObject.sentMaps = globalAgentObject.sentMaps ?? new Set();
+        for (const key of Object.keys(__coverage__)) {
+            const value: any = __coverage__[key];
+            const sourceMap = value.inputSourceMap;
+            if (!sentMaps.has(key)) {
+                if (sourceMap) {
+                    getWorker().postMessage(`${MESSAGE_TYPE_SOURCEMAP} ${fileId}:${JSON.stringify(sourceMap)}`);
+                    sentMaps.add(key);
+                }
+            }
+        }
+    })();
 
     // @ts-ignore
     (function registerCoverageReporter() {
         const reported = new Set<string>();
-        universe()._$Bc = function (fileId: string, coveredLine: number, coveredColumn: number) {
+        universe()._$Bc = (fileId: string, coveredLine: number, coveredColumn: number) => {
             // Do not send lines that have already been sent to reduce the network load
             const coverageMessage = `${fileId}:${coveredLine}:${coveredColumn}`;
             if (!reported.has(coverageMessage)) {
-                worker.postMessage(coverageMessage);
+                getWorker().postMessage(coverageMessage);
                 reported.add(coverageMessage);
             }
         };

@@ -80,6 +80,7 @@ export class IstanbulInstrumenter implements IInstrumenter {
 
                 break;
             } catch (e) {
+                console.error(e);
                 if (i == configurationAlternatives.length-1) {
                     fs.writeFileSync(taskElement.toFile, inputFileSource);
                     return TaskResult.error(e);
@@ -119,12 +120,12 @@ export class IstanbulInstrumenter implements IInstrumenter {
             }
             return sourceMapFromMapFile(sourceMapOrigin.sourceMapFilePath);
         } else {
-            return sourceMapFromCodeComment(inputSource);
+            return sourceMapFromCodeComment(inputSource, taskElement.fromFile);
         }
     }
 }
 
-export function sourceMapFromCodeComment(sourcecode: string): RawSourceMap | undefined {
+export function sourceMapFromCodeComment(sourcecode: string, sourceFilePath: string): RawSourceMap | undefined {
     // Either `//# sourceMappingURL=vendor.5d7ba975.js.map`
     // or `//# sourceMappingURL=data:application/json;base64,eyJ2ZXJ ...`
     //
@@ -135,7 +136,12 @@ export function sourceMapFromCodeComment(sourcecode: string): RawSourceMap | und
         return undefined;
     }
 
-    return convertSourceMap.fromComment(matched[0]).toObject();
+    const sourceMapComment: string = matched[0];
+    if (sourceMapComment.slice(0, 50).indexOf("data:application/json") > 0) {
+        return convertSourceMap.fromComment(sourceMapComment).toObject();
+    } else {
+        return convertSourceMap.fromMapFileComment(sourceMapComment, path.dirname(sourceFilePath)).toObject();
+    }
 }
 
 export function sourceMapFromMapFile(mapFilePath: string): RawSourceMap | undefined {

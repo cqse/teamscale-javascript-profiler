@@ -2,12 +2,12 @@
 import DataWorker from 'web-worker:./worker/main.ts';
 import {makeProxy} from "./Interceptor";
 import * as unload from "unload";
-import {getWindow, universe, hasWindow} from "./utils";
+import {getWindow, universe, hasWindow, universeAttribute} from "./utils";
 import {MESSAGE_TYPE_SOURCEMAP} from "./protocol";
 
 declare const __coverage__: any;
 
-const globalAgentObject = universe().__TS_AGENT = universe().__TS_AGENT ?? {};
+const globalAgentObject: any = universeAttribute('__TS_AGENT', {});
 
 universe().makeCoverageInterceptor = function(coverage: any, target: any, path: any) {
     const fileId = coverage.hash;
@@ -61,7 +61,7 @@ universe().makeCoverageInterceptor = function(coverage: any, target: any, path: 
 
     (function sendSourceMaps() {
         // Send the source maps
-        const sentMaps = globalAgentObject.sentMaps = globalAgentObject.sentMaps ?? new Set();
+        const sentMaps = universeAttribute('sentMaps', new Set());
         for (const key of Object.keys(__coverage__)) {
             const value: any = __coverage__[key];
             const sourceMap = value.inputSourceMap;

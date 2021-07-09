@@ -1,6 +1,7 @@
 {
   "private": true,
   "name": "teamscale-istanbul-agent",
+  "files": [],
   "workspaces": [
     "packages/*"
   ]

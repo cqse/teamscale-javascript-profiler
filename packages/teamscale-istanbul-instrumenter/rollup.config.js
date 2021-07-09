@@ -12,7 +12,7 @@ export default [{
   ],
   output: {
     file: 'dist/vaccine.js',
-    format: 'cjs'
+    format: 'iife'
   }
 }];
 

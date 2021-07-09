@@ -22,3 +22,12 @@ export function hasWindow(): boolean {
 export function getWindow(): any {
     return window;
 }
+
+export function universeAttribute<T>(attributeName: string, defaultValue: T): T {
+    let result = universe()[attributeName];
+    if (!result) {
+        result = defaultValue;
+        universe()[attributeName] = result;
+    }
+    return result;
+}

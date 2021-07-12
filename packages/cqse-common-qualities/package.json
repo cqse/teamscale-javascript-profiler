@@ -1,10 +1,10 @@
 {
-  "name": "@cqse/common-qualities",
-  "version": "0.0.1",
+  "name": "@cqse/common-qualities",  
+  "version": "0.0.1-alpha.0",
   "description": "A collection of generic functionality for TypeScript projects.",
   "author": "CQSE GmbH",
   "main": "lib/index.js",
-  "license": "None",
+  "license": "Apache-2.0",
   "scripts": {
     "build": "npx tsc --declaration",
     "test": "yarn build && jest --forceExit --coverage --silent=true"

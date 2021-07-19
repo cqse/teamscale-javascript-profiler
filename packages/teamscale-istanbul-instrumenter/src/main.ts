@@ -1,3 +1,5 @@
+#!/usr/bin/env node
+
 import {ArgumentParser} from "argparse";
 import {InstrumentationTask, TaskResult} from "./instrumenter/Task";
 import {IInstrumenter, IstanbulInstrumenter} from "./instrumenter/Instrumenter";

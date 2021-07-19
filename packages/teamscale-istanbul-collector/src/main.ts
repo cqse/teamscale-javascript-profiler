@@ -1,3 +1,5 @@
+#!/usr/bin/env node
+
 import {ArgumentParser} from "argparse";
 import {WebSocketCollectingServer} from "./receiver/CollectingServer";
 import {DataStorage} from "./storage/DataStorage";

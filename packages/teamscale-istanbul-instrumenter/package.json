@@ -40,7 +40,7 @@
     "typescript-optional": "^2.0.1"
   },
   "dependencies": {
-    "@cqse/common-qualities": "0.0.1",
+    "@cqse/common-qualities": "0.0.1-alpha.0",
     "argparse": "^2.0.1",
     "async": "^3.2.0",
     "convert-source-map": "^1.7.0",

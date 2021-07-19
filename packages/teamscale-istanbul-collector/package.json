@@ -1,6 +1,6 @@
 {
   "name": "@teamscale/istanbul-collector",
-  "version": "0.0.1-alpha.1",
+  "version": "0.0.1-alpha.2",
   "description": "Collector for JavaScript code coverage information",
   "main": "dist/main.js",
   "bin": "dist/main.js",
@@ -13,7 +13,9 @@
     "serve": "node dist/main.js",
     "test": "yarn build && jest --forceExit --coverage --silent=true"
   },
-  "files": ["dist/**/*"],
+  "files": [
+    "dist/**/*"
+  ],
   "dependencies": {
     "argparse": "^2.0.1",
     "async": "^3.2.0",
@@ -24,7 +26,7 @@
   "devDependencies": {
     "@babel/core": "^7.14.0",
     "@babel/preset-env": "^7.14.1",
-    "@cqse/common-qualities": "0.0.1-alpha.1",
+    "@cqse/common-qualities": "0.0.1-alpha.2",
     "@types/argparse": "^2.0.5",
     "@types/async": "^3.2.6",
     "@types/jest": "^26.0.23",

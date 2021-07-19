@@ -1,6 +1,6 @@
 {
   "name": "@teamscale/istanbul-instrumenter",
-  "version": "0.0.1-alpha.0",
+  "version": "0.0.1-alpha.2",
   "description": "Istanbul-based coverage instrumenter with coverage forwarding via WebSockets",
   "main": "dist/main.js",
   "bin": "dist/main.js",
@@ -13,7 +13,9 @@
     "run": "node src/main.js",
     "test": "yarn build && jest --forceExit --coverage --silent=true"
   },
-  "files": ["dist/**/*"],
+  "files": [
+    "dist/**/*"
+  ],
   "devDependencies": {
     "@babel/core": "^7.14.0",
     "@babel/preset-env": "^7.14.1",

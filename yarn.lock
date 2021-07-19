@@ -895,6 +895,11 @@
     exec-sh "^0.3.2"
     minimist "^1.2.0"
 
+"@cqse/common-qualities@0.0.1-alpha.0":
+  version "0.0.1-alpha.0"
+  resolved "https://registry.yarnpkg.com/@cqse/common-qualities/-/common-qualities-0.0.1-alpha.0.tgz#eec1a82cfd9ccbc7259e76f0c384884f4085e064"
+  integrity sha512-zeaeDVOPDBhPfLbMgORC163MzAUT7xJiMQu6Am51wjnm7n3inJLYTNmIambYs23bDzhdBeKJbFVK1WdObzYkIQ==
+
 "@istanbuljs/load-nyc-config@^1.0.0":
   version "1.1.0"
   resolved "https://registry.yarnpkg.com/@istanbuljs/load-nyc-config/-/load-nyc-config-1.1.0.tgz#fd3db1d59ecf7cf121e80650bb86712f9b55eced"

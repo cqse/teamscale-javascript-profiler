@@ -53,5 +53,8 @@
     "source-map": "0.6.1",
     "unload": "^2.2.0",
     "web-worker": "^1.0.0"
+  },
+  "publishConfig": {
+    "access": "public"
   }
 }

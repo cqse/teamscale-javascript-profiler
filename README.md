@@ -31,6 +31,6 @@ npm login
 Publish the chosen package using the following command:
 
 ```
-npm publish --access=public
+yarn publish
 ```
 

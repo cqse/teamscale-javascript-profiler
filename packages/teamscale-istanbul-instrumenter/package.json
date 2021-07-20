@@ -1,6 +1,6 @@
 {
   "name": "@teamscale/istanbul-instrumenter",
-  "version": "0.0.1-alpha.4",
+  "version": "0.0.1-alpha.5",
   "description": "Istanbul-based coverage instrumenter with coverage forwarding via WebSockets",
   "main": "dist/main.js",
   "bin": "dist/main.js",
@@ -43,13 +43,14 @@
   },
   "dependencies": {
     "@cqse/common-qualities": "0.0.1-alpha.2",
+    "@types/micromatch": "^4.0.2",
     "argparse": "^2.0.1",
     "async": "^3.2.0",
     "convert-source-map": "^1.7.0",
     "foreground-child": "^2.0.0",
     "glob": "^7.1.7",
-    "isomorphic-ws": "^4.0.1",
     "istanbul-lib-instrument": "^4.0.0",
+    "micromatch": "4.0.4",
     "mkdirp": "^1.0.4",
     "nyc": "^15.1.0",
     "source-map": "0.6.1",

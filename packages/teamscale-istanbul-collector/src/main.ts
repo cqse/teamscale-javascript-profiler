@@ -18,6 +18,7 @@ export class Main {
     parser.add_argument('-v', '--version', {action: 'version', version});
     parser.add_argument('-p', '--port', {help: 'The port to receive coverage information on.', default: 54678});
     parser.add_argument('-f', '--dump-to-file', {help: 'Target file', default: "./coverage.simple"});
+    parser.add_argument('-t', '--print-on-terminal', {help: 'Print received coverage information to the terminal?', default: false});
 
     return parser;
   }
@@ -27,7 +28,7 @@ export class Main {
     const parser: ArgumentParser= this.buildParser();
     const config = parser.parse_args();
 
-    const storage = new DataStorage();
+    const storage = new DataStorage(config.print_on_terminal);
     const server = new WebSocketCollectingServer(config.port, storage);
     server.start();
     // ATTENTION: The server is executed asynchronously

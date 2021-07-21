@@ -68,8 +68,11 @@ export class DataStorage implements IDataStorage {
 
     private readonly _coverageByProject: Map<string, ProjectCoverage>;
 
-    constructor() {
+    private readonly _enableDebugOutput: boolean;
+
+    constructor(enableDebugOutput: boolean) {
         this._coverageByProject = new Map<string, ProjectCoverage>();
+        this._enableDebugOutput = enableDebugOutput;
     }
 
     public putCoverage(project: string, sourceFilePath: string, coveredOriginalLines: number[]): void {
@@ -80,7 +83,10 @@ export class DataStorage implements IDataStorage {
             this._coverageByProject.set(project, projectCoverage);
         }
         coveredOriginalLines.forEach((line) => projectCoverage?.putLine(sourceFilePath, line));
-        console.log(`Mapped Coverage: ${project} ${uniformPath} ${coveredOriginalLines}`);
+
+        if (this._enableDebugOutput) {
+            console.log(`Mapped Coverage: ${project} ${uniformPath} ${coveredOriginalLines}`);
+        }
     }
 
     private makeUniformPath(path: string): string {
@@ -129,6 +135,5 @@ export class DataStorage implements IDataStorage {
     getProjects(): string[] {
         return Array.from(this._coverageByProject.keys());
     }
-
 
 }

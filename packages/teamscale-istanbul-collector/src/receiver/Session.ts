@@ -46,7 +46,6 @@ export class Session {
 
     public putSourcemap(fileId: string, infos: string): void {
         const rawSourceMap = JSON.parse(infos);
-        console.log(`Sourcemap received for ${rawSourceMap['file']}, mappings to:`, rawSourceMap.sources);
         new sourceMap.SourceMapConsumer(rawSourceMap)
             .then((consumer) => {
                 this._sourceMaps.set(fileId, consumer);

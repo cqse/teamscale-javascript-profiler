@@ -3,12 +3,16 @@ import DataWorker from 'web-worker:./worker/main.ts';
 import {makeProxy} from "./Interceptor";
 import * as unload from "unload";
 import {getWindow, universe, hasWindow, universeAttribute} from "./utils";
-import {MESSAGE_TYPE_SOURCEMAP} from "./protocol";
+import {ProtocolMessageTypes} from "./protocol";
 
 declare const __coverage__: any;
 
 const globalAgentObject: any = universeAttribute('__TS_AGENT', {});
 
+/**
+ * The function that intercepts changes to the Istanbul code coverage.
+ * Also the Web worker to forward the coverage information is started.
+ */
 universe().makeCoverageInterceptor = function(coverage: any, target: any, path: any) {
     const fileId = coverage.hash;
 
@@ -67,7 +71,7 @@ universe().makeCoverageInterceptor = function(coverage: any, target: any, path: 
             const sourceMap = value.inputSourceMap;
             if (!sentMaps.has(key)) {
                 if (sourceMap) {
-                    getWorker().postMessage(`${MESSAGE_TYPE_SOURCEMAP} ${fileId}:${JSON.stringify(sourceMap)}`);
+                    getWorker().postMessage(`${ProtocolMessageTypes.MESSAGE_TYPE_SOURCEMAP} ${fileId}:${JSON.stringify(sourceMap)}`);
                     sentMaps.add(key);
                 }
             }

@@ -1,5 +1,6 @@
 import {Optional} from "typescript-optional";
-import {Contract} from "@cqse/common-qualities";
+import {Contract, ImplementMeException} from "@cqse/common-qualities";
+import * as matching from "micromatch";
 
 export class TaskElement {
 
@@ -55,6 +56,34 @@ export class CollectorSpecifier {
     }
 }
 
+export class OriginSourcePattern {
+
+    private readonly _include: string | undefined;
+
+    private readonly _exclude: string | undefined;
+
+    constructor(include: string | undefined, exclude: string | undefined) {
+        this._include = include;
+        this._exclude = exclude;
+    }
+
+    public isAnyIncluded(originFiles: string[]): boolean {
+        if (this._exclude) {
+            const matchedToExclude = matching.match(originFiles, this._exclude);
+            if (originFiles.length == matchedToExclude.length) {
+                return false;
+            }
+        }
+
+        if (this._include) {
+            const matchedToInclude = matching.match(originFiles, this._include ?? "**");
+            return matchedToInclude.length > 0;
+        }
+
+        return true;
+    }
+}
+
 export class TaskParameters {
 
     private readonly _useCache: Optional<string>;
@@ -81,9 +110,12 @@ export class InstrumentationTask {
 
     private readonly _elements: TaskElement[];
 
-    constructor(collector: CollectorSpecifier, elements: TaskElement[]) {
+    private readonly _originSourcePattern: OriginSourcePattern;
+
+    constructor(collector: CollectorSpecifier, elements: TaskElement[], originSourcePattern: OriginSourcePattern) {
         this._collector = Contract.requireDefined(collector);
         this._elements = Contract.requireDefined(elements).slice();
+        this._originSourcePattern = Contract.requireDefined(originSourcePattern);
     }
 
     get elements(): TaskElement[] {
@@ -94,6 +126,10 @@ export class InstrumentationTask {
 
     get collector(): CollectorSpecifier {
         return this._collector;
+    }
+
+    get originSourcePattern(): OriginSourcePattern {
+        return this._originSourcePattern;
     }
 }
 
@@ -117,17 +153,22 @@ export class TaskResult {
 
     private readonly _failed: number;
 
-    constructor(translated: number, translatedFromCache: number, alreadyInstrumented: number, unsupported: number, failed: number) {
+    private readonly _warnings: number;
+
+    constructor(translated: number, translatedFromCache: number, alreadyInstrumented: number, unsupported: number,
+                failed: number, warnings: number) {
         Contract.require(translated > -1);
         Contract.require(translatedFromCache > -1);
         Contract.require(alreadyInstrumented > -1);
         Contract.require(unsupported > -1);
         Contract.require(failed > -1);
+        Contract.require(warnings > -1);
         this._translated = translated;
         this._translatedFromCache = translatedFromCache;
         this._alreadyInstrumented = alreadyInstrumented;
         this._unsupported = unsupported;
         this._failed = failed;
+        this._warnings = warnings;
     }
 
     get translated(): number {
@@ -150,20 +191,30 @@ export class TaskResult {
         return this._failed;
     }
 
+    get warnings(): number {
+        return this._warnings;
+    }
+
     public withIncrement(incBy: TaskResult) {
         return new TaskResult(this.translated + incBy.translated,
             this.translatedFromCache + incBy.translatedFromCache,
             this.alreadyInstrumented + incBy.alreadyInstrumented,
             this.unsupported + incBy.unsupported,
-            this.failed + incBy.failed);
+            this.failed + incBy.failed,
+            this.warnings + incBy.warnings);
     }
 
     public static neutral(): TaskResult {
-        return new TaskResult(0, 0, 0, 0, 0);
+        return new TaskResult(0, 0, 0, 0, 0, 0);
     }
 
     public static error(e: Error): TaskResult {
-        return new TaskResult(0, 0, 0, 0, 1);
+        return new TaskResult(0, 0, 0, 0, 1, 0);
+    }
+
+    public static warning(msg: string): TaskResult {
+        console.error(msg);
+        return new TaskResult(0, 0, 0, 0, 0, 1);
     }
 }
 

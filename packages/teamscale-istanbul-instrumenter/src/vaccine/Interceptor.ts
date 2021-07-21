@@ -28,6 +28,9 @@ class Interceptor implements ProxyHandler<any> {
 
 }
 
+/**
+ * Constructs the actual interceptor/proxy that forwards changed coverage information.
+ */
 export function makeProxy(coverage: any, target: any, path: any) {
   return new Proxy(target, new Interceptor(coverage, target, path));
 }

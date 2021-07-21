@@ -18,6 +18,18 @@ yarn build
 
 ## Workflow Integration
 
+There are several options to run the Instrumenter. For example, via `yarn` by running
+
+```
+yarn run
+```
+
+or via `npx` by running
+
+```
+npx @teamscale/istanbul-instrumenter
+```
+
 ### Instrumenting a Single File
 
 Adds information for coverage tracking to a single file, either

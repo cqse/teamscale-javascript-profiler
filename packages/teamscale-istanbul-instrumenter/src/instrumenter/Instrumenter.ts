@@ -1,6 +1,6 @@
 import {
     CollectorSpecifier,
-    InstrumentationTask,
+    InstrumentationTask, OriginSourcePattern,
     SourceMapFileReference,
     SourceMapReference,
     TaskElement,
@@ -10,7 +10,7 @@ import {Contract, IllegalArgumentException, ImplementMeException} from "@cqse/co
 import { RawSourceMap } from "source-map";
 import * as istanbul from "istanbul-lib-instrument";
 import * as fs from "fs";
-import path = require ("path");
+import * as path from "path";
 import * as convertSourceMap from "convert-source-map";
 
 export const IS_INSTRUMENTED_TOKEN = "/** $IS_TS_AGENT_INSTRUMENTED=true **/"
@@ -27,7 +27,7 @@ export class IstanbulInstrumenter implements IInstrumenter {
 
     constructor(vaccineFilePath: string) {
         this._vaccineFilePath = Contract.requireNonEmpty(vaccineFilePath);
-        Contract.require(fs.existsSync(vaccineFilePath), `The vaccine file to inject must exist!\nCWD:${process.cwd()}`);
+        Contract.require(fs.existsSync(vaccineFilePath), `The vaccine file to inject "${vaccineFilePath}" must exist!\nCWD:${process.cwd()}`);
     }
 
     instrument(task: InstrumentationTask): Promise<TaskResult> {
@@ -35,24 +35,23 @@ export class IstanbulInstrumenter implements IInstrumenter {
 
         // TODO: Do this concurrently with a set of workers.
         const result = task.elements
-            .map((e) => this.instrumentOne(task.collector, e))
+            .map((e) => this.instrumentOne(task.collector, e, task.originSourcePattern))
             .reduce((prev, current) => current.withIncrement(prev), TaskResult.neutral());
         return Promise.resolve(result);
     }
 
-    instrumentOne(collector: CollectorSpecifier, taskElement: TaskElement): TaskResult {
+    instrumentOne(collector: CollectorSpecifier, taskElement: TaskElement, sourcePattern: OriginSourcePattern): TaskResult {
         const inputFileSource = fs.readFileSync(taskElement.fromFile, 'utf8');
 
         if (inputFileSource.startsWith(IS_INSTRUMENTED_TOKEN)) {
-            if (taskElement.isInPlace()) {
-                return new TaskResult(0, 0, 1, 0, 0);
-            } else {
+            if (!taskElement.isInPlace()) {
                 fs.writeFileSync(taskElement.toFile, inputFileSource);
             }
+            return new TaskResult(0, 0, 1, 0, 0, 0);
         }
 
         if (!this.isFileTypeSupported(taskElement.fromFile)) {
-            return new TaskResult(0, 0, 0, 1, 0);
+            return new TaskResult(0, 0, 0, 1, 0, 0);
         }
 
         console.log(path.basename(taskElement.fromFile));
@@ -66,9 +65,10 @@ export class IstanbulInstrumenter implements IInstrumenter {
 
         const configurationAlternatives = this.configurationAlternativesFor(taskElement);
         for (let i=0; i<configurationAlternatives.length; i++) {
+            let inputSourceMap;
             try {
                 const instrumenter = istanbul.createInstrumenter(configurationAlternatives[i]);
-                const inputSourceMap = this.loadInputSoureceMap(inputFileSource, taskElement);
+                inputSourceMap = this.loadInputSourceMap(inputFileSource, taskElement);
 
                 instrumentedSource = instrumenter
                     .instrumentSync(inputFileSource, taskElement.fromFile, inputSourceMap)
@@ -76,12 +76,20 @@ export class IstanbulInstrumenter implements IInstrumenter {
                     .replace(/new Function\("return this"\)\(\)/g, "typeof window === 'object' ? window : this");
 
                 console.log("Instrumentation source maps to:", instrumenter.lastSourceMap().sources);
+
+                if (this.shouldExcludeFromInstrumentation(sourcePattern, taskElement.fromFile, instrumenter.lastSourceMap().sources)) {
+                    fs.writeFileSync(taskElement.toFile, inputFileSource);
+                    return new TaskResult(1, 0, 0, 0, 0, 0);
+                }
+
                 finalSourceMap = convertSourceMap.fromObject(instrumenter.lastSourceMap()).toComment();
 
                 break;
             } catch (e) {
-                console.error(e);
                 if (i == configurationAlternatives.length-1) {
+                    if (!inputSourceMap) {
+                        return TaskResult.warning(`Failed loading input source map for ${taskElement.fromFile}: ${e.message}`);
+                    }
                     fs.writeFileSync(taskElement.toFile, inputFileSource);
                     return TaskResult.error(e);
                 }
@@ -94,7 +102,11 @@ export class IstanbulInstrumenter implements IInstrumenter {
 
         fs.writeFileSync(taskElement.toFile, `${IS_INSTRUMENTED_TOKEN} ${vaccineSource} ${instrumentedSource} \n${finalSourceMap}`);
 
-        return new TaskResult(1, 0, 0, 0, 0);
+        return new TaskResult(1, 0, 0, 0, 0, 0);
+    }
+
+    private shouldExcludeFromInstrumentation(pattern: OriginSourcePattern, sourcefile: string, originSourcefiles: string[]): boolean {
+        return !pattern.isAnyIncluded(originSourcefiles);
     }
 
     private isFileTypeSupported(fileName: string) {
@@ -112,7 +124,7 @@ export class IstanbulInstrumenter implements IInstrumenter {
             { ...baseConfig, ...{   esModules: false }} ];
     }
 
-    private loadInputSoureceMap(inputSource: string, taskElement: TaskElement): RawSourceMap | undefined {
+    private loadInputSourceMap(inputSource: string, taskElement: TaskElement): RawSourceMap | undefined {
         if (taskElement.externalSourceMapFile.isPresent()) {
             const sourceMapOrigin = taskElement.externalSourceMapFile.get();
             if (!(sourceMapOrigin instanceof SourceMapFileReference)) {

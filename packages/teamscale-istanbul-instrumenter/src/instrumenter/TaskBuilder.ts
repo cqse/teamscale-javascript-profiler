@@ -1,4 +1,11 @@
-import {CollectorSpecifier, InstrumentationTask, SourceMapFileReference, SourceMapReference, TaskElement} from "./Task";
+import {
+    CollectorSpecifier,
+    InstrumentationTask,
+    OriginSourcePattern,
+    SourceMapFileReference,
+    SourceMapReference,
+    TaskElement
+} from "./Task";
 import {Contract, ImplementMeException, InvalidConfigurationException} from "@cqse/common-qualities";
 import glob = require ("glob");
 import fs = require ("fs");
@@ -11,6 +18,10 @@ export class TaskBuilder {
 
     private _collector: CollectorSpecifier | null;
 
+    private _originSourceIncludePattern: string | undefined;
+
+    private _originSourceExcludePattern: string | undefined;
+
     constructor() {
         this._elements = [];
         this._collector = null;
@@ -19,6 +30,16 @@ export class TaskBuilder {
     setCollectorFromString(spec: string): this {
         Contract.requireNonEmpty(spec);
         this._collector = new CollectorSpecifier(spec);
+        return this;
+    }
+
+    setOriginSourceIncludePattern(pattern: string|undefined): this {
+        this._originSourceIncludePattern = pattern;
+        return this;
+    }
+
+    setOriginSourceExcludePattern(pattern: string|undefined): this {
+        this._originSourceExcludePattern = pattern;
         return this;
     }
 
@@ -33,6 +54,8 @@ export class TaskBuilder {
         const target: string = config['to'];
         const sourceMap: string = config['source_map'];
         this.setCollectorFromString(config['collector']);
+        this.setOriginSourceIncludePattern(config['include_origin']);
+        this.setOriginSourceExcludePattern(config['exclude_origin']);
 
         let sourceMapInfo: SourceMapReference|undefined;
         if (sourceMap) {
@@ -83,7 +106,8 @@ export class TaskBuilder {
     }
 
     build(): InstrumentationTask {
-        return new InstrumentationTask(Contract.requireDefined(this._collector), this._elements);
+        const pattern = new OriginSourcePattern(this._originSourceIncludePattern, this._originSourceExcludePattern);
+        return new InstrumentationTask(Contract.requireDefined(this._collector), this._elements, pattern);
     }
 
     private isPattern(text: string): boolean {

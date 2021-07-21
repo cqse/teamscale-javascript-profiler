@@ -23,8 +23,16 @@ yarn build
 
 ## Running the Collector
 
+There are several options to run the Collector. For example, via `yarn` by running
+
 ```
 yarn serve --port 54678 --dump-to-file=./coverage.simple
+```
+
+or via `npx` by running
+
+```
+npx @teamscale/istanbul-collector --port 54678 --dump-to-file=./coverage.simple
 ```
 
 ## Publishing

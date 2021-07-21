@@ -34,3 +34,7 @@ Publish the chosen package using the following command:
 yarn publish
 ```
 
+Please note that the published versions of the packages might not be available 
+immediately if a registry other than npmjs is used to retrieve them.
+This might be the case if your organization uses products 
+like the Nexus Repository Manager.

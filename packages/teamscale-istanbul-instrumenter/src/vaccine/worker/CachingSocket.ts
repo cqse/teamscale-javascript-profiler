@@ -21,7 +21,8 @@ export class CachingSocket {
     }
 
     private onclose() {
-        this.shouldSendViaFetch = true;
+        // We do not retry to send it via HTTP:
+        // this.shouldSendViaFetch = true;
         this.socket = this.createSocket()
     }
 

@@ -1,6 +1,6 @@
 import {CachingSocket} from './CachingSocket';
 import {CoverageAggregator} from './CoverageAggregator';
-import {MESSAGE_TYPE_SOURCEMAP} from "../protocol";
+import {ProtocolMessageTypes} from "../protocol";
 
 console.log("Starting worker.");
 
@@ -9,7 +9,7 @@ const aggregator = new CoverageAggregator(socket);
 
 onmessage = (event: MessageEvent) => {
     const message = event.data;
-    if (message.startsWith(MESSAGE_TYPE_SOURCEMAP)) {
+    if (message.startsWith(ProtocolMessageTypes.MESSAGE_TYPE_SOURCEMAP)) {
         socket.send(message)
     } else if (message === "unload") {
         // Send all information immediately

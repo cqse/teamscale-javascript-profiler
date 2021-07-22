@@ -21,12 +21,18 @@ export class WebSocketCollectingServer {
 
     public start(): void {
         console.log(`Starting server on port ${this._server.options.port}.`);
+
+        // Handle new connections from clients
         this._server.on('connection', (webSocket: WebSocket, req: IncomingMessage) => {
             const session = new Session(req.socket, this._storage);
             console.log(`Connection from: ${req.socket.remoteAddress}`);
+
+            // Handle disconnecting clients
             webSocket.on('close', (code, reason) => {
                 console.log(`Closing with code ${code}`);
             })
+
+            // Handle incoming messages
             webSocket.on('message', (message: any) => {
                 try {
                     if (message.startsWith(MESSAGE_TYPE_SOURCEMAP)) {
@@ -38,6 +44,11 @@ export class WebSocketCollectingServer {
                     console.error(`Error while processing message starting with ${message.substring(0, Math.min(50, message.length))}`);
                     console.error(e);
                 }
+            })
+
+            // Handle errors
+            webSocket.on('error', (e: Error) => {
+                console.error("Error on server socket triggered.", e);
             })
         })
     }

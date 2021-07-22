@@ -24,10 +24,12 @@ export interface IInstrumenter {
 export class IstanbulInstrumenter implements IInstrumenter {
 
     private readonly _vaccineFilePath: string;
+    private readonly _verboseDebugOutput: boolean;
 
-    constructor(vaccineFilePath: string) {
+    constructor(vaccineFilePath: string, verboseDebugOutput: boolean) {
         this._vaccineFilePath = Contract.requireNonEmpty(vaccineFilePath);
         Contract.require(fs.existsSync(vaccineFilePath), `The vaccine file to inject "${vaccineFilePath}" must exist!\nCWD:${process.cwd()}`);
+        this._verboseDebugOutput = verboseDebugOutput;
     }
 
     instrument(task: InstrumentationTask): Promise<TaskResult> {
@@ -75,7 +77,9 @@ export class IstanbulInstrumenter implements IInstrumenter {
                     .replace(/return actualCoverage/g, "return makeCoverageInterceptor(actualCoverage, actualCoverage, [])")
                     .replace(/new Function\("return this"\)\(\)/g, "typeof window === 'object' ? window : this");
 
-                console.log("Instrumentation source maps to:", instrumenter.lastSourceMap().sources);
+                if (this._verboseDebugOutput) {
+                    console.log("Instrumentation source maps to:", instrumenter.lastSourceMap().sources);
+                }
 
                 if (this.shouldExcludeFromInstrumentation(sourcePattern, taskElement.fromFile, instrumenter.lastSourceMap().sources)) {
                     fs.writeFileSync(taskElement.toFile, inputFileSource);

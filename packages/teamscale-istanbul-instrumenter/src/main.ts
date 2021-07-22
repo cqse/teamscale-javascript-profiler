@@ -62,7 +62,7 @@ export class Main {
     }
 
     private static createInstrumenter(config: any): IInstrumenter {
-        return new IstanbulInstrumenter(path.join(__dirname, "../dist/vaccine.js"));
+        return new IstanbulInstrumenter(path.join(__dirname, "../dist/vaccine.js"), false);
     }
 }
 

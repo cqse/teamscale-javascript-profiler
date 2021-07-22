@@ -28,10 +28,15 @@ export class WebSocketCollectingServer {
                 console.log(`Closing with code ${code}`);
             })
             webSocket.on('message', (message: any) => {
-                if (message.startsWith(MESSAGE_TYPE_SOURCEMAP)) {
-                    this.handleSourcemapMessage(session, message.substring(1));
-                } else if (message.startsWith(MESSAGE_TYPE_COVERAGE)) {
-                    this.handleCoverageMessage(session, message.substring(1));
+                try {
+                    if (message.startsWith(MESSAGE_TYPE_SOURCEMAP)) {
+                        this.handleSourcemapMessage(session, message.substring(1));
+                    } else if (message.startsWith(MESSAGE_TYPE_COVERAGE)) {
+                        this.handleCoverageMessage(session, message.substring(1));
+                    }
+                } catch (e) {
+                    console.error(`Error while processing message starting with ${message.substring(0, Math.min(50, message.length))}`);
+                    console.error(e);
                 }
             })
         })

@@ -25,7 +25,8 @@ export class WebSocketCollectingServer {
         // Handle new connections from clients
         this._server.on('connection', (webSocket: WebSocket, req: IncomingMessage) => {
             let session: Session | null = new Session(req.socket, this._storage);
-            console.log(`Connection from: ${req.socket.remoteAddress}`);
+            // TODO: Add a debug log statement replacing the following
+            //      console.log(`Connection from: ${req.socket.remoteAddress}`);
 
             // Handle disconnecting clients
             webSocket.on('close', (code, reason) => {
@@ -33,7 +34,8 @@ export class WebSocketCollectingServer {
                     // Free the memory that is associated with the session (important!)
                     session.destroy();
                     session = null;
-                    console.log(`Closing with code ${code}`);
+                    // TODO: Add a debug log statement to replace the following
+                    //      console.log(`Closing with code ${code}`);
                 }
             });
 

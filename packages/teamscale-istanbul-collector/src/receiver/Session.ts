@@ -7,8 +7,8 @@ type SourceMapConsumer = BasicSourceMapConsumer;
 
 export class Session {
 
-    private readonly _socket: Socket;
-    private readonly _storage: IDataStorage;
+    private _socket: Socket;
+    private _storage: IDataStorage;
 
     /**
      * One browser window can load multiple source files, with different
@@ -52,6 +52,16 @@ export class Session {
             }).catch((e) => {
                 console.error("Consuming source map failed!");
             });
+    }
+
+    public destroy() {
+        for (const key of Array.from(this._sourceMaps.keys())) {
+            const value = this._sourceMaps.get(key);
+            if (value) {
+                value.destroy();
+                this._sourceMaps.delete(key);
+            }
+        }
     }
 
 }

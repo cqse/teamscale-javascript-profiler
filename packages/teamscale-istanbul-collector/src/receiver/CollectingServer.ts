@@ -24,17 +24,22 @@ export class WebSocketCollectingServer {
 
         // Handle new connections from clients
         this._server.on('connection', (webSocket: WebSocket, req: IncomingMessage) => {
-            const session = new Session(req.socket, this._storage);
+            let session: Session | null = new Session(req.socket, this._storage);
             console.log(`Connection from: ${req.socket.remoteAddress}`);
 
             // Handle disconnecting clients
             webSocket.on('close', (code, reason) => {
-                console.log(`Closing with code ${code}`);
-            })
+                if (session) {
+                    // Free the memory that is associated with the session (important!)
+                    session.destroy();
+                    session = null;
+                    console.log(`Closing with code ${code}`);
+                }
+            });
 
             // Handle incoming messages
             webSocket.on('message', (message: any) => {
-                try {
+                if (session) try {
                     if (message.startsWith(MESSAGE_TYPE_SOURCEMAP)) {
                         this.handleSourcemapMessage(session, message.substring(1));
                     } else if (message.startsWith(MESSAGE_TYPE_COVERAGE)) {
@@ -42,14 +47,14 @@ export class WebSocketCollectingServer {
                     }
                 } catch (e) {
                     console.error(`Error while processing message starting with ${message.substring(0, Math.min(50, message.length))}`);
-                    console.error(e);
+                    console.error(e.message);
                 }
-            })
+            });
 
             // Handle errors
             webSocket.on('error', (e: Error) => {
                 console.error("Error on server socket triggered.", e);
-            })
+            });
         })
     }
 

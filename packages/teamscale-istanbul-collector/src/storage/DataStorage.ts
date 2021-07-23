@@ -1,6 +1,5 @@
 import {Contract} from "@cqse/common-qualities";
 import * as fs from "fs";
-import path = require ("path");
 
 export type FileCoverage = {
     sourceFile: string;

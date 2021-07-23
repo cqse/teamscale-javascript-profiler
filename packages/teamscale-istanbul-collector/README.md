@@ -35,6 +35,14 @@ or via `npx` by running
 npx @teamscale/istanbul-collector --port 54678 --dump-to-file=./coverage.simple
 ```
 
+Note that NodeJs applications (as the Collector) can only access a limited
+amount of RAM by default. Ensure to increase the 'max old space' as needed,
+for example, by setting a corresponding environment variable.
+
+```
+export NODE_OPTIONS="$NODE_OPTIONS --max-old-space-size=8192"
+```
+
 ## Publishing
 
 The list of files to publish is defined by the `files` attribute in `package.json`.

@@ -104,35 +104,45 @@ export class DataStorage implements IDataStorage {
         return projectCoverage.getCoverage();
     }
 
-    private toSimpleCoverage(): string {
+    private toSimpleCoverage(): [number, string] {
         const result: string[] = [];
         Contract.require(this.getProjects().length < 2, "Only one project supported to be handled in parallel.");
 
         for (const project of this.getProjects()) {
             const projectCoverage = this.getCoverageBySourceFile(project);
             if (!projectCoverage) {
-                return "";
+                return [0, ""];
             }
 
             for (const entry of projectCoverage) {
-                result.push(entry.sourceFile);
+                result.push(this.normalizeSourceFileName(entry.sourceFile));
                 for (const lineNo of entry.coveredLines) {
                     result.push("" + lineNo);
                 }
             }
         }
 
-        return result.join("\n");
+        return [result.length, result.join("\n")];
     }
 
 
-    public writeToSimpleCoverageFile(filePath: string): void {
-        const content = this.toSimpleCoverage();
+    public writeToSimpleCoverageFile(filePath: string): number {
+        const [lines, content] = this.toSimpleCoverage();
         fs.writeFileSync(filePath, content, 'utf8');
+        return lines;
     }
 
     getProjects(): string[] {
         return Array.from(this._coverageByProject.keys());
     }
 
+    private normalizeSourceFileName(sourceFile: string): string {
+        const removePrefix = (prefix: string, removeFrom: string ): string => {
+            if (removeFrom.startsWith(prefix)) {
+                return removeFrom.substring(prefix.length);
+            }
+            return removeFrom;
+        } ;
+        return removePrefix("webpack:///", sourceFile);
+    }
 }

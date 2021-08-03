@@ -40,8 +40,8 @@ export class Main {
       if (config.dump_after_secs > 0) {
         return setInterval(() => {
           try {
-            console.log(`Conducting a periodic coverage dump to ${config.dump_to_file}.`);
-            storage.writeToSimpleCoverageFile(config.dump_to_file);
+            const lines = storage.writeToSimpleCoverageFile(config.dump_to_file);
+            console.log(`Conducted periodic coverage dump with ${lines} lines to ${config.dump_to_file}.`);
           } catch (e) {
             console.error("Timed coverage dump failed.", e);
           }

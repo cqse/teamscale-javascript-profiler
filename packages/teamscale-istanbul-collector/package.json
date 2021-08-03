@@ -1,6 +1,6 @@
 {
   "name": "@teamscale/istanbul-collector",
-  "version": "0.0.1-alpha.16",
+  "version": "0.0.1-alpha.17",
   "description": "Collector for JavaScript code coverage information",
   "main": "dist/main.js",
   "bin": "dist/main.js",

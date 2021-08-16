@@ -16,7 +16,7 @@ export class Main {
 
     private static buildParser(): ArgumentParser {
         const parser = new ArgumentParser({
-            description: 'Instrumenter of the Teamscale Istanbul Agent'
+            description: 'Instrumenter of the Teamscale JavaScript Profiler'
         });
 
         parser.add_argument('-v', '--version', {action: 'version', version});
@@ -62,7 +62,7 @@ export class Main {
     }
 
     private static createInstrumenter(config: any): IInstrumenter {
-        return new IstanbulInstrumenter(path.join(__dirname, "../dist/vaccine.js"), false);
+        return new IstanbulInstrumenter(path.join(__dirname, "../dist/vaccine.js"), true);
     }
 }
 

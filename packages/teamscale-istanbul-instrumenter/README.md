@@ -1,6 +1,6 @@
-# JavaScript Coverage Forwarder Instrumenter (JACFIN)
+# JavaScript Coverage-Forwarding Instrumenter (JACFIN)
 
-The JavaScript Coverage Forwarder Instrumenter is part of a tool suite for obtaining
+The JavaScript Coverage-Forwarding Instrumenter is part of a tool suite for obtaining
 coverage information from JavaScript applications that are under test.
 This tool suite is used in context of the Teamscale Software Intelligence Platform:
 The collected coverage information can then either be dumped to

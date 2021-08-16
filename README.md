@@ -1,4 +1,4 @@
-# Teamscale Istanbul Agent
+# Teamscale JavaScript Profiler
 
 This is a mono repository that includes all components to instrument 
 JavaScript applications in order to collect coverage information and the tools

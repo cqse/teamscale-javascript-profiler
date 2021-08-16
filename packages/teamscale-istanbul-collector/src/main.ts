@@ -14,7 +14,7 @@ export class Main {
 
   private static buildParser(): ArgumentParser {
     const parser = new ArgumentParser({
-      description: 'Collector of the Teamscale Istanbul Agent'
+      description: 'Collector of the Teamscale JavaScript Profiler'
     });
 
     parser.add_argument('-v', '--version', {action: 'version', version});

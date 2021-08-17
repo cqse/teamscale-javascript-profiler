@@ -23,6 +23,7 @@
     "rxjs": "^7.1.0",
     "source-map": "^0.7.3",
     "typescript-optional": "^2.0.1",
+    "winston": "^3.3.3",
     "ws": "^7.4.5"
   },
   "devDependencies": {
@@ -33,6 +34,7 @@
     "@types/jest": "^26.0.23",
     "@types/node": "^15.0.1",
     "@types/source-map": "^0.5.7",
+    "@types/winston": "^2.4.4",
     "@types/ws": "^7.4.2",
     "babel-jest": "^26.6.3",
     "jest": "^26.6.3",

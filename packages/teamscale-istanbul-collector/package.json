@@ -9,7 +9,7 @@
   "license": "Apache-2.0",
   "scripts": {
     "clean": "npx rimraf dist",
-    "build": "npx tsc",
+    "build": "tsc",
     "serve": "node dist/main.js",
     "test": "yarn build && jest --forceExit --coverage --silent=true"
   },

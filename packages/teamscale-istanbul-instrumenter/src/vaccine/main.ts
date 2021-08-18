@@ -1,5 +1,5 @@
 // @ts-ignore
-import DataWorker from 'web-worker:./worker/main.ts';
+import DataWorker from 'web-worker:./worker/main';
 import { makeProxy } from './Interceptor';
 import * as unload from 'unload';
 import { getWindow, universe, hasWindow, universeAttribute } from './utils';

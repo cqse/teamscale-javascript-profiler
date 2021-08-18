@@ -4,6 +4,8 @@ import { Position, BasicSourceMapConsumer, NullableMappedPosition } from 'source
 import { IDataStorage } from '../storage/DataStorage';
 import { Contract } from '@cqse/common-qualities';
 import { Logger } from 'winston';
+
+/** The type of sourcemap consumer we use. */
 type SourceMapConsumer = BasicSourceMapConsumer;
 
 /**
@@ -37,13 +39,14 @@ export class Session {
 	/**
 	 * The project the coverage information is for.
 	 */
-	private _projectId: string;
+	private readonly _projectId: string;
 
 	/**
 	 * Constructor
 	 *
 	 * @param socket - The client socket.
 	 * @param storage - The storage to store and aggregate coverage information in.
+	 * @param logger - The logger to use.
 	 */
 	constructor(socket: Socket, storage: IDataStorage, logger: Logger) {
 		this._socket = Contract.requireDefined(socket);
@@ -100,7 +103,7 @@ export class Session {
 				this._sourceMaps.set(fileId, consumer);
 			})
 			.catch(e => {
-				this._logger.error('Consuming source map failed!');
+				this._logger.error(`Consuming source map failed! ${e}`);
 			});
 	}
 

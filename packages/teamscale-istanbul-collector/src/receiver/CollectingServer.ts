@@ -34,6 +34,7 @@ export class WebSocketCollectingServer {
 	 *
 	 * @param port - The port the WebSocket server should listen on.
 	 * @param storage - The storage to put the received coverage information to.
+	 * @param logger - The logger to use.
 	 */
 	constructor(port: number, storage: IDataStorage, logger: Logger) {
 		Contract.require(port > 0 && port < 65536, 'Port must be valid (range).');
@@ -50,7 +51,7 @@ export class WebSocketCollectingServer {
 
 		// Handle new connections from clients
 		this._server.on('connection', (webSocket: WebSocket, req: IncomingMessage) => {
-			let session: Session | null = new Session(req.socket, this._storage);
+			let session: Session | null = new Session(req.socket, this._storage, this._logger);
 			this._logger.debug(`Connection from: ${req.socket.remoteAddress}`);
 
 			// Handle disconnecting clients

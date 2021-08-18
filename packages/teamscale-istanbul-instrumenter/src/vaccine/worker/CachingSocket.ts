@@ -1,62 +1,62 @@
+/**
+ * A socket wrapper that caches messages in case
+ * the connection was lost or not yet established.
+ */
 export class CachingSocket {
+	/** The target URL to send messages to. */
+	private readonly url: string;
 
-    private readonly url: string
-    private readonly fallbackUrl: string
+	/** The wrapped WebSocket */
+	private socket: WebSocket;
 
-    private socket: WebSocket;
-    private cache: string[] = [];
-    private shouldSendViaFetch = false;
+	/** The messages that have been cached */
+	private cache: string[] = [];
 
-    constructor(url: string, fallbackUrl: string) {
-        this.fallbackUrl = fallbackUrl;
-        this.url = url;
-        this.socket = this.createSocket();
-    }
+	/**
+	 * Constructor.
+	 *
+	 * @param url - The URL to send messages to.
+	 */
+	constructor(url: string) {
+		this.url = url;
+		this.socket = this.createSocket();
+	}
 
-    private createSocket(): any {
-        const socket = new WebSocket(this.url);
-        socket.onopen = () => this.onopen();
-        socket.onclose = () => this.onclose();
-        return socket;
-    }
+	/**
+	 * Re-Create the WebSocket.
+	 */
+	private createSocket(): any {
+		const socket = new WebSocket(this.url);
+		socket.onopen = () => this.onopen();
+		socket.onclose = () => this.onclose();
+		return socket;
+	}
 
-    private onclose() {
-        // We do not retry to send it via HTTP:
-        // this.shouldSendViaFetch = true;
-        this.socket = this.createSocket()
-    }
+	/**
+	 * Handle a lost connection.
+	 */
+	private onclose() {
+		this.socket = this.createSocket();
+	}
 
-    private onopen() {
-        this.shouldSendViaFetch = false;
-        for (const message of this.cache) {
-            this.socket.send(message);
-        }
-        this.cache = [];
-    }
+	/**
+	 * Handle a (re-)established connection.
+	 */
+	private onopen() {
+		this.cache.forEach(message => this.socket.send(message));
+		this.cache = [];
+	}
 
-    send(message: string) {
-        if (this.shouldSendViaFetch) {
-            // socket has been closed by server and we're trying to reconnect
-            this.sendViaFetch(message);
-        } else if (this.socket.readyState === WebSocket.OPEN) {
-            this.socket.send(message);
-        } else {
-            // socket has not been opened yet for the first time
-            this.cache.push(message);
-        }
-    }
-
-    private async sendViaFetch(message: string) {
-        try {
-            await fetch(this.fallbackUrl, {
-               method: "POST",
-                keepalive: true,
-                body: message
-            });
-        } catch (e) {
-            this.cache.push(message);
-        }
-    }
-
+	/**
+	 * Send the message, or cache it if the connection
+	 * has not yet been established.
+	 */
+	public send(message: string) {
+		if (this.socket.readyState === WebSocket.OPEN) {
+			this.socket.send(message);
+		} else {
+			// socket has not been opened yet for the first time
+			this.cache.push(message);
+		}
+	}
 }
-

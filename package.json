@@ -1,7 +1,7 @@
 {
   "private": true,
   "license": "Apache-2.0",
-  "name": "teamscale-istanbul-agent",
+  "name": "teamscale-javascript-profiler",
   "files": [],
   "workspaces": [
     "packages/*"

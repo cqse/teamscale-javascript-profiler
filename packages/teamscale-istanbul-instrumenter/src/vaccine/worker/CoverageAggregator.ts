@@ -1,78 +1,133 @@
-import { CachingSocket } from "./CachingSocket";
+import { CachingSocket } from './CachingSocket';
+
+/**
+ * The number of cache elements after that the cache should be flushed.
+ */
+const FLUSH_AFTER_ELEMENTS = 20;
+
+/**
+ * Number of milliseconds after that the cash should be flushed.
+ */
+const FLUSH_AFTER_MILLIS = 1000;
 
 /**
  * Is supposed to exist once per app and might deal with
  * different JavaScript files that were instrumented upfront.
  */
 export class CoverageAggregator {
+	/**
+	 * The socket to send the coverage with after flushing.
+	 */
+	private socket: CachingSocket;
 
-  private socket: CachingSocket;
-  private cachedCoveredPositions: Map<string, Set<string>>;
-  private numberOfCachedPositions: number;
-  private debounce: Debounce;
+	/**
+	 * The actual cache with the coverage information by source file.
+	 */
+	private cachedCoveredPositions: Map<string, Set<string>>;
 
-  constructor(socket: CachingSocket) {
-    this.socket = socket;
-    this.cachedCoveredPositions = new Map();
-    this.numberOfCachedPositions = 0;
-    this.debounce = new Debounce(1000, () => this.flush());
-  }
+	/**
+	 * Counter with the number of entries added to the cache since the last flush.
+	 */
+	private numberOfCachedPositions: number;
 
-  add(positionCoverageInfo: string) {
-    const parts = positionCoverageInfo.split(":");
-    if (parts.length != 3) {
-      return;
-    }
+	/**
+	 * We flush after 1s, ensuring debouncing.
+	 */
+	private flushCountdown: Countdown;
 
-    const [fileId, line, column] = parts;
-    let coveredPositions: Set<string>|undefined = this.cachedCoveredPositions.get(fileId);
-    if (!coveredPositions) {
-      coveredPositions = new Set();
-      this.cachedCoveredPositions.set(fileId, coveredPositions);
-    }
-    coveredPositions.add(`${line}:${column}`);
+	/**
+	 * The constructor.
+	 *
+	 * @param socket - The socket to send collected coverage information to.
+	 */
+	constructor(socket: CachingSocket) {
+		this.socket = socket;
+		this.cachedCoveredPositions = new Map();
+		this.numberOfCachedPositions = 0;
+		this.flushCountdown = new Countdown(FLUSH_AFTER_MILLIS, () => this.flush());
+	}
 
-    this.numberOfCachedPositions += 1;
-    this.debounce.input();
-    if (this.numberOfCachedPositions >= 20) {
-      this.flush();
-    }
-  }
+	/**
+	 * Add coverage information.
+	 *
+	 * @param positionCoverageInfo - A string that encodes the coverage information.
+	 *      The string is supposed to be formatted as follows: `<fileId>:<lineNumber>:<columNumber>`
+	 */
+	public add(positionCoverageInfo: string) {
+		const parts = positionCoverageInfo.split(':');
+		if (parts.length != 3) {
+			return;
+		}
+		const [fileId, line, column] = parts;
 
-  flush() {
-    if (this.numberOfCachedPositions == 0) {
-      return;
-    }
+		let coveredPositions: Set<string> | undefined = this.cachedCoveredPositions.get(fileId);
+		if (!coveredPositions) {
+			coveredPositions = new Set();
+			this.cachedCoveredPositions.set(fileId, coveredPositions);
+		}
+		coveredPositions.add(`${line}:${column}`);
 
-    this.debounce.reset();
-    this.cachedCoveredPositions.forEach((positionSet, fileId) => {
-      this.socket.send(`c ${fileId} ${Array.from(positionSet).join(" ")}`);
-    });
+		this.numberOfCachedPositions += 1;
+		this.flushCountdown.restartCountdown();
+		if (this.numberOfCachedPositions >= FLUSH_AFTER_ELEMENTS) {
+			this.flush();
+		}
+	}
 
-    this.cachedCoveredPositions = new Map();
-    this.numberOfCachedPositions = 0;
-  }
+	/**
+	 * Flush the caches (send them to the collector).
+	 */
+	flush() {
+		if (this.numberOfCachedPositions === 0) {
+			return;
+		}
+
+		this.flushCountdown.stopCountdown();
+		this.cachedCoveredPositions.forEach((positionSet, fileId) => {
+			this.socket.send(`c ${fileId} ${Array.from(positionSet).join(' ')}`);
+		});
+
+		this.cachedCoveredPositions = new Map();
+		this.numberOfCachedPositions = 0;
+	}
 }
 
-export class Debounce {
-  private timerToken: number | null = null;
+/**
+ * Countdown that can be reset to start counting from 0.
+ */
+export class Countdown {
+	/**
+	 * The timer handle.
+	 */
+	private timerHandle: number | null = null;
 
-  constructor(private milliseconds: number, private onBounce: () => void) {}
+	/**
+	 * Constructor.
+	 *
+	 * @param milliseconds - The duration of the countdown in milliseconds.
+	 * @param onCountedToZero - The action to execute when the countdown reaches 0.
+	 */
+	constructor(private milliseconds: number, private onCountedToZero: () => void) {}
 
-  input() {
-    this.reset();
-    this.timerToken = self.setTimeout(() => {
-      this.timerToken = null;
-      this.onBounce();
-    }, this.milliseconds);
-  }
+	/**
+	 * Restart the countdown.
+	 */
+	restartCountdown() {
+		this.stopCountdown();
+		this.timerHandle = self.setTimeout(() => {
+			this.stopCountdown();
+			this.onCountedToZero();
+		}, this.milliseconds);
+	}
 
-  reset() {
-    if (this.timerToken === null) {
-      return;
-    }
-    self.clearTimeout(this.timerToken);
-    this.timerToken = null;
-  }
+	/**
+	 * Stop the countdown.
+	 */
+	stopCountdown() {
+		if (this.timerHandle === null) {
+			return;
+		}
+		self.clearTimeout(this.timerHandle);
+		this.timerHandle = null;
+	}
 }
-

@@ -6,24 +6,25 @@ import {
 	SourceMapReference,
 	TaskElement
 } from './Task';
-import { Contract, ImplementMeException, InvalidConfigurationException } from '@cqse/common-qualities';
+import { Contract, InvalidConfigurationException } from '@cqse/common-qualities';
 import fs = require('fs');
 import path = require('path');
-import {
-	ensureExistingDirectory,
-	expandToFileSet,
-	isExistingDirectory,
-	isExistingFile,
-	specifiesFile
-} from './FileSystem';
+import { ensureExistingDirectory, expandToFileSet, isExistingDirectory, isExistingFile } from './FileSystem';
 
+/**
+ * A builder for an instrumentation task.
+ */
 export class TaskBuilder {
+	/** The elements of the instrumentation task. */
 	private readonly _elements: TaskElement[];
 
+	/** The collector to send the coverage to. */
 	private _collector: CollectorSpecifier | null;
 
+	/** An include pattern. */
 	private _originSourceIncludePattern: string | undefined;
 
+	/** An exclude pattern. */
 	private _originSourceExcludePattern: string | undefined;
 
 	constructor() {
@@ -31,27 +32,36 @@ export class TaskBuilder {
 		this._collector = null;
 	}
 
+	/** Set the collector by extracting the information from a given string */
 	setCollectorFromString(spec: string): this {
 		Contract.requireNonEmpty(spec);
 		this._collector = new CollectorSpecifier(spec);
 		return this;
 	}
 
+	/** Set the include pattern */
 	setOriginSourceIncludePattern(pattern: string | undefined): this {
 		this._originSourceIncludePattern = pattern;
 		return this;
 	}
 
+	/** Set the exclude patter */
 	setOriginSourceExcludePattern(pattern: string | undefined): this {
 		this._originSourceExcludePattern = pattern;
 		return this;
 	}
 
+	/** Add a task element */
 	addElement(fromFilePath: string, toFilePath: string, fromFileSourceMap?: SourceMapReference): this {
 		this._elements.push(new TaskElement(fromFilePath, toFilePath, fromFileSourceMap));
 		return this;
 	}
 
+	/**
+	 * Add the task details based on a configuration (command line arguments).
+	 *
+	 * @param config - The configuration based on that the task is built.
+	 */
 	addFromConfig(config: any): this {
 		const inputs: any[] = (config['inputs'] ?? []) as [];
 		const inPlace: boolean = config['in_place'];
@@ -61,6 +71,7 @@ export class TaskBuilder {
 		this.setOriginSourceIncludePattern(config['include_origin']);
 		this.setOriginSourceExcludePattern(config['exclude_origin']);
 
+		// Handle an explicitly specified source map
 		let sourceMapInfo: SourceMapReference | undefined;
 		if (sourceMap) {
 			if (!fs.existsSync(sourceMap)) {
@@ -69,10 +80,13 @@ export class TaskBuilder {
 			sourceMapInfo = new SourceMapFileReference(sourceMap);
 		}
 
+		// Depending on whether or not an in place instrumentation is needed
+		// the task has to be built differently and different invariants
+		// have to be satisfied by the passed configuration.
 		if (inPlace) {
 			if (target) {
 				throw new InvalidConfigurationException(
-					'No target path must be specified in case an in-place instrumetation is enabled.'
+					'No target path must be specified in case an in-place instrumentation is enabled.'
 				);
 			}
 
@@ -83,26 +97,24 @@ export class TaskBuilder {
 				}, [])
 				.forEach(filePath => this.addElement(filePath, filePath, sourceMapInfo));
 		} else if (!inPlace) {
+			// A target directory must be specified
 			if (!target) {
 				throw new InvalidConfigurationException('A target path must be specified using `--to`.');
 			}
 			ensureExistingDirectory(target);
 
+			// Create task elements for all input specifiers
 			for (const input of inputs) {
 				if (isExistingFile(input)) {
-					if (specifiesFile(target)) {
-						this.addElement(input, target, sourceMapInfo);
-					} else {
-						throw new ImplementMeException();
-					}
-				} else if (isExistingDirectory(input) || this.isPattern(input)) {
+					this.addElement(input, target, sourceMapInfo);
+				} else if (isExistingDirectory(input) || isPattern(input)) {
 					const inputFiles = inputs
 						.map(input => expandToFileSet(input))
 						.reduce((prev, curr) => {
 							return curr.concat(prev);
 						}, []);
 
-					if (this.isPattern(input)) {
+					if (isPattern(input)) {
 						inputFiles.forEach(f => this.addElement(f, path.join(target, path.basename(f)), sourceMapInfo));
 					} else {
 						inputFiles.forEach(f =>
@@ -118,12 +130,18 @@ export class TaskBuilder {
 		return this;
 	}
 
-	build(): InstrumentationTask {
+	/**
+	 * Build the instrumentation task.
+	 */
+	public build(): InstrumentationTask {
 		const pattern = new OriginSourcePattern(this._originSourceIncludePattern, this._originSourceExcludePattern);
 		return new InstrumentationTask(Contract.requireDefined(this._collector), this._elements, pattern);
 	}
+}
 
-	private isPattern(text: string): boolean {
-		return text.includes('*') || text.includes('+') || text.includes('?') || text.includes('|');
-	}
+/**
+ * Does the given string look like a RegExp or Glob pattern?
+ */
+function isPattern(text: string): boolean {
+	return text.includes('*') || text.includes('+') || text.includes('?') || text.includes('|');
 }

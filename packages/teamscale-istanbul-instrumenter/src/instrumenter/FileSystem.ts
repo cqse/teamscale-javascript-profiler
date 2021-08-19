@@ -4,18 +4,23 @@ import mkdirp from 'mkdirp';
 import path from 'path';
 import { glob } from 'glob';
 
-export function specifiesFile(path: string): boolean {
-	throw new ImplementMeException();
-}
-
+/**
+ * Does the given `path` point to an existing file?
+ */
 export function isExistingFile(path: string): boolean {
 	return fs.existsSync(path) && fs.lstatSync(path).isFile();
 }
 
+/**
+ * Does the given `path` point to an existing directory?
+ */
 export function isExistingDirectory(path: string): boolean {
 	return fs.existsSync(path) && fs.lstatSync(path).isDirectory();
 }
 
+/**
+ * Ensure that the given directory `path` exists.
+ */
 export function ensureExistingDirectory(path: string): void {
 	if (!fs.existsSync(path)) {
 		mkdirp.sync(path);
@@ -28,10 +33,18 @@ export function ensureExistingDirectory(path: string): void {
 	}
 }
 
+/**
+ * Is the given directory empty?
+ */
 export function isDirectoryEmpty(path: string): boolean {
 	return !isExistingDirectory(path) || fs.readdirSync(path).length > 0;
 }
 
+/**
+ * Expand a given Glob pattern to a list of files.
+ *
+ * @param toExpand - The Glob pattern.
+ */
 export function expandToFileSet(toExpand: string): string[] {
 	let globPattern = toExpand;
 	if (fs.existsSync(toExpand)) {

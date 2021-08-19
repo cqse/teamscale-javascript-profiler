@@ -15,12 +15,32 @@ import * as convertSourceMap from 'convert-source-map';
 
 export const IS_INSTRUMENTED_TOKEN = '/** $IS_TS_AGENT_INSTRUMENTED=true **/';
 
+/**
+ * An instrumenter that can conduct a {@code InstrumentationTask}.
+ */
 export interface IInstrumenter {
+	/**
+	 * Perform the given instrumentation task.
+	 *
+	 * @param task - The instrumentation task to conduct.
+	 */
 	instrument(task: InstrumentationTask): Promise<TaskResult>;
 }
 
+/**
+ * An instrumenter based on the IstanbulJs instrumentation and coverage framework.
+ */
 export class IstanbulInstrumenter implements IInstrumenter {
+	/**
+	 * The path to the vaccine to inject. The vaccine is a JavaScript
+	 * file with the code to forward the coveraege information
+	 * produced by the Istanbul instrumentation.
+	 */
 	private readonly _vaccineFilePath: string;
+
+	/**
+	 * Produce a more verbose output with details on the instrumentation process?
+	 */
 	private readonly _verboseDebugOutput: boolean;
 
 	constructor(vaccineFilePath: string, verboseDebugOutput: boolean) {
@@ -32,6 +52,9 @@ export class IstanbulInstrumenter implements IInstrumenter {
 		this._verboseDebugOutput = verboseDebugOutput;
 	}
 
+	/**
+	 * {@inheritDoc #IInstrumenter.instrument}
+	 */
 	instrument(task: InstrumentationTask): Promise<TaskResult> {
 		fs.existsSync(this._vaccineFilePath);
 
@@ -42,6 +65,13 @@ export class IstanbulInstrumenter implements IInstrumenter {
 		return Promise.resolve(result);
 	}
 
+	/**
+	 * Perform the instrumentation for one given task element (file to instrument).
+	 *
+	 * @param collector - The collector to send the coverage information to.
+	 * @param taskElement - The task element to perform the instrumentation for.
+	 * @param sourcePattern - A pattern to restrict the instrumentation to only a fraction of the task element.
+	 */
 	instrumentOne(
 		collector: CollectorSpecifier,
 		taskElement: TaskElement,
@@ -49,6 +79,7 @@ export class IstanbulInstrumenter implements IInstrumenter {
 	): TaskResult {
 		const inputFileSource = fs.readFileSync(taskElement.fromFile, 'utf8');
 
+		// We skip files that we have already instrumented
 		if (inputFileSource.startsWith(IS_INSTRUMENTED_TOKEN)) {
 			if (!taskElement.isInPlace()) {
 				fs.writeFileSync(taskElement.toFile, inputFileSource);
@@ -56,19 +87,19 @@ export class IstanbulInstrumenter implements IInstrumenter {
 			return new TaskResult(0, 0, 1, 0, 0, 0);
 		}
 
+		// Not all file types are supported by the instrumenter
 		if (!this.isFileTypeSupported(taskElement.fromFile)) {
 			return new TaskResult(0, 0, 0, 1, 0, 0);
 		}
 
+		// Report progress
 		console.log(path.basename(taskElement.fromFile));
-
-		if (taskElement.externalSourceMapFile.isPresent()) {
-			throw new ImplementMeException();
-		}
 
 		let finalSourceMap;
 		let instrumentedSource;
 
+		// We try to perform the instrumentation with different
+		// alternative configurations of the instrumenter.
 		const configurationAlternatives = this.configurationAlternativesFor(taskElement);
 		for (let i = 0; i < configurationAlternatives.length; i++) {
 			let inputSourceMap;
@@ -76,6 +107,7 @@ export class IstanbulInstrumenter implements IInstrumenter {
 				const instrumenter = istanbul.createInstrumenter(configurationAlternatives[i]);
 				inputSourceMap = this.loadInputSourceMap(inputFileSource, taskElement);
 
+				// The main instrumentation (adding coverage statements) is performed now:
 				instrumentedSource = instrumenter
 					.instrumentSync(inputFileSource, taskElement.fromFile, inputSourceMap)
 					.replace(
@@ -88,6 +120,11 @@ export class IstanbulInstrumenter implements IInstrumenter {
 					console.log('Instrumentation source maps to:', instrumenter.lastSourceMap().sources);
 				}
 
+				// Based on the source maps of the file to instrument, we can now
+				// decide if we should NOT write an instrumented version of it
+				// and use the original code instead and write it to the target path.
+				//
+				// TODO: Why is this check not done after `loadInputSourceMap`?
 				if (
 					this.shouldExcludeFromInstrumentation(
 						sourcePattern,
@@ -99,10 +136,15 @@ export class IstanbulInstrumenter implements IInstrumenter {
 					return new TaskResult(1, 0, 0, 0, 0, 0);
 				}
 
+				// The process also can result in a new source map that we will append in the result.
+				//
+				// TODO: Check the actual semantics of `lastSourceMap`
 				finalSourceMap = convertSourceMap.fromObject(instrumenter.lastSourceMap()).toComment();
 
 				break;
 			} catch (e) {
+				// If also the last configuration alternative failed,
+				// we emit a corresponding warning or signal an error.
 				if (i == configurationAlternatives.length - 1) {
 					if (!inputSourceMap) {
 						return TaskResult.warning(
@@ -115,6 +157,10 @@ export class IstanbulInstrumenter implements IInstrumenter {
 			}
 		}
 
+		// We now can glue together the final version of the instrumented file.
+		//
+		// We first replace some of the parameters in the file with the
+		// actual values, for example, the collector to send the coverage information to.
 		const vaccineSource = fs
 			.readFileSync(this._vaccineFilePath, 'utf8')
 			.replace(/\$REPORT_TO_HOST/g, collector.host)
@@ -128,6 +174,14 @@ export class IstanbulInstrumenter implements IInstrumenter {
 		return new TaskResult(1, 0, 0, 0, 0, 0);
 	}
 
+	/**
+	 * Should the given file be excluded from the instrumentation,
+	 * based on the source files that have been transpiled into it?
+	 *
+	 * @param pattern - The pattern to match the origin source files.
+	 * @param sourcefile - The bundle file name.
+	 * @param originSourcefiles - The list of files that were transpiled into the bundle.
+	 */
 	private shouldExcludeFromInstrumentation(
 		pattern: OriginSourcePattern,
 		sourcefile: string,
@@ -136,11 +190,18 @@ export class IstanbulInstrumenter implements IInstrumenter {
 		return !pattern.isAnyIncluded(originSourcefiles);
 	}
 
+	/**
+	 * @returns whether the given file is supported for instrumentation.
+	 */
 	private isFileTypeSupported(fileName: string) {
 		const ext = path.extname(fileName).toLowerCase();
-		return ext == '.js';
+		return ext == '.js' || ext == '.mjs';
 	}
 
+	/**
+	 * Determine the list of configurations to try conducting the
+	 * given task element.
+	 */
 	private configurationAlternativesFor(taskElement: TaskElement): {}[] {
 		const baseConfig = {
 			coverageVariable: '__coverage__',
@@ -153,6 +214,12 @@ export class IstanbulInstrumenter implements IInstrumenter {
 		];
 	}
 
+	/**
+	 * Given a source code file and the task element, load the corresponding sourcemap.
+	 *
+	 * @param inputSource - The source code that might contain sourcemap comments.
+	 * @param taskElement - The task element that can have a reference to an external sourcemap.
+	 */
 	private loadInputSourceMap(inputSource: string, taskElement: TaskElement): RawSourceMap | undefined {
 		if (taskElement.externalSourceMapFile.isPresent()) {
 			const sourceMapOrigin = taskElement.externalSourceMapFile.get();
@@ -166,7 +233,13 @@ export class IstanbulInstrumenter implements IInstrumenter {
 	}
 }
 
-export function sourceMapFromCodeComment(sourcecode: string, sourceFilePath: string): RawSourceMap | undefined {
+/**
+ * Extract a sourcemap for a given code comment.
+ *
+ * @param sourcecode - The source code that is scanned for source map comments.
+ * @param sourceFilePath - The file name the code was loaded from.
+ */
+function sourceMapFromCodeComment(sourcecode: string, sourceFilePath: string): RawSourceMap | undefined {
 	// Either `//# sourceMappingURL=vendor.5d7ba975.js.map`
 	// or `//# sourceMappingURL=data:application/json;base64,eyJ2ZXJ ...`
 	//
@@ -185,7 +258,12 @@ export function sourceMapFromCodeComment(sourcecode: string, sourceFilePath: str
 	}
 }
 
-export function sourceMapFromMapFile(mapFilePath: string): RawSourceMap | undefined {
+/**
+ * Read a source map from a source map file.
+ *
+ * @param mapFilePath
+ */
+function sourceMapFromMapFile(mapFilePath: string): RawSourceMap | undefined {
 	const content: string = fs.readFileSync(mapFilePath, 'utf8');
 	return JSON.parse(content) as RawSourceMap;
 }

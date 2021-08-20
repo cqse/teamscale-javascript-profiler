@@ -17,6 +17,8 @@ jobs:
       - name: Check out the code
         uses: actions/checkout@v2
       - run: npm install -g yarn
-      - run: yarn install
-      - run: yarn workspaces foreach install
+      - name: Install the base dependencies
+        run: yarn install
+      - name: Install the dependencies for all the workspaces
+        run: yarn workspaces foreach install
       - run: echo "Done."

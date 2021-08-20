@@ -106,7 +106,11 @@ export class TaskBuilder {
 			// Create task elements for all input specifiers
 			for (const input of inputs) {
 				if (isExistingFile(input)) {
-					this.addElement(input, target, sourceMapInfo);
+					if (isExistingDirectory(target) || target.endsWith(path.sep)) {
+						this.addElement(input, path.join(target, path.basename(input)), sourceMapInfo);
+					} else {
+						this.addElement(input, target, sourceMapInfo);
+					}
 				} else if (isExistingDirectory(input) || isPattern(input)) {
 					const inputFiles = inputs
 						.map(input => expandToFileSet(input))

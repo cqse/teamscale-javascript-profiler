@@ -44,7 +44,7 @@ export class Contract {
 		if (message) {
 			throw new IllegalArgumentException(message);
 		} else {
-			throw new IllegalArgumentException('Reference must not be undefined.');
+			throw new IllegalArgumentException('Reference must be defined.');
 		}
 	}
 

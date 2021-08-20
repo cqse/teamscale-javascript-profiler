@@ -4,8 +4,8 @@
   "name": "teamscale-javascript-profiler",
   "files": [],
   "scripts": {
-      "build": "yarn workspaces foreach run build",
-      "test": "yarn workspaces foreach run test"
+    "build": "yarn workspaces foreach run build",
+    "test": "yarn workspaces foreach run test"
   },
   "workspaces": [
     "packages/*"

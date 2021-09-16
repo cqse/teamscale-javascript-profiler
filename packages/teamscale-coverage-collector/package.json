@@ -1,0 +1,48 @@
+{
+  "name": "@teamscale/coverage-collector",
+  "version": "0.0.1-alpha.18",
+  "description": "Collector for JavaScript code coverage information",
+  "main": "dist/main.js",
+  "bin": "dist/main.js",
+  "types": "dist/main.d.ts",
+  "author": "CQSE GmbH",
+  "license": "Apache-2.0",
+  "scripts": {
+    "clean": "npx rimraf dist",
+    "build": "tsc",
+    "serve": "node dist/main.js",
+    "test": "yarn build && jest --forceExit --coverage --silent=true"
+  },
+  "files": [
+    "dist/**/*"
+  ],
+  "dependencies": {
+    "@cqse/commons": "0.0.1-alpha.2",
+    "argparse": "^2.0.1",
+    "async": "^3.2.0",
+    "rxjs": "^7.1.0",
+    "source-map": "^0.7.3",
+    "typescript-optional": "^2.0.1",
+    "winston": "^3.3.3",
+    "ws": "^7.4.5"
+  },
+  "devDependencies": {
+    "@babel/core": "^7.14.0",
+    "@babel/preset-env": "^7.14.1",
+    "@types/argparse": "^2.0.5",
+    "@types/async": "^3.2.6",
+    "@types/jest": "^26.0.23",
+    "@types/node": "^15.0.1",
+    "@types/source-map": "^0.5.7",
+    "@types/winston": "^2.4.4",
+    "@types/ws": "^7.4.2",
+    "babel-jest": "^26.6.3",
+    "jest": "^26.6.3",
+    "ts-jest": "^26.5.6",
+    "ts-node": "^9.1.1",
+    "typescript": "^4.3.5"
+  },
+  "publishConfig": {
+    "access": "public"
+  }
+}

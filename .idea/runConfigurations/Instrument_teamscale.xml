@@ -1,5 +1,5 @@
 <component name="ProjectRunConfigurationManager">
-  <configuration default="false" name="Instrument teamscale" type="NodeJSConfigurationType" folderName="Case Study: Teamscale" application-parameters="$PROJECT_DIR$/../teamscale/engine/com.teamscale.ui/build/vite/META-INF/web/ --in-place --include-origin ../../../../../src-js/com/teamscale/**/*" node-parameters="--require ts-node/register --max-old-space-size=8192" path-to-js-file="packages/teamscale-istanbul-instrumenter/src/main.ts" working-dir="$PROJECT_DIR$">
+  <configuration default="false" name="Instrument teamscale" type="NodeJSConfigurationType" folderName="Case Study: Teamscale" application-parameters="$PROJECT_DIR$/../teamscale/engine/com.teamscale.ui/build/vite/META-INF/web/ --in-place --include-origin ../../../../../src-js/com/teamscale/**/*" node-parameters="--require ts-node/register --max-old-space-size=8192" path-to-js-file="$PROJECT_DIR$/packages/teamscale-javascript-instrumenter/src/main.ts" working-dir="$PROJECT_DIR$">
     <method v="2" />
   </configuration>
 </component>

@@ -1,0 +1,65 @@
+{
+  "name": "@teamscale/javascript-instrumenter",
+  "version": "0.0.1-alpha.10",
+  "description": "Istanbul-based coverage instrumenter with coverage forwarding via WebSockets",
+  "main": "dist/main.js",
+  "bin": "dist/main.js",
+  "types": "dist/main.d.ts",
+  "author": "CQSE GmbH",
+  "license": "Apache-2.0",
+  "scripts": {
+    "clean": "rimraf dist",
+    "build": "tsc --project tsconfig.json && rollup --config",
+    "run": "node src/main.js",
+    "test": "yarn build && jest --forceExit --coverage --silent=true"
+  },
+  "files": [
+    "dist/**/*"
+  ],
+  "devDependencies": {
+    "@babel/core": "^7.14.0",
+    "@babel/preset-env": "^7.14.1",
+    "@rollup/plugin-commonjs": "^20.0.0",
+    "@rollup/plugin-node-resolve": "^13.0.0",
+    "@rollup/plugin-typescript": "^8.2.5",
+    "@types/async": "^3.2.6",
+    "@types/convert-source-map": "^1.5.1",
+    "@types/glob": "^7.1.3",
+    "@types/istanbul-lib-instrument": "^1.7.4",
+    "@types/jest": "^26.0.23",
+    "@types/mkdirp": "^1.0.1",
+    "@types/node": "^15.0.1",
+    "@types/source-map": "^0.5.7",
+    "@types/ws": "^7.4.4",
+    "babel-jest": "^26.6.3",
+    "jest": "^26.6.3",
+    "rimraf": "^3.0.2",
+    "rollup": "^2.56.2",
+    "rollup-plugin-auto-named-exports": "^1.0.0-beta.3",
+    "rollup-plugin-web-worker-loader": "^1.6.1",
+    "ts-jest": "^26.5.6",
+    "ts-node": "^9.1.1",
+    "tslib": "^2.2.0",
+    "typescript": "^4.3.5"
+  },
+  "dependencies": {
+    "@cqse/commons": "0.0.1-alpha.2",
+    "@types/micromatch": "^4.0.2",
+    "argparse": "^2.0.1",
+    "async": "^3.2.0",
+    "convert-source-map": "^1.7.0",
+    "foreground-child": "^2.0.0",
+    "glob": "^7.1.7",
+    "istanbul-lib-instrument": "^4.0.0",
+    "micromatch": "4.0.4",
+    "mkdirp": "^1.0.4",
+    "nyc": "^15.1.0",
+    "source-map": "0.6.1",
+    "typescript-optional": "^2.0.1",
+    "unload": "^2.2.0",
+    "web-worker": "^1.0.0"
+  },
+  "publishConfig": {
+    "access": "public"
+  }
+}

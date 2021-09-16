@@ -1,5 +1,5 @@
 <component name="ProjectRunConfigurationManager">
-  <configuration default="false" name="Instrument casestudy/express-ts" type="NodeJSConfigurationType" folderName="Case Study: Express Node App" application-parameters="test/casestudies/express-ts/dist/** --to test/casestudies/express-ts/dist-cov/" node-parameters="--require ts-node/register --max-old-space-size=8192" path-to-js-file="packages/teamscale-istanbul-instrumenter/src/main.ts" working-dir="$PROJECT_DIR$">
+  <configuration default="false" name="Instrument casestudy/express-ts" type="NodeJSConfigurationType" folderName="Case Study: Express Node App" application-parameters="test/casestudies/express-ts/dist/** --to test/casestudies/express-ts/dist-cov/" node-parameters="--require ts-node/register --max-old-space-size=8192" path-to-js-file="$PROJECT_DIR$/packages/teamscale-javascript-instrumenter/src/main.ts" working-dir="$PROJECT_DIR$">
     <method v="2" />
   </configuration>
 </component>

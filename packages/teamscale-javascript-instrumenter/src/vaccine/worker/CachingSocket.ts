@@ -10,7 +10,7 @@ export class CachingSocket {
 	private socket: WebSocket;
 
 	/** The messages that have been cached */
-	private cache: string[] = [];
+	private cachedMessages: string[] = [];
 
 	/**
 	 * Constructor.
@@ -43,8 +43,8 @@ export class CachingSocket {
 	 * Handle a (re-)established connection.
 	 */
 	private onopen() {
-		this.cache.forEach(message => this.socket.send(message));
-		this.cache = [];
+		this.cachedMessages.forEach(message => this.socket.send(message));
+		this.cachedMessages = [];
 	}
 
 	/**
@@ -56,7 +56,7 @@ export class CachingSocket {
 			this.socket.send(message);
 		} else {
 			// socket has not been opened yet for the first time
-			this.cache.push(message);
+			this.cachedMessages.push(message);
 		}
 	}
 }

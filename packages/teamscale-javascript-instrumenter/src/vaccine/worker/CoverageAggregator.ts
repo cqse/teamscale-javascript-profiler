@@ -1,4 +1,5 @@
 import { CachingSocket } from './CachingSocket';
+import { ProtocolMessageTypes } from '../protocol';
 
 /**
  * The number of cache elements after that the cache should be flushed.
@@ -125,7 +126,9 @@ export class CoverageAggregator {
 
 		this.flushCountdown.stopCountdown();
 		this.cachedCoveredPositions.forEach((positionSet, fileId) => {
-			this.socket.send(`c ${fileId} ${Array.from(positionSet).join(' ')}`);
+			this.socket.send(
+				`${ProtocolMessageTypes.MESSAGE_TYPE_COVERAGE} ${fileId} ${Array.from(positionSet).join(' ')}`
+			);
 		});
 
 		this.cachedCoveredPositions = new Map();

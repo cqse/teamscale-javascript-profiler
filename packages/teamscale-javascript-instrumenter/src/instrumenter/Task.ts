@@ -63,11 +63,11 @@ export class CollectorSpecifier {
  * are used to determine the original file names.
  */
 export class OriginSourcePattern {
-	/** Set of files in the origin for that coverage should be produced. */
+	/** Glob pattern describing the set of files in the origin for that coverage should be produced. */
 	private readonly include: string | undefined;
 
 	/**
-	 * Set of files in the origin for that coverage should EXPLICITLY NOT be produced.
+	 * Glob pattern describing the set of files in the origin for that coverage should EXPLICITLY NOT be produced.
 	 * An exclude is stronger than an include.
 	 */
 	private readonly exclude: string | undefined;

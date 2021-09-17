@@ -18,5 +18,5 @@ module.exports = {
 	collectCoverage: true,
 
 	// The glob patterns Jest uses to detect test files.
-	testMatch: ['**/test/**/*.test.(ts|js)']
+	testMatch: ['**/test/**/*.test.ts']
 };

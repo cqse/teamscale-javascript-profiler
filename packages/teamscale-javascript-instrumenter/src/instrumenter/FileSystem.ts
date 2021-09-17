@@ -58,13 +58,5 @@ export function expandToFileSet(toExpand: string): string[] {
 		}
 	}
 
-	const result: string[] = glob.sync(globPattern, { nodir: true });
-
-	if (result.length === 0) {
-		throw new InvalidConfigurationException(
-			`No files to instrument found. \n\tWorking directory: '${process.cwd()}'\n\tPattern: '${globPattern}'`
-		);
-	}
-
-	return result;
+	return glob.sync(globPattern, { nodir: true });
 }

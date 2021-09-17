@@ -20,7 +20,7 @@ export type IstanbulCoverageStore = {
 type CoverageBroadcastFunction = (fileId: string, coveredLine: number, coveredColumn: number) => void;
 
 /**
- * Used to intercepts updates to Istanbuls' coverage object.
+ * Used to intercept updates to Istanbuls' coverage object.
  */
 class Interceptor implements ProxyHandler<IstanbulCoverageStore> {
 	/**

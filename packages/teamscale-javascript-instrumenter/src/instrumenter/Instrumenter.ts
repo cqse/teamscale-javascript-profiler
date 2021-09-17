@@ -109,19 +109,10 @@ export class IstanbulInstrumenter implements IInstrumenter {
 				const instrumenter = istanbul.createInstrumenter(configurationAlternatives[i]);
 				inputSourceMap = this.loadInputSourceMap(inputFileSource, taskElement);
 
-				// The main instrumentation (adding coverage statements) is performed now:
-				instrumentedSource = instrumenter
-					.instrumentSync(inputFileSource, taskElement.fromFile, inputSourceMap)
-					.replace(/return actualCoverage/g, 'return makeCoverageInterceptor(actualCoverage)')
-					.replace(/new Function\("return this"\)\(\)/g, "typeof window === 'object' ? window : this");
-
-				this.logger.debug('Instrumentation source maps to:', instrumenter.lastSourceMap().sources);
-
 				// Based on the source maps of the file to instrument, we can now
 				// decide if we should NOT write an instrumented version of it
 				// and use the original code instead and write it to the target path.
 				//
-				// TODO: Why is this check not done after `loadInputSourceMap`?
 				if (
 					this.shouldExcludeFromInstrumentation(
 						sourcePattern,
@@ -133,9 +124,17 @@ export class IstanbulInstrumenter implements IInstrumenter {
 					return new TaskResult(1, 0, 0, 0, 0, 0);
 				}
 
+				// The main instrumentation (adding coverage statements) is performed now:
+				instrumentedSource = instrumenter
+					.instrumentSync(inputFileSource, taskElement.fromFile, inputSourceMap)
+					.replace(/return actualCoverage/g, 'return makeCoverageInterceptor(actualCoverage)')
+					.replace(/new Function\("return this"\)\(\)/g, "typeof window === 'object' ? window : this");
+
+				this.logger.debug('Instrumentation source maps to:', instrumenter.lastSourceMap().sources);
+
 				// The process also can result in a new source map that we will append in the result.
 				//
-				// TODO: Check the actual semantics of `lastSourceMap`
+				// `lastSourceMap` === Sourcemap for the last file that was instrumented.
 				finalSourceMap = convertSourceMap.fromObject(instrumenter.lastSourceMap()).toComment();
 
 				break;
@@ -156,12 +155,7 @@ export class IstanbulInstrumenter implements IInstrumenter {
 
 		// We now can glue together the final version of the instrumented file.
 		//
-		// We first replace some of the parameters in the file with the
-		// actual values, for example, the collector to send the coverage information to.
-		const vaccineSource = fs
-			.readFileSync(this.vaccineFilePath, 'utf8')
-			.replace(/\$REPORT_TO_HOST/g, collector.host)
-			.replace(/\$REPORT_TO_PORT/g, `${collector.port}`);
+		const vaccineSource = this.loadVaccine(collector);
 
 		fs.writeFileSync(
 			taskElement.toFile,
@@ -172,19 +166,33 @@ export class IstanbulInstrumenter implements IInstrumenter {
 	}
 
 	/**
+	 * Loads the vaccine from the vaccine file and adjusts some template parameters.
+	 *
+	 * @param collector - The collector to send coverage information to.
+	 */
+	private loadVaccine(collector: CollectorSpecifier) {
+		// We first replace some of the parameters in the file with the
+		// actual values, for example, the collector to send the coverage information to.
+		return fs
+			.readFileSync(this.vaccineFilePath, 'utf8')
+			.replace(/\$REPORT_TO_HOST/g, collector.host)
+			.replace(/\$REPORT_TO_PORT/g, `${collector.port}`);
+	}
+
+	/**
 	 * Should the given file be excluded from the instrumentation,
 	 * based on the source files that have been transpiled into it?
 	 *
 	 * @param pattern - The pattern to match the origin source files.
-	 * @param sourcefile - The bundle file name.
-	 * @param originSourcefiles - The list of files that were transpiled into the bundle.
+	 * @param sourceFile - The bundle file name.
+	 * @param originSourceFiles - The list of files that were transpiled into the bundle.
 	 */
 	private shouldExcludeFromInstrumentation(
 		pattern: OriginSourcePattern,
-		sourcefile: string,
-		originSourcefiles: string[]
+		sourceFile: string,
+		originSourceFiles: string[]
 	): boolean {
-		return !pattern.isAnyIncluded(originSourcefiles);
+		return !pattern.isAnyIncluded(originSourceFiles);
 	}
 
 	/**

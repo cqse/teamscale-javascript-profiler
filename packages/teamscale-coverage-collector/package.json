@@ -15,7 +15,7 @@
     "clean": "npx rimraf dist tsconfig.tsbuildinfo",
     "build": "tsc",
     "serve": "node dist/main.js",
-    "test": "yarn build && jest --forceExit --coverage --silent=true"
+    "test": "yarn build && NODE_OPTIONS='--experimental-vm-modules' jest --forceExit --coverage --silent=true --detectOpenHandles"
   },
   "files": [
     "dist/**/*"

@@ -1,5 +1,9 @@
-import { IllegalArgumentException } from '../lib';
-import { IllegalStateException, ImplementMeException, InvalidConfigurationException } from '../src';
+import {
+	IllegalArgumentException,
+	IllegalStateException,
+	ImplementMeException,
+	InvalidConfigurationException
+} from '../src';
 
 test('IllegalArgumentException', () => {
 	expect(() => {

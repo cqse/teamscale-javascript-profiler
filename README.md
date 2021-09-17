@@ -56,7 +56,7 @@ npm login
 Publish the chosen package using the following command:
 
 ```
-yarn publish
+npm publish
 ```
 
 Please note that the published versions of the packages might not be available 

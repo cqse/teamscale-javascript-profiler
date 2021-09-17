@@ -108,7 +108,7 @@ export class WebSocketCollectingServer {
 			this.logger.error(
 				`Error while processing message starting with ${message.substring(0, Math.min(50, message.length))}`
 			);
-			this.logger.error(e.message);
+			this.logger.error((e as Error).message);
 		}
 	}
 

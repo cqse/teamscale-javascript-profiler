@@ -77,15 +77,28 @@ export class App {
 	}
 
 	/**
+	 * A logger for testing.
+	 */
+	private static buildDummyLogger(): Logger {
+		return winston.createLogger({
+			level: 'info',
+			format: winston.format.json(),
+			defaultMeta: {},
+			transports: [new winston.transports.Console({ format: winston.format.simple(), level: 'info' })]
+		});
+	}
+
+	/**
 	 * The instrumenter can also be started by providing the configuration dictionary explicitly.
 	 *
 	 * @param config - The dictionary with all configuration arguments.
+	 * @param logger - The logger to use.
 	 */
-	public static runForConfigArguments(config: ConfigurationParameters, logger: Logger): Promise<TaskResult> {
+	public static runForConfigArguments(config: ConfigurationParameters, logger?: Logger): Promise<TaskResult> {
 		const task: InstrumentationTask = this.createInstrumentationTask(config);
 		Contract.require(task.elements.length > 0, 'The instrumentation task must not be empty.');
 
-		return this.createInstrumenter(logger).instrument(task);
+		return this.createInstrumenter(logger ?? this.buildDummyLogger()).instrument(task);
 	}
 
 	private static createInstrumentationTask(config: ConfigurationParameters): InstrumentationTask {

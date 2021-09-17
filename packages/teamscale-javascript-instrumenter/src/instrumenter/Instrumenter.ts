@@ -145,11 +145,11 @@ export class IstanbulInstrumenter implements IInstrumenter {
 				if (i === configurationAlternatives.length - 1) {
 					if (!inputSourceMap) {
 						return TaskResult.warning(
-							`Failed loading input source map for ${taskElement.fromFile}: ${e.message}`
+							`Failed loading input source map for ${taskElement.fromFile}: ${(e as Error).message}`
 						);
 					}
 					fs.writeFileSync(taskElement.toFile, inputFileSource);
-					return TaskResult.error(e);
+					return TaskResult.error(e as Error);
 				}
 			}
 		}

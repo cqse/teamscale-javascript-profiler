@@ -1,5 +1,5 @@
-import { App } from '../../dist/App';
 import * as path from 'path';
+import { App } from '../../src/App';
 
 test('Instrumentation: JS that was constructed from TS', () => {
 	const outputDir = path.join(__dirname, '..', '..', 'outputs');

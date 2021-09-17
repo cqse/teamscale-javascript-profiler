@@ -1,14 +1,18 @@
 {
   "name": "@teamscale/javascript-instrumenter",
-  "version": "0.0.1-alpha.10",
+  "version": "0.0.1-alpha.20",
   "description": "Istanbul-based coverage instrumenter with coverage forwarding via WebSockets",
   "main": "dist/main.js",
   "bin": "dist/main.js",
   "types": "dist/main.d.ts",
   "author": "CQSE GmbH",
   "license": "Apache-2.0",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/cqse/teamscale-javascript-profiler.git"
+  },
   "scripts": {
-    "clean": "rimraf dist",
+    "clean": "rimraf dist tsconfig.tsbuildinfo",
     "build": "tsc --project tsconfig.json && rollup --config",
     "run": "node src/main.js",
     "test": "yarn build && jest --forceExit --coverage --silent=true"
@@ -26,24 +30,24 @@
     "@types/convert-source-map": "^1.5.1",
     "@types/glob": "^7.1.3",
     "@types/istanbul-lib-instrument": "^1.7.4",
-    "@types/jest": "^26.0.23",
+    "@types/jest": "^27.0.1",
     "@types/mkdirp": "^1.0.1",
     "@types/node": "^15.0.1",
     "@types/source-map": "^0.5.7",
     "@types/ws": "^7.4.4",
-    "babel-jest": "^26.6.3",
-    "jest": "^26.6.3",
+    "babel-jest": "^27.2.0",
+    "jest": "^27.2.0",
     "rimraf": "^3.0.2",
     "rollup": "^2.56.2",
     "rollup-plugin-auto-named-exports": "^1.0.0-beta.3",
     "rollup-plugin-web-worker-loader": "^1.6.1",
-    "ts-jest": "^26.5.6",
-    "ts-node": "^9.1.1",
+    "ts-jest": "^27.0.5",
+    "ts-node": "^10.2.1",
     "tslib": "^2.2.0",
-    "typescript": "^4.3.5"
+    "typescript": "^4.4.3"
   },
   "dependencies": {
-    "@cqse/commons": "0.0.1-alpha.2",
+    "@cqse/commons": "workspace:*",
     "@types/micromatch": "^4.0.2",
     "argparse": "^2.0.1",
     "async": "^3.2.0",

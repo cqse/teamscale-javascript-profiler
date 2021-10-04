@@ -1,6 +1,6 @@
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-ignore: DataWorker import
-import DataWorker from 'web-worker:./worker/main';
+import DataWorker from './worker/vaccine.worker.ts';
 import { InstanbulCoverageData, IstanbulCoverageStore, makeProxy } from './Interceptor';
 import * as unload from 'unload';
 import { getWindow, universe, hasWindow, universeAttribute } from './utils';

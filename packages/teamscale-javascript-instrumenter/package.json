@@ -22,6 +22,7 @@
   ],
   "devDependencies": {
     "@babel/core": "^7.14.0",
+    "@babel/plugin-transform-modules-commonjs": "^7.15.4",
     "@babel/preset-env": "^7.14.1",
     "@types/async": "^3.2.6",
     "@types/convert-source-map": "^1.5.1",

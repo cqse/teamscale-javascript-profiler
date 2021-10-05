@@ -117,7 +117,7 @@ export class IstanbulInstrumenter implements IInstrumenter {
 					this.shouldExcludeFromInstrumentation(
 						sourcePattern,
 						taskElement.fromFile,
-						instrumenter.lastSourceMap().sources
+						instrumenter.lastSourceMap()?.sources ?? []
 					)
 				) {
 					fs.writeFileSync(taskElement.toFile, inputFileSource);
@@ -130,7 +130,7 @@ export class IstanbulInstrumenter implements IInstrumenter {
 					.replace(/return actualCoverage/g, 'return makeCoverageInterceptor(actualCoverage)')
 					.replace(/new Function\("return this"\)\(\)/g, "typeof window === 'object' ? window : this");
 
-				this.logger.debug('Instrumentation source maps to:', instrumenter.lastSourceMap().sources);
+				this.logger.debug('Instrumentation source maps to:', instrumenter.lastSourceMap()?.sources);
 
 				// The process also can result in a new source map that we will append in the result.
 				//

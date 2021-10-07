@@ -6,6 +6,7 @@
   "scripts": {
     "build": "yarn workspaces foreach run build",
     "test": "yarn workspaces foreach run test",
+    "systemtest": "node ./test/systemtest.mjs",
     "lint": "yarn run eslint . --ext .ts"
   },
   "workspaces": [
@@ -14,6 +15,7 @@
   "devDependencies": {
     "@typescript-eslint/eslint-plugin": "^4.31.1",
     "@typescript-eslint/parser": "^4.31.1",
+    "cypress": "^8.5.0",
     "eslint": "^7.32.0",
     "eslint-config-prettier": "^8.3.0",
     "eslint-config-standard": "^16.0.3",
@@ -23,6 +25,10 @@
     "eslint-plugin-promise": "^5.1.0",
     "eslint-plugin-react": "^7.25.1",
     "eslint-plugin-workspaces": "^0.6.2",
+    "http-server": "^13.0.2",
+    "local-web-server": "^5.1.1",
+    "mkdirp": "^1.0.4",
+    "pm2": "^5.1.2",
     "prettier": "^2.3.2",
     "typescript": "^4.4.3"
   }

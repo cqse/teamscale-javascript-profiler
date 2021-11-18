@@ -214,7 +214,7 @@ export class DataStorage implements IDataStorage {
 		};
 
 		const [lines, content] = toSimpleCoverage();
-		fs.writeFileSync(filePath, content, 'utf8');
+		fs.writeFileSync(filePath.trim(), content, { flag: 'w', encoding: 'utf8' });
 		return lines;
 	}
 

@@ -6,6 +6,7 @@ import { ConfigurationParameters, TaskBuilder } from './instrumenter/TaskBuilder
 import * as path from 'path';
 import { version } from '../package.json';
 import winston, { Logger } from 'winston';
+import { existsSync } from 'fs';
 
 /**
  * Entry points of the instrumenter, including command line argument parsing.
@@ -106,6 +107,16 @@ export class App {
 	}
 
 	private static createInstrumenter(logger: Logger): IInstrumenter {
-		return new IstanbulInstrumenter(path.join(__dirname, '../dist/vaccine.js'), logger);
+		// We have to deal with two different `__dirname` versions,
+		// which depends on whether we run from within the IDE or from
+		// the command line:
+		//     dist/src/    OR    src/
+		const pathVariant1 = path.join(__dirname, '../vaccine.js');
+		const pathVariant2 = path.join(__dirname, '../dist/vaccine.js');
+		if (existsSync(pathVariant1)) {
+			return new IstanbulInstrumenter(pathVariant1, logger);
+		} else {
+			return new IstanbulInstrumenter(pathVariant2, logger);
+		}
 	}
 }

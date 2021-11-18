@@ -122,6 +122,7 @@ export class WebSocketCollectingServer {
 		const fileIdSeparatorPosition = body.indexOf(INSTRUMENTATION_SUBJECT_SEPARATOR);
 		if (fileIdSeparatorPosition > -1) {
 			const fileId = body.substring(0, fileIdSeparatorPosition).trim();
+			this.logger.debug(`Received source map information for ${fileId}`);
 			const sourcemap = body.substring(fileIdSeparatorPosition + 1);
 			session.putSourcemap(fileId, sourcemap);
 		}

@@ -16,6 +16,8 @@ type Parameters = {
 	// eslint-disable-next-line camelcase
 	dump_to_file: string;
 	// eslint-disable-next-line camelcase
+	log_to_file: string;
+	// eslint-disable-next-line camelcase
 	dump_after_secs: number;
 	debug: boolean;
 	port: number;
@@ -39,6 +41,7 @@ export class Main {
 		parser.add_argument('-v', '--version', { action: 'version', version });
 		parser.add_argument('-p', '--port', { help: 'The port to receive coverage information on.', default: 54678 });
 		parser.add_argument('-f', '--dump-to-file', { help: 'Target file', default: './coverage.simple' });
+		parser.add_argument('-l', '--log-to-file', { help: 'Log file', default: 'logs/collector-combined.log' });
 		parser.add_argument('-s', '--dump-after-secs', {
 			help: 'Dump the coverage information to the target file every N seconds.',
 			default: 120
@@ -62,14 +65,14 @@ export class Main {
 	/**
 	 * Construct the logger.
 	 */
-	private static buildLogger(): Logger {
+	private static buildLogger(config: Parameters): winston.Logger {
 		return winston.createLogger({
 			level: 'info',
 			format: winston.format.json(),
 			defaultMeta: {},
 			transports: [
 				new winston.transports.File({ filename: 'logs/collector-error.log', level: 'error' }),
-				new winston.transports.File({ filename: 'logs/collector-combined.log' }),
+				new winston.transports.File({ filename: config.log_to_file.trim() }),
 				new winston.transports.Console({ format: winston.format.simple(), level: 'info' })
 			]
 		});
@@ -79,11 +82,13 @@ export class Main {
 	 * Entry point of the Teamscale JavaScript Profiler.
 	 */
 	public static run(): void {
-		const logger = this.buildLogger();
-		logger.info(`Starting collector in working directory "${process.cwd()}".`);
-
 		// Parse the command line arguments
 		const config = this.parseArguments();
+
+		// Build the logger
+		const logger = this.buildLogger(config);
+		logger.info(`Starting collector in working directory "${process.cwd()}".`);
+		logger.info(`Logging to "${config.log_to_file}".`);
 
 		// Prepare the storage and the server
 		const storage = new DataStorage(logger);
@@ -128,8 +133,8 @@ export class Main {
 				}
 
 				// ... and do a final dump
-				logger.info('\nCaught interrupt signal. Writing latest coverage.');
-				storage.dumpToSimpleCoverageFile(config.dump_to_file);
+				const written = storage.dumpToSimpleCoverageFile(config.dump_to_file);
+				logger.info(`\nCaught interrupt signal. Written ${written} lines of the latest coverage.`);
 			});
 		}
 	}

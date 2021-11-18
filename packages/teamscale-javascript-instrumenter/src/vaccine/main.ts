@@ -75,16 +75,14 @@ universe().makeCoverageInterceptor = function (coverage: IstanbulCoverageStore) 
 	(function sendSourceMaps() {
 		// Send the source maps
 		const sentMaps = universeAttribute('sentMaps', new Set());
-		for (const key of Object.keys(coverage)) {
-			const value: InstanbulCoverageData = coverage[key];
-			const sourceMap = value.inputSourceMap;
-			if (!sentMaps.has(key)) {
-				if (sourceMap) {
-					getWorker().postMessage(
-						`${ProtocolMessageTypes.MESSAGE_TYPE_SOURCEMAP} ${fileId}:${JSON.stringify(sourceMap)}`
-					);
-					sentMaps.add(key);
-				}
+		if (coverage.inputSourceMap) {
+			if (!sentMaps.has(coverage.path)) {
+				getWorker().postMessage(
+					`${ProtocolMessageTypes.MESSAGE_TYPE_SOURCEMAP} ${fileId}:${JSON.stringify(
+						coverage.inputSourceMap
+					)}`
+				);
+				sentMaps.add(coverage.path);
 			}
 		}
 	})();

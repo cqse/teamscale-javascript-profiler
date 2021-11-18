@@ -1,5 +1,5 @@
-// This config file is needed for `ts-node`.
-// That is, for running and debugging the packages in an IDE.
+// This config file is needed for `ts-node`,
+// that is, for running and debugging the packages in an IDE.
 {
   "compilerOptions": {
     "target": "es2015",                                /* Specify ECMAScript target version: 'ES3' (default), 'ES5', 'ES2015', 'ES2016', 'ES2017', 'ES2018', 'ES2019', 'ES2020', or 'ESNEXT'. */
@@ -11,6 +11,7 @@
     "allowSyntheticDefaultImports": true,        /* Allow default imports from modules with no default export. This does not affect code emit, just typechecking. */
     "esModuleInterop": true,                        /* Enables emit interoperability between CommonJS and ES Modules via creation of namespace objects for all imports. Implies 'allowSyntheticDefaultImports'. */
     "skipLibCheck": true,                           /* Skip type checking of declaration files. */
-    "forceConsistentCasingInFileNames": true        /* Disallow inconsistently-cased references to the same file. */
+    "forceConsistentCasingInFileNames": true,        /* Disallow inconsistently-cased references to the same file. */
+    "resolveJsonModule": true   /* Allows importing modules with a ‘.json’ extension, which is a common practice in node projects. */
   }
 }

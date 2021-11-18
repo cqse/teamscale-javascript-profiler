@@ -95,7 +95,7 @@ export class IstanbulInstrumenter implements IInstrumenter {
 		}
 
 		// Report progress
-		this.logger.info(path.basename(taskElement.fromFile));
+		this.logger.info(`Instrumenting "${path.basename(taskElement.fromFile)}"`);
 
 		let finalSourceMap;
 		let instrumentedSource;

@@ -48,6 +48,7 @@ class Interceptor implements ProxyHandler<IstanbulCoverageStore> {
 	// eslint-disable-next-line @typescript-eslint/no-unused-vars
 	public set(obj: never, prop: symbol | string, value: never): boolean {
 		const fullPath = [...this.path, prop];
+
 		// Handle "Statement" coverage
 		if (fullPath[0] === STATEMENT_COVERAGE_ID) {
 			const fileId = this.coverageObj.hash;

@@ -19,6 +19,12 @@ jobs:
       - run: npm install -g yarn
       - name: Install the base dependencies
         run: yarn install
-      - name: Install the dependencies for all the workspaces
+      - name: Install the dependencies for all workspaces
         run: yarn workspaces foreach install
+      - name: Build all workspaces
+        run: yarn workspaces foreach build
+      - name: Run the tests for all workspaces
+        run: yarn workspaces foreach test
+      - name: Run the system test
+        run: yarn systemtest
       - run: echo "Done."

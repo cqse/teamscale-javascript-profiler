@@ -22,6 +22,7 @@ The Collector is written in TypeScript/JavaScript. For building and running it,
 NodeJs (>= v14) and Yarn (>= v3) are needed as prerequisites.
 
 ```
+yarn clean
 yarn install
 yarn build
 ```

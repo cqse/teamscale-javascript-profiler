@@ -20,8 +20,31 @@ The Instrumenter is written in TypeScript/JavaScript. For building and running i
 NodeJs (>= v14) and Yarn (>= v3) are needed as prerequisites.
 
 ``` 
+yarn clean
 yarn install
 yarn build
+```
+
+### Preparation: Source Maps
+
+Please make sure to enable the generation of source map files to ensure
+that the profiled code can be mapped back to the original.
+
+For example, when the tool Vite is used to bundle the code,
+the generation of source map information can be enabled by setting:
+
+```
+   build: {
+      sourcemap: true
+   }
+```
+
+or
+
+```
+   build: {
+      sourcemap: `inline`
+   }
 ```
 
 ## Workflow Integration
@@ -38,27 +61,6 @@ or via `npx` by running
 npx @teamscale/javascript-instrumenter
 ```
 
-### Source Maps
-
-Please make sure to enable the generation of source map files to ensure
-that the profiled code can be mapped back to the original.
-
-For example, when the tool Vite is used to bundle the code,
-the generation of source map information can be enabled by setting:
-
-```
-   build: {
-      sourcemap: true
-   }
-```
-
-or 
-
-```
-   build: {
-      sourcemap: `inline`
-   }
-```
 
 ### Instrumenting a Single File
 

@@ -251,17 +251,38 @@ function sourceMapFromCodeComment(sourcecode: string, sourceFilePath: string): R
 	// or `//# sourceMappingURL=data:application/json;base64,eyJ2ZXJ ...`
 	//
 	// "It is reasonable for tools to also accept “//@” but “//#” is preferred."
-	const re = /\/\/[#@]\s(source(?:Mapping)?URL)=\s*(\S+)/;
-	const matched: RegExpMatchArray | null = re.exec(sourcecode);
-	if (!matched) {
-		return undefined;
-	}
+	const re = /\/\/[#@]\s(source(?:Mapping)?URL)=\s*(\S+)/g;
 
-	const sourceMapComment: string = matched[0];
-	if (sourceMapComment.slice(0, 50).indexOf('data:application/json') > 0) {
-		return convertSourceMap.fromComment(sourceMapComment).toObject();
+	let failedLoading = 0;
+	let result: RawSourceMap | undefined;
+	let matched: RegExpMatchArray | null;
+	do {
+		matched = re.exec(sourcecode);
+		if (matched) {
+			const sourceMapComment: string = matched[0];
+			try {
+				if (sourceMapComment.slice(0, 50).indexOf('data:application/json') > 0) {
+					result = convertSourceMap.fromComment(sourceMapComment).toObject();
+				} else {
+					result = convertSourceMap
+						.fromMapFileComment(sourceMapComment, path.dirname(sourceFilePath))
+						.toObject();
+				}
+			} catch (e) {
+				// One JS file can refer to several source map files in its comments.
+				failedLoading++;
+			}
+
+			if (result) {
+				return result;
+			}
+		}
+	} while (matched);
+
+	if (failedLoading > 0) {
+		throw new IllegalArgumentException('None of the referenced source map files loaded!');
 	} else {
-		return convertSourceMap.fromMapFileComment(sourceMapComment, path.dirname(sourceFilePath)).toObject();
+		return undefined;
 	}
 }
 

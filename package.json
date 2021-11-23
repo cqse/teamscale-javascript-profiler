@@ -28,7 +28,6 @@
     "http-server": "^13.0.2",
     "local-web-server": "^5.1.1",
     "mkdirp": "^1.0.4",
-    "pm2": "^5.1.2",
     "prettier": "^2.3.2",
     "typescript": "^4.4.3"
   }

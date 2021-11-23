@@ -134,6 +134,11 @@ export class DataStorage implements IDataStorage {
 	private readonly logger: Logger;
 
 	/**
+	 * Times unmapped coverage received.
+	 */
+	private timesUnmappedCoverage: number;
+
+	/**
 	 * Constructs the data storage.
 	 *
 	 * @param logger - The logger to use.
@@ -141,6 +146,7 @@ export class DataStorage implements IDataStorage {
 	constructor(logger: Logger) {
 		this.coverageByProject = new Map<string, ProjectCoverage>();
 		this.logger = Contract.requireDefined(logger);
+		this.timesUnmappedCoverage = 0;
 	}
 
 	/**
@@ -177,7 +183,10 @@ export class DataStorage implements IDataStorage {
 	 */
 	public signalUnmappedCoverage(project: string): void {
 		// Currently only implemented to log the missing information.
-		this.logger.debug(`Received unmapped coverage for ${project}`);
+		this.timesUnmappedCoverage++;
+		if (this.timesUnmappedCoverage === 1) {
+			this.logger.debug(`Received unmapped coverage for project "${project}"`);
+		}
 	}
 
 	/**

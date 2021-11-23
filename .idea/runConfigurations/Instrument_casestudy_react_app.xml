@@ -1,5 +1,5 @@
 <component name="ProjectRunConfigurationManager">
-  <configuration default="false" name="Instrument casestudy/react-app" type="NodeJSConfigurationType" folderName="Case Study: React App" application-parameters="test/casestudies/vite-react-app/dist/ --in-place" node-parameters="--require ts-node/register --max-old-space-size=8192" path-to-js-file="$PROJECT_DIR$/packages/teamscale-javascript-instrumenter/src/main.ts" working-dir="$PROJECT_DIR$">
+  <configuration default="false" name="Instrument casestudy/react-app" type="NodeJSConfigurationType" folderName="Case Study: React App" application-parameters="test/casestudies/vite-react-app/dist/ --in-place" node-parameters="--require ts-node/register --max-old-space-size=8192" path-to-js-file="packages/teamscale-javascript-instrumenter/src/main.ts" working-dir="$PROJECT_DIR$">
     <method v="2" />
   </configuration>
 </component>

@@ -61,7 +61,6 @@ or via `npx` by running
 npx @teamscale/javascript-instrumenter
 ```
 
-
 ### Instrumenting a Single File
 
 Adds information for coverage tracking to a single file, either

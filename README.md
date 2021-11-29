@@ -24,7 +24,7 @@ The collector uses the source map to map the coverage information back to the or
 and builds a coverage report that can be handed over to Teamscale.
 Teamscale uses the coverage information, for example, to conduct a Test Gap analysis.`
 
-## Requirements on Test Subjects and their Execution
+## Requirements on Test Subjects
 
 The instrumented code must be executed in a (possibly headless) Browser environment
 that supports at least *ECMAScript 2015*. Furthermore, we require that

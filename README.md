@@ -24,17 +24,12 @@ The collector uses the source map to map the coverage information back to the or
 and builds a coverage report that can be handed over to Teamscale.
 Teamscale uses the coverage information, for example, to conduct a Test Gap analysis.`
 
-### Requirements on the Test Subject and its Execution
+## Requirements on Test Subjects and their Execution
 
 The instrumented code must be executed in a (possibly headless) Browser environment
 that supports at least *ECMAScript 2015*. Furthermore, we require that
 a *DOM* and *WebSockets* are available in that execution environment.
 That is, instrumented applications cannot be executed in NodeJS.
-
-The *Content Security Policy* of the test subject must allow connecting
-to the server that collects the coverage information via WebSockets.
-
-## Preparing your Application
 
 To use this coverage collecting approach, the applications' Cross-Origin Resource Sharing (CORS)
 has to be adjusted. The instrumented application sends coverage information via

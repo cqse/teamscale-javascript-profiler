@@ -151,11 +151,7 @@ export class TaskBuilder {
 					this.addElement(input, target, sourceMapInfo);
 				}
 			} else if (isExistingDirectory(input) || isPattern(input)) {
-				const inputFiles = inputs
-					.map(input => expandToFileSet(input))
-					.reduce((prev, curr) => {
-						return curr.concat(prev);
-					}, []);
+				const inputFiles = inputs.flatMap(input => expandToFileSet(input));
 
 				if (isPattern(input)) {
 					inputFiles.forEach(f => this.addElement(f, path.join(target, path.basename(f)), sourceMapInfo));

@@ -17,7 +17,7 @@ information is produced and (2) forwarded to the Collector.
 ## Building
 
 The Instrumenter is written in TypeScript/JavaScript. For building and running it,
-NodeJs (>= v14) and Yarn (>= v3) are needed as prerequisites.
+NodeJs (>= v14) and Yarn are needed as prerequisites.
 
 ``` 
 yarn clean

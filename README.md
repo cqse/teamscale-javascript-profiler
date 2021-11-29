@@ -6,9 +6,9 @@ for aggregating this information and sending it to [Teamscale](https://www.cqse.
 
 ## Motivation
 
-Customers want to do Test Gap analysis for their JavaScript/TypeScript code. 
+Users want to do Test Gap analysis for their JavaScript/TypeScript code. 
 This is easy for unit tests, where you can just use [IstanbulJS](https://istanbul.js.org/) to get coverage. 
-Also for automated UI tests there are existing solutions (for example, Puppeteer or Cypress) 
+For automated UI tests there are existing solutions (for example, Puppeteer or Cypress) 
 to produce coverage information directly from the headless browser or the testing tool. 
 However, there are no tools to determine and collect the coverage produced by users testing the UI manually,
 or for legacy systems that use a testing approach with no explicit means to collect coverage information.

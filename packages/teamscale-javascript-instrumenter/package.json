@@ -14,7 +14,7 @@
   "scripts": {
     "clean": "rimraf dist tsconfig.tsbuildinfo",
     "build": "tsc --project tsconfig.json && node esbuild.mjs",
-    "run": "node src/main.js",
+    "instrument": "node dist/src/main.js",
     "test": "yarn build && NODE_OPTIONS='--experimental-vm-modules' jest --forceExit --coverage --silent=true --detectOpenHandles"
   },
   "files": [

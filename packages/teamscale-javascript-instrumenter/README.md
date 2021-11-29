@@ -52,7 +52,7 @@ or
 There are several options to run the Instrumenter. For example, via `yarn` by running
 
 ```
-yarn run
+yarn instrument
 ```
 
 or via `npx` by running

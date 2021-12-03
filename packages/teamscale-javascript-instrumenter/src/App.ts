@@ -38,7 +38,10 @@ export class App {
 		});
 
 		parser.add_argument('-v', '--version', { action: 'version', version });
-		parser.add_argument('-i', '--in-place', { action: 'store_true' });
+		parser.add_argument('-i', '--in-place', {
+			action: 'store_true',
+			help: 'If set, the original files to instrument are replaced (!!) by their instrumented counterparts.'
+		});
 		parser.add_argument('-d', '--debug', { action: 'store_true' });
 		parser.add_argument('-o', '--to', {
 			help: 'Name of the file to write the instrumented version to.'

@@ -1,0 +1,228 @@
+# Recording Test Coverage for JavaScript Applications
+
+This tutorial describes how a test coverage information can be recorded for
+a JavaScript application using the Teamscale JavaScript Profiler.
+
+This approach is particularly suited for scenarios without tools to determine
+and collect the coverage produced by users testing the UI manually, or for 
+legacy systems that use a testing approach with no explicit means to 
+collect coverage information.
+
+*ATTENTION*: The Teamscale JavaScript Profiler is still in the public
+beta phase. Your development and testing environment might not yet be fully
+supported by this approach. Please contact our support in case you face problems.
+
+The profiler consists of two major components: the instrumenter and the collector.
+The instrumenter adds statements to the code that signal reaching a particular code line
+when running it in the browser. The obtained coverage is aggregated in the Web browser and
+sent to a collecting server (the collector) once a second. Besides the coverage information,
+also the source maps of the code in the browser are sent to the collector.
+The collector uses the source map to map the coverage information back to the original code
+and builds a coverage report that can be handed over to Teamscale.
+Teamscale uses the coverage information, for example, to conduct a Test Gap analysis.`
+
+# Prerequisites
+
+To use the approach, a number of prerequisites have to be in place.
+
+## Browser (Test Subject Environment) 
+
+The instrumented code must be executed in a (possibly headless) Browser environment
+that supports at least *ECMAScript 2015*. Furthermore, we require that
+a *DOM* and *WebSockets* are available in that execution environment.
+In other words, the approach supports Edge >= v79, Firefox >= v54, Chrome >= v51, and
+Safari >= v10. Instrumented applications cannot be executed in NodeJS.
+
+## Content Security Policy
+
+To use this coverage collecting approach, the applications' Cross-Origin Resource Sharing (CORS)
+has to be adjusted. The instrumented application sends coverage information via
+WebSockets to a collecting server. That is, communication via WebSockets must be allowed.
+For example, if the collecting server is running on the same machine
+as the (possibly headless) browser, then communicating with localhost must be allowed
+by adding `ws://localhost:*` for `connect-src`, `blob`, and `worker-src` to
+the `Content-Security-Policy` header.
+
+The following snippet shows the content security policy that has to be added
+for allowing accessing the collector at host `collectorHost` on port `54321`:
+
+```
+connect-src 'self' ws://collectorHost:54321;
+script-src 'self' blob: ws://collectorHost:54321;
+worker-src 'self' blob: ws://collectorHost:54321;
+```
+
+## NodeJs
+
+To run the components of the profiler, NodeJS in at least version 14 is needed.
+
+# Coverage Collection
+
+## Installing and Running
+
+The collector is available as a NodeJs package. The package is
+available with the name `@teamscale/coverage-collector` in the NodeJs package manager.
+
+### Running using NPX
+
+The collector can be installed and started using the `npx` command. The following
+command starts the collector on port `54678` and instructs it to dump
+the received coverage to the file `./coverage.simple`:
+
+```
+npx @teamscale/coverage-collector --port 54678 --dump-to-file=./coverage.simple
+```
+
+### Running as Node Script
+
+The package can be added as a development dependency to the
+`package.json` file. 
+
+```
+"devDependencies": {
+    "@teamscale/coverage-collector": "^0.0.1-beta.3"
+}
+```
+
+After installing the dependency with `npm install`
+(or `yarn install`), the collector is available for being used.
+
+Note that the package version that is referenced above might be outdated. 
+Please check the [NPM package registry](https://www.npmjs.com/package/@teamscale/coverage-collector)
+for the latest version of the package.
+
+Now we have to start the collector before testing is done, and have to stop it 
+after this process has been finished. For this, we propose to use the `pm2` package, for example,
+as illustrated by following scripts in the `package.json` (assuming that `yarn` is used):
+
+```
+"scripts": {
+  "collector": "coverage-collector",
+  "pretest": "npx pm2 delete CC; npx pm2 start npm --name CC -- run collector",
+  "test": "jest",
+  "posttest": "npx pm2 delete CC"
+},
+```
+
+Please see the [npmjs documentation](https://docs.npmjs.com/cli/v8/using-npm/scripts) for details
+on the `pre` and `post` scripts used in above example. 
+
+ATTENTION: These scripts do not include an instrumentation step, which is 
+mandatory for producing coverage information. Such a step will be introduced
+later in this tutorial.
+
+## Configuration
+
+The collector has three parameters that are relevant for typical application scenarios.
+
+### Collector Port
+
+```
+-p PORT, --port PORT  The port to receive coverage information on.
+```
+
+The port the collector is listening on for information from the JavaScript
+applications under test is configured with the parameter `--port`. By default,
+the collector will listen on port `54678`. Please make sure that this port 
+is accessible (allowed by firewalls) by all clients conducting tests.
+
+### Coverage File
+
+```
+-f DUMP_TO_FILE, --dump-to-file DUMP_TO_FILE  Target file
+```
+
+The collector dumps coverage information to a file in the Teamscale Simple
+Coverage format. By default, this file is written after the collector terminates.
+The target file can be configured with the parameter `--dump-to-file`. By
+default, coverage information is written to the file `coverage.simple` in the
+current working directory.
+
+### Dump Interval
+
+```
+-s DUMP_AFTER_SECS, --dump-after-secs DUMP_AFTER_SECS
+                        Dump the coverage information to the target file every N seconds.
+```
+
+The collector can be configured to dump coverage information regularly after 
+a configured time interval has elapsed. The parameter `--dump-after-secs` allows to 
+specify the number of seconds after the information is dumped. The default is
+set to `120` seconds. To disable this feature you can set it to zero (`0`) seconds.
+
+# Instrumentation
+
+Before the coverage collector can receive any coverage information from a JavaScript
+application, this application has to be prepared to send this coverage information.
+Our JavaScript instrumenter package can be used to prepare (instrument) the JavaScript
+application to test such that coverage information is produced and sent to the collector.
+
+## Installing and Running
+
+The instrumenter is available as a NodeJS package with the name `@teamscale/javascript-instrumenter`.
+
+We recommend `npx` to execute the instrumenter. For example, the following command is used
+to instrument the Angular ["Tour of Heroes"](https://angular.io/tutorial) app.
+Assume that this app was built into the folder `test/casestudies/angular-hero-app/dist`:
+```
+npx @teamscale/javascript-instrumenter \
+    test/casestudies/angular-hero-app/dist/ \
+    --in-place \
+    --include-origin src/app/**/*
+```
+This command instructs the instrumenter to instrument the code in the target
+folder `test/casestudies/angular-hero-app/dist/`.
+The instrumentation is done in-place (`--in-place`), that is, existing files are replaced
+by their instrumented counterparts. 
+
+## Configuration
+
+The instrumenter can be configured by several parameters. We discuss some of them 
+in the following sub-sections.
+
+### Collector
+
+```
+-c COLLECTOR, --collector COLLECTOR
+                       The collector (host:port) to send coverage information to.
+```
+The parameter `--collector` allows for specifying the collector to send the coverage 
+information to. The hostname (or IP address) and the port must be provided, 
+separated by a colon. Please note that the specified collector must be reachable 
+from clients that run the instrumented app to be able to collect coverage.
+
+### Instrumentation Includes and Excludes
+
+```
+-x EXCLUDE_ORIGIN, --exclude-origin EXCLUDE_ORIGIN
+                       Glob pattern of files in the source origin to not produce coverage for.
+
+-k INCLUDE_ORIGIN, --include-origin INCLUDE_ORIGIN
+                       Glob pattern of files in the source origin to produce coverage for.
+```
+
+The instrumenter determines whether to instrument a particular code fragment or not
+by using an include/exclude lists. These lists consist of file names found in the original (!)
+source code files the given file to instrument was built from. That is, the source map
+that is assumed to be present for files to instrument is used to check if an instrumentation
+should be performed.
+
+```  
+-i, --in-place        If set, the original files to instrument are replaced (!!) by their instrumented counterparts.
+```
+
+```
+-o TO, --to TO        Name of the file to write the instrumented version to.
+```
+
+
+# Producing Coverage by Running Tests
+
+# Inspecting the Code Coverage
+
+# Alternatives
+
+We describe one approach to record test coverage of JavaScript applications
+here. However, depending on the development setup and testing approach,
+there is a number of alternatives available, for example, [Cypress](https://www.cypress.io/) can dump
+coverage information from the V8 JavaScript engine. 

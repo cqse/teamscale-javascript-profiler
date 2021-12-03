@@ -29,7 +29,8 @@ Teamscale uses the coverage information, for example, to conduct a Test Gap anal
 The instrumented code must be executed in a (possibly headless) Browser environment
 that supports at least *ECMAScript 2015*. Furthermore, we require that
 a *DOM* and *WebSockets* are available in that execution environment.
-That is, instrumented applications cannot be executed in NodeJS.
+In other words, the approach supports Edge >= v79, Firefox >= v54, Chrome >= v51, and
+Safari >= v10. Instrumented applications cannot be executed in NodeJS.
 
 To use this coverage collecting approach, the applications' Cross-Origin Resource Sharing (CORS)
 has to be adjusted. The instrumented application sends coverage information via

@@ -1,10 +1,10 @@
 {
   "name": "@teamscale/javascript-instrumenter",
-  "version": "0.0.1-alpha.20",
+  "version": "0.0.1-beta.3",
   "description": "Istanbul-based coverage instrumenter with coverage forwarding via WebSockets",
-  "main": "dist/main.js",
-  "bin": "dist/main.js",
-  "types": "dist/main.d.ts",
+  "main": "dist/src/main.js",
+  "bin": "dist/src/main.js",
+  "types": "dist/src/main.d.ts",
   "author": "CQSE GmbH",
   "license": "Apache-2.0",
   "repository": {
@@ -44,7 +44,7 @@
     "typescript": "^4.4.3"
   },
   "dependencies": {
-    "@cqse/commons": "workspace:*",
+    "@cqse/commons": "^0.0.1-beta.1",
     "@types/micromatch": "^4.0.2",
     "argparse": "^2.0.1",
     "async": "^3.2.0",
@@ -58,7 +58,8 @@
     "source-map": "0.6.1",
     "typescript-optional": "^2.0.1",
     "unload": "^2.2.0",
-    "web-worker": "^1.0.0"
+    "web-worker": "^1.0.0",
+    "winston": "^3.3.3"
   },
   "publishConfig": {
     "access": "public"

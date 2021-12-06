@@ -1,6 +1,6 @@
 # Recording Test Coverage for JavaScript Applications
 
-This tutorial describes how a test coverage information can be recorded for
+This document describes how test coverage information can be recorded for
 a JavaScript application using the Teamscale JavaScript Profiler.
 
 This approach is particularly suited for scenarios without tools to determine
@@ -10,7 +10,7 @@ collect coverage information.
 
 *ATTENTION*: The Teamscale JavaScript Profiler is still in the public
 beta phase. Your development and testing environment might not yet be fully
-supported by this approach. Please contact our support in case you face problems.
+supported by this approach. Please contact our support in case you encounter any issues.
 
 The profiler consists of two major components: the instrumenter and the collector.
 The instrumenter adds statements to the code that signal reaching a particular code line
@@ -19,13 +19,11 @@ sent to a collecting server (the collector) once a second. Besides the coverage 
 also the source maps of the code in the browser are sent to the collector.
 The collector uses the source map to map the coverage information back to the original code
 and builds a coverage report that can be handed over to Teamscale.
-Teamscale uses the coverage information, for example, to conduct a Test Gap analysis.`
+Teamscale uses the coverage information, for example, to conduct a Test Gap analysis.
 
 # Prerequisites
 
 To use the approach, a number of prerequisites have to be in place.
-
-## Browser (Test Subject Environment) 
 
 The instrumented code must be executed in a (possibly headless) Browser environment
 that supports at least *ECMAScript 2015*. Furthermore, we require that
@@ -33,35 +31,33 @@ a *DOM* and *WebSockets* are available in that execution environment.
 In other words, the approach supports Edge >= v79, Firefox >= v54, Chrome >= v51, and
 Safari >= v10. Instrumented applications cannot be executed in NodeJS.
 
-## Content Security Policy
+To run the components of the profiler, NodeJS in at least version 14 is needed.
 
-To use this coverage collecting approach, the applications' Cross-Origin Resource Sharing (CORS)
+# Content Security Policy
+
+To use this coverage collecting approach, the application's Cross-Origin Resource Sharing (CORS)
 has to be adjusted. The instrumented application sends coverage information via
 WebSockets to a collecting server. That is, communication via WebSockets must be allowed.
 For example, if the collecting server is running on the same machine
-as the (possibly headless) browser, then communicating with localhost must be allowed
+as the browser, then communicating with localhost must be allowed
 by adding `ws://localhost:*` for `connect-src`, `blob`, and `worker-src` to
 the `Content-Security-Policy` header.
 
 The following snippet shows the content security policy that has to be added
-for allowing accessing the collector at host `collectorHost` on port `54321`:
+for allowing accessing the collector at host `<collectorHost>` on port `<port>`:
 
 ```
-connect-src 'self' ws://collectorHost:54321;
-script-src 'self' blob: ws://collectorHost:54321;
-worker-src 'self' blob: ws://collectorHost:54321;
+connect-src 'self' ws://<collectorHost>:<port>;
+script-src 'self' blob: ws://<collectorHost>:<port>;
+worker-src 'self' blob: ws://<collectorHost>:<port>;
 ```
-
-## NodeJs
-
-To run the components of the profiler, NodeJS in at least version 14 is needed.
 
 # Coverage Collection
 
 ## Installing and Running
 
-The collector is available as a NodeJs package. The package is
-available with the name `@teamscale/coverage-collector` in the NodeJs package manager.
+The collector is available as a NodeJS package. The package is
+available with the name `@teamscale/coverage-collector` in the NodeJS package manager.
 
 ### Running using NPX
 
@@ -75,25 +71,19 @@ npx @teamscale/coverage-collector --port 54678 --dump-to-file=./coverage.simple
 
 ### Running as Node Script
 
-The package can be added as a development dependency to the
-`package.json` file. 
+The package `@teamscale/coverage-collector` can be added as a development dependency 
+to the `package.json` file. For example, by running `npm install -D @teamscale/coverage-collector`
+(or `yarn add -D @teamscale/coverage-collector`). 
 
-```
-"devDependencies": {
-    "@teamscale/coverage-collector": "^0.0.1-beta.3"
-}
-```
-
-After installing the dependency with `npm install`
-(or `yarn install`), the collector is available for being used.
-
-Note that the package version that is referenced above might be outdated. 
+After installing the package it should be registered in the `package.json`
+and be available locally for being executed.
 Please check the [NPM package registry](https://www.npmjs.com/package/@teamscale/coverage-collector)
-for the latest version of the package.
+for the latest version of the package regularly.
 
 Now we have to start the collector before testing is done, and have to stop it 
-after this process has been finished. For this, we propose to use the `pm2` package, for example,
-as illustrated by following scripts in the `package.json` (assuming that `yarn` is used):
+after this process has been finished. For this, we propose to use the `pm2` package---can
+be installed using `npm install -D pm2` (or `yarn add -D pm2`).
+The usage of pm2 is illustrated by following scripts in a `package.json` (assuming that `yarn` is used):
 
 ```
 "scripts": {
@@ -109,7 +99,7 @@ on the `pre` and `post` scripts used in above example.
 
 ATTENTION: These scripts do not include an instrumentation step, which is 
 mandatory for producing coverage information. Such a step will be introduced
-later in this tutorial.
+later in this document.
 
 ## Configuration
 

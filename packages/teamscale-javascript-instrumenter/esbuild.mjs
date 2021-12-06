@@ -3,7 +3,7 @@ import inlineWorkerPlugin from 'esbuild-plugin-inline-worker';
 
 const options = {
   entryPoints: ['src/vaccine/main.ts'],
-  minify: process.env.NODE_ENV === 'production',
+  minify: true,
   bundle: true,
   outfile: 'dist/vaccine.js',
   tsconfig: 'tsconfig.vaccine.json',

@@ -7,6 +7,7 @@ This approach is particularly suited for scenarios without tools to determine
 and collect the coverage produced by users testing the UI manually, or for 
 legacy systems that use a testing approach with no explicit means to 
 collect coverage information.
+[Alternatives](#alternatives) for this approach are discussed [later](#alternatives) in this document.
 
 *ATTENTION*: The Teamscale JavaScript Profiler is still in the public
 beta phase. Your development and testing environment might not yet be fully
@@ -33,7 +34,29 @@ Safari >= v10. Instrumented applications cannot be executed in NodeJS.
 
 To run the components of the profiler, NodeJS in at least version 14 is needed.
 
-# Content Security Policy
+# Preparing your Application
+
+Before we can instrument the application for sending coverage information
+to the coverage collector, the application has to be prepared further:
+(1) source maps are needed to map back to the original code,
+(2) and the content security policy has to be adjusted to allow for
+sending the coverage information to the collector.
+
+## Source Maps
+
+The presence of source map files in the code of the test subject ensures
+that the tested code can be mapped back to the original.
+Depending on your build pipeline, a different approach must be chosen
+to add the source maps to the test subject's code bundle.
+
+For example, when the tool [Vite](https://vitejs.dev/config/#build-sourcemap) 
+is used to bundle the code, the addition of source map information can be enabled 
+by setting `build: { sourcemap: true }` or `build: { sourcemap: 'inline' }`.
+Similar options are provided by other tools, for example, in Rollup `output: { sourceMap: true }`,
+or in the [Typescript](https://www.typescriptlang.org/tsconfig#inlineSourceMap) 
+compiler `{ "compilerOptions": { "sourceMap": true, "inlineSources": true } }`.
+
+## Content Security Policy
 
 To use this coverage collecting approach, the application's Cross-Origin Resource Sharing (CORS)
 has to be adjusted. The instrumented application sends coverage information via
@@ -232,8 +255,12 @@ or by using the REST API directly. More details can be found in the
 [Teamscale documentation](https://docs.teamscale.com/howto/uploading-external-results/).
 
 # Alternatives
+<a name="alternatives" />
 
 We describe one approach to record test coverage of JavaScript applications
 here. However, depending on the development setup and testing approach,
-there is a number of alternatives available, for example, [Cypress](https://www.cypress.io/) can dump
-coverage information from the V8 JavaScript engine. 
+there is a number of alternatives available, for example, [Cypress](https://www.cypress.io/) 
+can dump coverage information from the V8 JavaScript engine. 
+Another example is [NYC](https://github.com/istanbuljs/nyc), which can be used for 
+collecting coverage of NodeJS applications.
+

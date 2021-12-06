@@ -207,18 +207,39 @@ source code files the given file to instrument was built from. That is, the sour
 that is assumed to be present for files to instrument is used to check if an instrumentation
 should be performed.
 
+### Target Path
+
+The instrumenter can either replace existing files by their instrumented counterparts,
+or it can write the instrumented versions to separate target path.
+
 ```  
 -i, --in-place        If set, the original files to instrument are replaced (!!) by their instrumented counterparts.
 ```
 
+If set, the flag `--in-place` instructs the instrumenter to replace the un-instrumented
+input files by their instrumented counterparts. Please be carefully when using this parameter: 
+Make sure that important changes to your code were saved in a separate location
+before performing the instrumentation. Typically, the in-pace instrumentation
+is performed on a target directory of the build process.
+
 ```
--o TO, --to TO        Name of the file to write the instrumented version to.
+-o TO, --to TO        Path (directory or file name) to write the instrumented version to.
 ```
 
+In case the in-place instrumentation is not used and files are written to
+a separate path, the parameter `--to` has to be used to specify the target path.
 
-# Producing Coverage by Running Tests
+# Uploading Coverage for Inspection
 
-# Inspecting the Code Coverage
+When the code to be tested was instrumented and the collector is running, code coverage
+will be produced and collected when running the code. By default, the collector
+will write a coverage file in the Teamscale Simple Coverage format.
+
+Whenever a testing process has been finished (for example, in the build pipeline),
+the coverage must be provided to Teamscale for being used, for example,
+for a Test Gap Analysis. This is can be done by using the [Teamscale Upload Tool](https://github.com/cqse/teamscale-upload)
+or by using the REST API directly. More details can be found in the
+[Teamscale documentation](https://docs.teamscale.com/howto/uploading-external-results/).
 
 # Alternatives
 

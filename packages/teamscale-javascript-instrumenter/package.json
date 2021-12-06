@@ -1,6 +1,6 @@
 {
   "name": "@teamscale/javascript-instrumenter",
-  "version": "0.0.1-beta.3",
+  "version": "0.0.1-beta.7",
   "description": "Istanbul-based coverage instrumenter with coverage forwarding via WebSockets",
   "main": "dist/src/main.js",
   "bin": "dist/src/main.js",
@@ -14,7 +14,7 @@
   "scripts": {
     "clean": "rimraf dist tsconfig.tsbuildinfo",
     "build": "tsc --project tsconfig.json && node esbuild.mjs",
-    "instrument": "node dist/src/main.js",
+    "instrumenter": "node dist/src/main.js",
     "test": "yarn build && NODE_OPTIONS='--experimental-vm-modules' jest --forceExit --coverage --silent=true --detectOpenHandles"
   },
   "files": [

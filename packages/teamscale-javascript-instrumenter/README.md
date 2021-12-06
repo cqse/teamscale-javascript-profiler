@@ -52,7 +52,7 @@ or
 There are several options to run the Instrumenter. For example, via `yarn` by running
 
 ```
-yarn instrument
+yarn instrumenter
 ```
 
 or via `npx` by running
@@ -74,23 +74,16 @@ the file must contain source-map information, or the source-map file
 must be placed along with the source file in the same directory.
 
 ```
-yarn run --inplace ./the/path/to/the/file.js
+yarn instrumenter --inplace ./the/path/to/the/file.js
 ```
 
 ```
-yarn run --inplace ./the/path/to/the/file.js --source-map ./the/path/to/the/source.map
+yarn instrumenter --inplace ./the/path/to/the/file.js --source-map ./the/path/to/the/source.map
 ```
 
 ```
-yarn run ./the/path/to/the/file.js --to ./the/file/path/to/write/to.js
+yarn instrumenter ./the/path/to/the/file.js --to ./the/file/path/to/write/to.js
 ```
-
-### Instrumenting all JavaScript Files in a Folder
-
-We think that dealing with sets of files, in particular including or excluding
-files that match particular file masks should be done by other tools.
-In a UNIX environment, you should consider using `find` with corresponding
-filters and an `-exec` argument to run the instrumenter.
 
 ### Integration with Testing Frameworks
 

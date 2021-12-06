@@ -4,6 +4,8 @@ This is a mono repository that includes all components to instrument
 JavaScript applications in order to collect coverage information and the tools
 for aggregating this information and sending it to [Teamscale](https://www.cqse.eu/en/teamscale/).
 
+Please see the [HOWTO](HOWTO.md) for details on using the profiler for your project.
+
 ## Motivation
 
 Users want to do Test Gap analysis for their JavaScript/TypeScript code. 

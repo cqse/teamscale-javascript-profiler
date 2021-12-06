@@ -1,6 +1,6 @@
 {
   "name": "@teamscale/coverage-collector",
-  "version": "0.0.1-beta.3",
+  "version": "0.0.1-beta.4",
   "description": "Collector for JavaScript code coverage information",
   "main": "dist/src/main.js",
   "bin": "dist/src/main.js",
@@ -14,7 +14,7 @@
   "scripts": {
     "clean": "rimraf dist tsconfig.tsbuildinfo",
     "build": "tsc",
-    "serve": "node dist/src/main.js",
+    "collector": "node dist/src/main.js",
     "test": "yarn build && NODE_OPTIONS='--experimental-vm-modules' jest --forceExit --coverage --silent=true --detectOpenHandles"
   },
   "files": [

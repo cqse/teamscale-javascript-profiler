@@ -44,7 +44,7 @@ export class App {
 		});
 		parser.add_argument('-d', '--debug', { action: 'store_true' });
 		parser.add_argument('-o', '--to', {
-			help: 'Name of the file to write the instrumented version to.'
+			help: 'Path (directory or file name) to write the instrumented version to.'
 		});
 		parser.add_argument('-s', '--source-map', {
 			help: 'External location of source-map files to consider.'

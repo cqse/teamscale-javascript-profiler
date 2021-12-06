@@ -54,7 +54,7 @@ is used to bundle the code, the addition of source map information can be enable
 by setting `build: { sourcemap: true }` or `build: { sourcemap: 'inline' }`.
 Similar options are provided by other tools, for example, in Rollup `output: { sourceMap: true }`,
 or in the [Typescript](https://www.typescriptlang.org/tsconfig#inlineSourceMap) 
-compiler `{ "compilerOptions": { "sourceMap": true, "inlineSources": true } }`.
+compiler `{ compilerOptions: { sourceMap: true, inlineSources: true } }`.
 
 ## Content Security Policy
 
@@ -76,6 +76,10 @@ worker-src 'self' blob: ws://<collectorHost>:<port>;
 ```
 
 # Coverage Collection
+
+Before we describe how the code has to be instrumented to produce and send coverage 
+information, we now describe how to set up the coverage collector.
+The address of this collector is later instrumented into the code of the test subject.
 
 ## Installing and Running
 

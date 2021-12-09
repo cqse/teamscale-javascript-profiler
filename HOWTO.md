@@ -7,11 +7,12 @@ This approach is particularly suited for scenarios without tools to determine
 and collect the coverage produced by users testing the UI manually, or for 
 legacy systems that use a testing approach with no explicit means to 
 collect coverage information.
-[Alternatives](#alternatives) for this approach are discussed [later](#alternatives) in this document.
+Alternatives for this approach are discussed [later](#alternatives) in this document.
 
 *ATTENTION*: The Teamscale JavaScript Profiler is still in the public
 beta phase. Your development and testing environment might not yet be fully
-supported by this approach. Please contact our support in case you encounter any issues.
+supported by this approach. Please contact our support (support@teamscale.com) 
+in case you encounter any issues.
 
 The profiler consists of two major components: the instrumenter and the collector.
 The instrumenter adds statements to the code that signal reaching a particular code line
@@ -20,7 +21,8 @@ sent to a collecting server (the collector) once a second. Besides the coverage 
 also the source maps of the code in the browser are sent to the collector.
 The collector uses the source map to map the coverage information back to the original code
 and builds a coverage report that can be handed over to Teamscale.
-Teamscale uses the coverage information, for example, to conduct a Test Gap analysis.
+Teamscale uses the coverage information, for example, 
+for [Test Gap analysis](https://docs.teamscale.com/reference/test-gap-analysis/).
 
 # Prerequisites
 
@@ -37,12 +39,17 @@ To run the components of the profiler, NodeJS in at least version 14 is needed.
 # Preparing your Application
 
 Before we can instrument the application for sending coverage information
-to the coverage collector, the application has to be prepared further:
+to the coverage collector, the application has to be prepared:
 (1) source maps are needed to map back to the original code,
 (2) and the content security policy has to be adjusted to allow for
 sending the coverage information to the collector.
 
 ## Source Maps
+
+The code that is executed in the browser does often not correspond to the
+code written by the developers. It can be the result of several
+transformation steps, for example, compilation (transpilation) from other 
+languages, source code minimization, or bundling. 
 
 The presence of source map files in the code of the test subject ensures
 that the tested code can be mapped back to the original.

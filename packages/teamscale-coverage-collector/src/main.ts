@@ -20,7 +20,7 @@ type Parameters = {
 	// eslint-disable-next-line camelcase
 	log_level: string;
 	// eslint-disable-next-line camelcase
-	dump_after_secs: number;
+	dump_after_mins: number;
 	debug: boolean;
 	port: number;
 };
@@ -45,9 +45,9 @@ export class Main {
 		parser.add_argument('-f', '--dump-to-file', { help: 'Target file', default: './coverage.simple' });
 		parser.add_argument('-l', '--log-to-file', { help: 'Log file', default: 'logs/collector-combined.log' });
 		parser.add_argument('-e', '--log-level', { help: 'Log level', default: 'info' });
-		parser.add_argument('-s', '--dump-after-secs', {
-			help: 'Dump the coverage information to the target file every N seconds.',
-			default: 120
+		parser.add_argument('-t', '--dump-after-mins', {
+			help: 'Dump the coverage information to the target file every N minutes.',
+			default: 2
 		});
 		parser.add_argument('-d', '--debug', {
 			help: 'Print received coverage information to the terminal?',
@@ -119,7 +119,7 @@ export class Main {
 	 * @param logger - The logger to use.
 	 */
 	private static maybeStartDumpTimer(config: Parameters, storage: DataStorage, logger: Logger): void {
-		if (config.dump_after_secs > 0) {
+		if (config.dump_after_mins > 0) {
 			const timer = setInterval(() => {
 				try {
 					const lines = storage.dumpToSimpleCoverageFile(config.dump_to_file);
@@ -127,7 +127,7 @@ export class Main {
 				} catch (e) {
 					logger.error('Timed coverage dump failed.', e);
 				}
-			}, config.dump_after_secs * 1000);
+			}, config.dump_after_mins * 1000 * 60);
 
 			process.on('SIGINT', () => {
 				// Stop the timed file dump

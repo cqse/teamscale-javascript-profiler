@@ -1,0 +1,14 @@
+{
+  "private": true,
+  "name": "plain-ts",
+  "version": "1.0.0",
+  "main": "index.js",
+  "license": "MIT",
+  "scripts": {
+      "build": "npx tsc",
+      "instrument": "npx nyc instrument --all=true --source-map ./dist/ ./dist-instrumented"
+  },
+  "devDependencies": {
+    "typescript": "^4.3.4"
+  }
+}

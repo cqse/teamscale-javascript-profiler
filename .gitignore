@@ -141,3 +141,6 @@ dist
 
 # Editor-based Rest Client
 .idea/httpRequests
+
+# Playground file for testing purposes
+**/playground.*

@@ -9,7 +9,7 @@ import 'dotenv/config';
 import * as fs from 'fs';
 import axios from 'axios';
 import FormData from 'form-data';
-import QueryParameters from '@src/utils/QueryParameters';
+import QueryParameters from './utils/QueryParameters';
 
 /**
  * The command line parameters the profiler can be configured with.

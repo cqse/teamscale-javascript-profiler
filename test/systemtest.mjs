@@ -5,6 +5,7 @@ import path  from 'path';
 import * as fs  from 'fs';
 import * as fsp  from 'fs/promises';
 import { spawn } from 'child_process';
+import ServerMock from 'mock-http-server';
 
 /**
  * Definition of the case studies along with
@@ -46,6 +47,7 @@ const caseStudies = [
 const INSTRUMENTER_DIR = 'packages/teamscale-javascript-instrumenter';
 const COLLECTOR_DIR = 'packages/teamscale-coverage-collector';
 const SERVER_PORT = 9000;
+const TEAMSCALE_MOCK_PORT = 10088;
 
 /**
  * Load coverage from a file in the simple coverage format to an object
@@ -146,9 +148,12 @@ function identifyExpectedButAbsent(actual, expected) {
  * Start the collector process.
  * @returns {ChildProcessWithoutNullStreams}
  */
-function startCollector(coverageTargetFile, logTargetFile) {
-	return spawn('node', [`${COLLECTOR_DIR}/dist/src/main.js`,
-		`-f`, `${coverageTargetFile}`, `-l`, `${logTargetFile}`, `-e`, `info`]);
+function startCollector(coverageTargetFile, logTargetFile, projectId) {
+    return spawn('node', [`${COLLECTOR_DIR}/dist/src/main.js`,
+		`-f`, `${coverageTargetFile}`, `-l`, `${logTargetFile}`, `-e`, `info`],
+		{ env: { ...process.env, UPLOAD_TO_TEAMSCALE_URL: 'http://localhost:${TEAMSCALE_MOCK_PORT}/',
+				TEAMSCALE_USER: 'admin', TEAMSCALE_API_KEY: 'mockKey', TEAMSCALE_PROJECT: projectId},
+				TEAMSCALE_PARTITION: 'mockPartition', TEAMSCALE_BRANCH: 'mockBranch'});
 }
 
 /**
@@ -211,10 +216,27 @@ for (const study of caseStudies) {
 				await fsp.unlink(logTargetFile);
 			}
 
+			// Start the Teamscale mock serer
+			let teamscaleServerMock = new ServerMock({ host: "localhost", port: TEAMSCALE_MOCK_PORT });
+			teamscaleServerMock.on({
+				method: "POST",
+				path: `/api/projects/${study.name}/external-analysis/session/auto-create/report`,
+				reply: {
+					status: 200,
+					headers: { "content-type": "text/plain" },
+					body: "Thanks for the report!"
+				}
+			});
+
+			await new Promise((resolve, reject) => {
+				console.log("## Starting the Teamscale mock server")
+				teamscaleServerMock.start(resolve);
+			})
+
 			// Start the new collector
-			console.log("## Staring the collector");
+			console.log("## Starting the collector");
 			console.log(`Collector is logging to ${logTargetFile}`);
-			const collectProcess = startCollector(coverageTargetFile, logTargetFile);
+			const collectProcess = startCollector(coverageTargetFile, logTargetFile, study.name);
 
 			try {
 				console.log("## Running Cypress");
@@ -249,6 +271,19 @@ for (const study of caseStudies) {
 			// Analyze the coverage
 			console.log(`## Analysis of coverage in ${coverageTargetFile}`);
 			checkCoverage(coverageTargetFile, study);
+
+			// Check the calls to the Teamscale mock server
+			const mockedRequests = teamscaleServerMock.requests({ method: "POST" }).length;
+			if (mockedRequests === 0) {
+				throw new Error("No coverage information was sent to the Teamscale mock server!");
+			} else {
+				console.log(`Received ${mockedRequests} requests in the Teamscale mock server.`)
+			}
+
+			await new Promise((resolve, reject) => {
+				console.log("## Stopping the Teamscale mock server");
+				teamscaleServerMock.stop(resolve);
+			});
 		} finally {
 			console.log("## Stop the case study Web server");
 			ws.server.close();

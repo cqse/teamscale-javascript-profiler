@@ -77,7 +77,7 @@ export class Main {
 
 		// Parameters for the upload to Teamscale
 		parser.add_argument('-u', '--upload-to-teamscale', {
-			help: 'Upload the coverage to the given Teamscale server URL, for example, https://teamscale.dev.example.com:8080/production/.',
+			help: 'Upload the coverage to the given Teamscale server URL, for example, https://teamscale.dev.example.com:8080/production.',
 			default: process.env.UPLOAD_TO_TEAMSCALE_URL
 		});
 		parser.add_argument('--teamscale-api-key', {
@@ -160,7 +160,10 @@ export class Main {
 		this.maybeStartDumpTimer(config, storage, logger);
 
 		// Say bye bye on CTRL+C and exit the process
-		process.on('SIGINT', () => {
+		process.on('SIGINT', async () => {
+			// ... and do a final dump before.
+			await this.dumpCoverage(config, storage, logger).then();
+
 			logger.info('Bye bye.');
 			process.exit();
 		});
@@ -175,19 +178,16 @@ export class Main {
 	 */
 	private static maybeStartDumpTimer(config: Parameters, storage: DataStorage, logger: Logger): void {
 		if (config.dump_after_mins > 0) {
+			logger.info(`Will dump coverage information every ${config.dump_after_mins} minute(s).`);
 			const timer = setInterval(() => {
 				this.dumpCoverage(config, storage, logger).then();
 			}, config.dump_after_mins * 1000 * 60);
 
-			process.on('SIGINT', async () => {
+			process.on('SIGINT', () => {
 				// Stop the timed file dump
 				if (timer) {
 					clearInterval(timer);
 				}
-
-				// ... and do a final dump
-				this.dumpCoverage(config, storage, logger).then();
-				logger.info(`\nCaught interrupt signal. Terminating.`);
 			});
 		}
 	}
@@ -200,11 +200,13 @@ export class Main {
 
 			// 2. Upload to Teamscale if configured
 			if (config.upload_to_teamscale) {
-				if (config.teamscale_api_key && config.teamscale_user) {
-					const coverageData = fs.readFileSync(config.dump_to_file);
+				if (lines === 0) {
+					// Nothing to upload
+				} else if (config.teamscale_api_key && config.teamscale_user) {
+					logger.info('Preparing upload to Teamscale');
 
 					const form = new FormData();
-					form.append('report', coverageData, 'coverage.simple');
+					form.append('report', fs.createReadStream(config.dump_to_file), 'coverage.simple');
 
 					const parameters = new QueryParameters();
 					parameters.addIfDefined('format', 'SIMPLE');
@@ -215,7 +217,7 @@ export class Main {
 					parameters.addIfDefined('partition', config.teamscale_partition);
 
 					const response = await axios.post(
-						`${config.upload_to_teamscale}/api/projects/${
+						`${config.upload_to_teamscale.replace(/\/$/, '')}/api/projects/${
 							config.teamscale_project
 						}/external-analysis/session/auto-create/report?${parameters.toQueryParamString()}`,
 						form,
@@ -225,8 +227,8 @@ export class Main {
 								password: config.teamscale_api_key
 							},
 							headers: {
-								accept: '*/*',
-								'Content-Type': 'multipart/form-data'
+								Accept: '*/*',
+								'Content-Type': `multipart/form-data; boundary=${form.getBoundary()}`
 							}
 						}
 					);
@@ -235,6 +237,8 @@ export class Main {
 				} else {
 					logger.error('Cannot upload to Teamscale: API key and user name must be configured!');
 				}
+			} else {
+				logger.info('Upload to Teamscale not configured.');
 			}
 		} catch (e) {
 			logger.error('Coverage dump failed.', e);

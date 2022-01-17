@@ -77,7 +77,8 @@ export class Main {
 
 		// Parameters for the upload to Teamscale
 		parser.add_argument('-u', '--upload-to-teamscale', {
-			help: 'Upload the coverage to the given Teamscale server URL.'
+			help: 'Upload the coverage to the given Teamscale server URL, for example, https://teamscale.dev.example.com:8080/production/.',
+			default: process.env.UPLOAD_TO_TEAMSCALE_URL
 		});
 		parser.add_argument('--teamscale-api-key', {
 			help: 'The API key to use for uploading to Teamscale.',
@@ -168,7 +169,7 @@ export class Main {
 	/**
 	 * Start a timer for dumping the data, depending on the configuration.
 	 *
-	 * @param config - The config that determines whether or not to do the timed dump.
+	 * @param config - The config that determines whether to do the timed dump or not.
 	 * @param storage - The storage with the information to dump.
 	 * @param logger - The logger to use.
 	 */
@@ -232,7 +233,7 @@ export class Main {
 
 					logger.info(`Upload with response ${response.status} finished.`);
 				} else {
-					logger.error('Cannot upload to Teascamle: API key and user name must be configured!');
+					logger.error('Cannot upload to Teamscale: API key and user name must be configured!');
 				}
 			}
 		} catch (e) {

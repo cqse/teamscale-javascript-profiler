@@ -5,6 +5,10 @@ import { ArgumentParser } from 'argparse';
 import winston, { Logger } from 'winston';
 import { DataStorage } from './storage/DataStorage';
 import { WebSocketCollectingServer } from './receiver/CollectingServer';
+import 'dotenv/config';
+import * as fs from 'fs';
+import axios from 'axios';
+import FormData from 'form-data';
 
 /**
  * The command line parameters the profiler can be configured with.
@@ -23,6 +27,18 @@ type Parameters = {
 	dump_after_mins: number;
 	debug: boolean;
 	port: number;
+	// eslint-disable-next-line camelcase
+	upload_to_teamscale?: string;
+	// eslint-disable-next-line camelcase
+	teamscale_api_key?: string;
+	// eslint-disable-next-line camelcase
+	teamscale_project?: string;
+	// eslint-disable-next-line camelcase
+	teamscale_user?: string;
+	// eslint-disable-next-line camelcase
+	teamscale_partition?: string;
+	// eslint-disable-next-line camelcase
+	teamscale_commit?: string;
 };
 
 /**
@@ -52,6 +68,33 @@ export class Main {
 		parser.add_argument('-d', '--debug', {
 			help: 'Print received coverage information to the terminal?',
 			default: false
+		});
+		parser.add_argument('-u', '--upload-to-teamscale', {
+			help: 'Upload the coverage to the given Teamscale server URL.'
+		});
+		parser.add_argument('--teamscale-api-key', {
+			help: 'The API key to use for uploading to Teamscale.',
+			default: process.env.TEAMSCALE_API_KEY
+		});
+		parser.add_argument('--teamscale-project', {
+			help: 'The project to upload coverage to.',
+			default: process.env.TEAMSCALE_PROJECT
+		});
+		parser.add_argument('--teamscale-user', {
+			help: 'The user for uploading coverage to Teamscale.',
+			default: process.env.TEAMSCALE_USER
+		});
+		parser.add_argument('--teamscale-partition', {
+			help: 'The partition to upload coverage to.',
+			default: process.env.TEAMSCALE_PARTITION
+		});
+		parser.add_argument('--teamscale-commit', {
+			help: 'The commit to upload coverage for.',
+			default: process.env.TEAMSCALE_COMMIT
+		});
+		parser.add_argument('--teamscale-branch', {
+			help: 'The branch to upload coverage for.',
+			default: process.env.TEAMSCALE_BRANCH
 		});
 
 		return parser;
@@ -121,24 +164,49 @@ export class Main {
 	private static maybeStartDumpTimer(config: Parameters, storage: DataStorage, logger: Logger): void {
 		if (config.dump_after_mins > 0) {
 			const timer = setInterval(() => {
-				try {
-					const lines = storage.dumpToSimpleCoverageFile(config.dump_to_file);
-					logger.info(`Conducted periodic coverage dump with ${lines} lines to ${config.dump_to_file}.`);
-				} catch (e) {
-					logger.error('Timed coverage dump failed.', e);
-				}
+				this.dumpCoverage(config, storage, logger).then();
 			}, config.dump_after_mins * 1000 * 60);
 
-			process.on('SIGINT', () => {
+			process.on('SIGINT', async () => {
 				// Stop the timed file dump
 				if (timer) {
 					clearInterval(timer);
 				}
 
 				// ... and do a final dump
-				const written = storage.dumpToSimpleCoverageFile(config.dump_to_file);
-				logger.info(`\nCaught interrupt signal. Written ${written} lines of the latest coverage.`);
+				this.dumpCoverage(config, storage, logger).then();
+				logger.info(`\nCaught interrupt signal. Terminating.`);
 			});
+		}
+	}
+
+	private static async dumpCoverage(config: Parameters, storage: DataStorage, logger: Logger): Promise<void> {
+		try {
+			// 1. Write to coverage file
+			const lines = storage.dumpToSimpleCoverageFile(config.dump_to_file);
+			logger.info(`Dumped ${lines} lines of coverage to ${config.dump_to_file}.`);
+
+			// 2. Upload to Teamscale if configured
+			if (config.upload_to_teamscale) {
+				if (config.teamscale_api_key) {
+					const coverageData = fs.readFileSync(config.dump_to_file);
+
+					const form = new FormData();
+					form.append('report', coverageData, 'coverage.simple');
+
+					const response = await axios.post(
+						`${config.upload_to_teamscale}/api/projects/${config.teamscale_project}/external-analysis/session/auto-create/report?format=SIMPLE&partition=${config.teamscale_partition}&message=JSCoverage&revision=${config.teamscale_commit}`,
+						form,
+						{}
+					);
+
+					logger.info(`Upload with response ${response.status} finished.`);
+				} else {
+					logger.error('Cannot upload to Teascamle: API key not configured!');
+				}
+			}
+		} catch (e) {
+			logger.error('Coverage dump failed.', e);
 		}
 	}
 }

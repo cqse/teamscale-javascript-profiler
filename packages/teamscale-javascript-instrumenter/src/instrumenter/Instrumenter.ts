@@ -117,7 +117,7 @@ export class IstanbulInstrumenter implements IInstrumenter {
 					this.shouldExcludeFromInstrumentation(
 						sourcePattern,
 						taskElement.fromFile,
-						instrumenter.lastSourceMap()?.sources ?? []
+						inputSourceMap?.sources ?? []
 					)
 				) {
 					fs.writeFileSync(taskElement.toFile, inputFileSource);

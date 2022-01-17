@@ -9,6 +9,7 @@ import 'dotenv/config';
 import * as fs from 'fs';
 import axios from 'axios';
 import FormData from 'form-data';
+import QueryParameters from '@src/utils/QueryParameters';
 
 /**
  * The command line parameters the profiler can be configured with.
@@ -39,6 +40,10 @@ type Parameters = {
 	teamscale_partition?: string;
 	// eslint-disable-next-line camelcase
 	teamscale_commit?: string;
+	// eslint-disable-next-line camelcase
+	teamscale_branch?: string;
+	// eslint-disable-next-line camelcase
+	teamscale_repository?: string;
 };
 
 /**
@@ -69,6 +74,8 @@ export class Main {
 			help: 'Print received coverage information to the terminal?',
 			default: false
 		});
+
+		// Parameters for the upload to Teamscale
 		parser.add_argument('-u', '--upload-to-teamscale', {
 			help: 'Upload the coverage to the given Teamscale server URL.'
 		});
@@ -95,6 +102,10 @@ export class Main {
 		parser.add_argument('--teamscale-branch', {
 			help: 'The branch to upload coverage for.',
 			default: process.env.TEAMSCALE_BRANCH
+		});
+		parser.add_argument('--teamscale-repository', {
+			help: 'The repository to upload coverage for.',
+			default: process.env.TEAMSCALE_REPOSITORY
 		});
 
 		return parser;
@@ -188,21 +199,40 @@ export class Main {
 
 			// 2. Upload to Teamscale if configured
 			if (config.upload_to_teamscale) {
-				if (config.teamscale_api_key) {
+				if (config.teamscale_api_key && config.teamscale_user) {
 					const coverageData = fs.readFileSync(config.dump_to_file);
 
 					const form = new FormData();
 					form.append('report', coverageData, 'coverage.simple');
 
+					const parameters = new QueryParameters();
+					parameters.addIfDefined('format', 'SIMPLE');
+					parameters.addIfDefined('message', 'JavaScript coverage upload');
+					parameters.addIfDefined('repository', config.teamscale_repository);
+					parameters.addIfDefined('branch', config.teamscale_branch);
+					parameters.addIfDefined('revision', config.teamscale_commit);
+					parameters.addIfDefined('partition', config.teamscale_partition);
+
 					const response = await axios.post(
-						`${config.upload_to_teamscale}/api/projects/${config.teamscale_project}/external-analysis/session/auto-create/report?format=SIMPLE&partition=${config.teamscale_partition}&message=JSCoverage&revision=${config.teamscale_commit}`,
+						`${config.upload_to_teamscale}/api/projects/${
+							config.teamscale_project
+						}/external-analysis/session/auto-create/report?${parameters.toQueryParamString()}`,
 						form,
-						{}
+						{
+							auth: {
+								username: config.teamscale_user,
+								password: config.teamscale_api_key
+							},
+							headers: {
+								accept: '*/*',
+								'Content-Type': 'multipart/form-data'
+							}
+						}
 					);
 
 					logger.info(`Upload with response ${response.status} finished.`);
 				} else {
-					logger.error('Cannot upload to Teascamle: API key not configured!');
+					logger.error('Cannot upload to Teascamle: API key and user name must be configured!');
 				}
 			}
 		} catch (e) {

@@ -151,7 +151,7 @@ function identifyExpectedButAbsent(actual, expected) {
 function startCollector(coverageTargetFile, logTargetFile, projectId) {
     return spawn('node', [`${COLLECTOR_DIR}/dist/src/main.js`,
 		`-f`, `${coverageTargetFile}`, `-l`, `${logTargetFile}`, `-e`, `info`],
-		{ env: { ...process.env, UPLOAD_TO_TEAMSCALE_URL: 'http://localhost:${TEAMSCALE_MOCK_PORT}/',
+		{ env: { ...process.env, UPLOAD_TO_TEAMSCALE_URL: `http://localhost:${TEAMSCALE_MOCK_PORT}/`,
 				TEAMSCALE_USER: 'admin', TEAMSCALE_API_KEY: 'mockKey', TEAMSCALE_PROJECT: projectId},
 				TEAMSCALE_PARTITION: 'mockPartition', TEAMSCALE_BRANCH: 'mockBranch'});
 }

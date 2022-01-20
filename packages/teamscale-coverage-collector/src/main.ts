@@ -11,6 +11,8 @@ import axios from 'axios';
 import FormData from 'form-data';
 import QueryParameters from './utils/QueryParameters';
 
+import tmp from 'tmp';
+
 /**
  * The command line parameters the profiler can be configured with.
  *
@@ -19,7 +21,7 @@ import QueryParameters from './utils/QueryParameters';
  */
 type Parameters = {
 	// eslint-disable-next-line camelcase
-	dump_to_file: string;
+	dump_to_file?: string;
 	// eslint-disable-next-line camelcase
 	log_to_file: string;
 	// eslint-disable-next-line camelcase
@@ -29,9 +31,9 @@ type Parameters = {
 	debug: boolean;
 	port: number;
 	// eslint-disable-next-line camelcase
-	upload_to_teamscale?: string;
+	teamscale_server_url?: string;
 	// eslint-disable-next-line camelcase
-	teamscale_api_key?: string;
+	teamscale_access_token?: string;
 	// eslint-disable-next-line camelcase
 	teamscale_project?: string;
 	// eslint-disable-next-line camelcase
@@ -39,16 +41,16 @@ type Parameters = {
 	// eslint-disable-next-line camelcase
 	teamscale_partition?: string;
 	// eslint-disable-next-line camelcase
-	teamscale_commit?: string;
+	teamscale_revision?: string;
 	// eslint-disable-next-line camelcase
-	teamscale_branch?: string;
+	teamscale_commit?: string;
 	// eslint-disable-next-line camelcase
 	teamscale_repository?: string;
 };
 
 /**
  * The main class of the Teamscale JavaScript Collector.
- * Used to start-up the collector for with a given configuration.
+ * Used to start the collector for with a given configuration.
  */
 export class Main {
 	/**
@@ -63,7 +65,7 @@ export class Main {
 
 		parser.add_argument('-v', '--version', { action: 'version', version });
 		parser.add_argument('-p', '--port', { help: 'The port to receive coverage information on.', default: 54678 });
-		parser.add_argument('-f', '--dump-to-file', { help: 'Target file', default: './coverage.simple' });
+		parser.add_argument('-f', '--dump-to-file', { help: 'Target file to write coverage to.' });
 		parser.add_argument('-l', '--log-to-file', { help: 'Log file', default: 'logs/collector-combined.log' });
 		parser.add_argument('-e', '--log-level', { help: 'Log level', default: 'info' });
 		parser.add_argument('-t', '--dump-after-mins', {
@@ -76,16 +78,16 @@ export class Main {
 		});
 
 		// Parameters for the upload to Teamscale
-		parser.add_argument('-u', '--upload-to-teamscale', {
+		parser.add_argument('-u', '--teamscale-server-url', {
 			help: 'Upload the coverage to the given Teamscale server URL, for example, https://teamscale.dev.example.com:8080/production.',
-			default: process.env.UPLOAD_TO_TEAMSCALE_URL
+			default: process.env.TEAMSCALE_SERVER_URL
 		});
-		parser.add_argument('--teamscale-api-key', {
+		parser.add_argument('--teamscale-access-token', {
 			help: 'The API key to use for uploading to Teamscale.',
-			default: process.env.TEAMSCALE_API_KEY
+			default: process.env.TEAMSCALE_ACCESS_TOKEN
 		});
 		parser.add_argument('--teamscale-project', {
-			help: 'The project to upload coverage to.',
+			help: 'The project ID to upload coverage to.',
 			default: process.env.TEAMSCALE_PROJECT
 		});
 		parser.add_argument('--teamscale-user', {
@@ -96,16 +98,16 @@ export class Main {
 			help: 'The partition to upload coverage to.',
 			default: process.env.TEAMSCALE_PARTITION
 		});
+		parser.add_argument('--teamscale-revision', {
+			help: 'The revision (commit hash, version id) to upload coverage for.',
+			default: process.env.TEAMSCALE_REVISION
+		});
 		parser.add_argument('--teamscale-commit', {
-			help: 'The commit to upload coverage for.',
+			help: 'The branch and timestamp to upload coverage for, separated by colon.',
 			default: process.env.TEAMSCALE_COMMIT
 		});
-		parser.add_argument('--teamscale-branch', {
-			help: 'The branch to upload coverage for.',
-			default: process.env.TEAMSCALE_BRANCH
-		});
 		parser.add_argument('--teamscale-repository', {
-			help: 'The repository to upload coverage for.',
+			help: 'The repository to upload coverage for. Optional: Only needed if the project has several connectors.',
 			default: process.env.TEAMSCALE_REPOSITORY
 		});
 
@@ -147,6 +149,12 @@ export class Main {
 		const logger = this.buildLogger(config);
 		logger.info(`Starting collector in working directory "${process.cwd()}".`);
 		logger.info(`Logging "${config.log_level}" to "${config.log_to_file}".`);
+
+		// Check the command line arguments
+		if (!config.dump_to_file && !config.teamscale_server_url) {
+			logger.error('The Collector must be configured to either dump to a file or upload to Teamscale.');
+			process.exit(1);
+		}
 
 		// Prepare the storage and the server
 		const storage = new DataStorage(logger);
@@ -194,37 +202,41 @@ export class Main {
 
 	private static async dumpCoverage(config: Parameters, storage: DataStorage, logger: Logger): Promise<void> {
 		try {
-			// 1. Write to coverage file
-			const lines = storage.dumpToSimpleCoverageFile(config.dump_to_file);
-			logger.info(`Dumped ${lines} lines of coverage to ${config.dump_to_file}.`);
+			const deleteCoverageFileAfterUpload = !config.dump_to_file;
+			const coverageFile = config.dump_to_file ?? tmp.tmpNameSync();
+			try {
+				// 1. Write coverage to a file
+				const lines = storage.dumpToSimpleCoverageFile(coverageFile);
+				logger.info(`Dumped ${lines} lines of coverage to ${config.dump_to_file}.`);
 
-			// 2. Upload to Teamscale if configured
-			if (config.upload_to_teamscale) {
-				if (lines === 0) {
+				// 2. Upload to Teamscale if configured
+				if (!config.teamscale_server_url) {
+					logger.info('Upload to Teamscale not configured.');
+				} else if (lines === 0) {
 					// Nothing to upload
-				} else if (config.teamscale_api_key && config.teamscale_user) {
+				} else if (config.teamscale_access_token && config.teamscale_user) {
 					logger.info('Preparing upload to Teamscale');
 
 					const form = new FormData();
-					form.append('report', fs.createReadStream(config.dump_to_file), 'coverage.simple');
+					form.append('report', fs.createReadStream(coverageFile), 'coverage.simple');
 
 					const parameters = new QueryParameters();
 					parameters.addIfDefined('format', 'SIMPLE');
 					parameters.addIfDefined('message', 'JavaScript coverage upload');
 					parameters.addIfDefined('repository', config.teamscale_repository);
-					parameters.addIfDefined('branch', config.teamscale_branch);
+					parameters.addIfDefined('t', config.teamscale_revision);
 					parameters.addIfDefined('revision', config.teamscale_commit);
 					parameters.addIfDefined('partition', config.teamscale_partition);
 
 					const response = await axios.post(
-						`${config.upload_to_teamscale.replace(/\/$/, '')}/api/projects/${
+						`${config.teamscale_server_url.replace(/\/$/, '')}/api/projects/${
 							config.teamscale_project
-						}/external-analysis/session/auto-create/report?${parameters.toQueryParamString()}`,
+						}/external-analysis/session/auto-create/report?${parameters.toString()}`,
 						form,
 						{
 							auth: {
 								username: config.teamscale_user,
-								password: config.teamscale_api_key
+								password: config.teamscale_access_token
 							},
 							headers: {
 								Accept: '*/*',
@@ -237,8 +249,10 @@ export class Main {
 				} else {
 					logger.error('Cannot upload to Teamscale: API key and user name must be configured!');
 				}
-			} else {
-				logger.info('Upload to Teamscale not configured.');
+			} finally {
+				if (deleteCoverageFileAfterUpload) {
+					fs.unlinkSync(coverageFile);
+				}
 			}
 		} catch (e) {
 			logger.error('Coverage dump failed.', e);

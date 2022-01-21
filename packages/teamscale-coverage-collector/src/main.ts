@@ -46,6 +46,8 @@ type Parameters = {
 	teamscale_commit?: string;
 	// eslint-disable-next-line camelcase
 	teamscale_repository?: string;
+	// eslint-disable-next-line camelcase
+	teamscale_message?: string;
 };
 
 /**
@@ -107,8 +109,12 @@ export class Main {
 			default: process.env.TEAMSCALE_COMMIT
 		});
 		parser.add_argument('--teamscale-repository', {
-			help: 'The repository to upload coverage for. Optional: Only needed if the project has several connectors.',
+			help: 'The repository to upload coverage for. Optional: Only needed when uploading via revision to a project that has more than one connector.',
 			default: process.env.TEAMSCALE_REPOSITORY
+		});
+		parser.add_argument('--teamscale-message', {
+			help: 'the commit message shown within Teamscale for the coverage upload. Default is "JavaScript coverage upload".',
+			default: process.env.TEAMSCALE_MESSAGE ?? 'JavaScript coverage upload'
 		});
 
 		return parser;
@@ -222,10 +228,10 @@ export class Main {
 
 					const parameters = new QueryParameters();
 					parameters.addIfDefined('format', 'SIMPLE');
-					parameters.addIfDefined('message', 'JavaScript coverage upload');
+					parameters.addIfDefined('message', config.teamscale_message);
 					parameters.addIfDefined('repository', config.teamscale_repository);
-					parameters.addIfDefined('t', config.teamscale_revision);
-					parameters.addIfDefined('revision', config.teamscale_commit);
+					parameters.addIfDefined('t', config.teamscale_commit);
+					parameters.addIfDefined('revision', config.teamscale_revision);
 					parameters.addIfDefined('partition', config.teamscale_partition);
 
 					const response = await axios.post(

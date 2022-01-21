@@ -113,7 +113,7 @@ export class Main {
 			default: process.env.TEAMSCALE_REPOSITORY
 		});
 		parser.add_argument('--teamscale-message', {
-			help: 'the commit message shown within Teamscale for the coverage upload. Default is "JavaScript coverage upload".',
+			help: 'The commit message shown within Teamscale for the coverage upload. Default is "JavaScript coverage upload".',
 			default: process.env.TEAMSCALE_MESSAGE ?? 'JavaScript coverage upload'
 		});
 

@@ -1,5 +1,5 @@
 <component name="ProjectRunConfigurationManager">
-  <configuration default="false" name="Run Collector" type="NodeJSConfigurationType" application-parameters="-e debug" node-parameters="--require ts-node/register --max-old-space-size=8192" path-to-js-file="packages/teamscale-coverage-collector/src/main.ts" working-dir="$PROJECT_DIR$">
+  <configuration default="false" name="Run Collector" type="NodeJSConfigurationType" application-parameters="-e debug -f test.simple" node-parameters="--require ts-node/register --max-old-space-size=8192" path-to-js-file="packages/teamscale-coverage-collector/src/main.ts" working-dir="$PROJECT_DIR$">
     <method v="2" />
   </configuration>
 </component>

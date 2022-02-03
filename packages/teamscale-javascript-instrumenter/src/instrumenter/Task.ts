@@ -145,6 +145,9 @@ export class TaskResult {
 	/** Number of task elements that were performed (instrumented) */
 	public readonly translated: number;
 
+	/** Number of task elements that were excluded because of corresponding include/exclude patterns. */
+	public readonly excluded: number;
+
 	/** Number of instrumentations that were taken from a cache */
 	public readonly translatedFromCache: number;
 
@@ -162,6 +165,7 @@ export class TaskResult {
 
 	constructor(
 		translated: number,
+		excluded: number,
 		translatedFromCache: number,
 		alreadyInstrumented: number,
 		unsupported: number,
@@ -169,12 +173,14 @@ export class TaskResult {
 		warnings: number
 	) {
 		Contract.require(translated > -1);
+		Contract.require(excluded > -1);
 		Contract.require(translatedFromCache > -1);
 		Contract.require(alreadyInstrumented > -1);
 		Contract.require(unsupported > -1);
 		Contract.require(failed > -1);
 		Contract.require(warnings > -1);
 		this.translated = translated;
+		this.excluded = excluded;
 		this.translatedFromCache = translatedFromCache;
 		this.alreadyInstrumented = alreadyInstrumented;
 		this.unsupported = unsupported;
@@ -190,6 +196,7 @@ export class TaskResult {
 	public withIncrement(incBy: TaskResult): TaskResult {
 		return new TaskResult(
 			this.translated + incBy.translated,
+			this.excluded + incBy.excluded,
 			this.translatedFromCache + incBy.translatedFromCache,
 			this.alreadyInstrumented + incBy.alreadyInstrumented,
 			this.unsupported + incBy.unsupported,
@@ -202,7 +209,7 @@ export class TaskResult {
 	 * @returns the neutral task element (adding it with {@code withIncrement} does not change the result).
 	 */
 	public static neutral(): TaskResult {
-		return new TaskResult(0, 0, 0, 0, 0, 0);
+		return new TaskResult(0, 0, 0, 0, 0, 0, 0);
 	}
 
 	/**
@@ -212,7 +219,7 @@ export class TaskResult {
 	 */
 	public static error(e: Error): TaskResult {
 		console.error(e);
-		return new TaskResult(0, 0, 0, 0, 1, 0);
+		return new TaskResult(0, 0, 0, 0, 0, 1, 0);
 	}
 
 	/**
@@ -222,7 +229,7 @@ export class TaskResult {
 	 */
 	public static warning(msg: string): TaskResult {
 		console.warn(msg);
-		return new TaskResult(0, 0, 0, 0, 0, 1);
+		return new TaskResult(0, 0, 0, 0, 0, 0, 1);
 	}
 }
 

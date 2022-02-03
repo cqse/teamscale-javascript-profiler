@@ -86,12 +86,12 @@ export class IstanbulInstrumenter implements IInstrumenter {
 			if (!taskElement.isInPlace()) {
 				fs.writeFileSync(taskElement.toFile, inputFileSource);
 			}
-			return new TaskResult(0, 0, 1, 0, 0, 0);
+			return new TaskResult(0, 0, 0, 1, 0, 0, 0);
 		}
 
 		// Not all file types are supported by the instrumenter
 		if (!this.isFileTypeSupported(taskElement.fromFile)) {
-			return new TaskResult(0, 0, 0, 1, 0, 0);
+			return new TaskResult(0, 0, 0, 0, 1, 0, 0);
 		}
 
 		// Report progress
@@ -121,7 +121,7 @@ export class IstanbulInstrumenter implements IInstrumenter {
 					)
 				) {
 					fs.writeFileSync(taskElement.toFile, inputFileSource);
-					return new TaskResult(1, 0, 0, 0, 0, 0);
+					return new TaskResult(0, 1, 0, 0, 0, 0, 0);
 				}
 
 				// The main instrumentation (adding coverage statements) is performed now:
@@ -162,7 +162,7 @@ export class IstanbulInstrumenter implements IInstrumenter {
 			`${IS_INSTRUMENTED_TOKEN} ${vaccineSource} ${instrumentedSource} \n${finalSourceMap}`
 		);
 
-		return new TaskResult(1, 0, 0, 0, 0, 0);
+		return new TaskResult(1, 0, 0, 0, 0, 0, 0);
 	}
 
 	/**

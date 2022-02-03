@@ -7,6 +7,7 @@ App.run()
 	.then(result => {
 		console.log('Instrumentation finished.');
 		console.log(`\tInstrumented: ${result.translated}`);
+		console.log(`\tExcluded: ${result.excluded}`);
 		console.log(`\tInstrumented from cache: ${result.translatedFromCache}`);
 		console.log(`\tAlready instrumented: ${result.alreadyInstrumented}`);
 		console.log(`\tUnsupported: ${result.unsupported}`);

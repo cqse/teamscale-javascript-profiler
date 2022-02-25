@@ -72,7 +72,7 @@ export class Main {
 		parser.add_argument('-e', '--log-level', { help: 'Log level', default: 'info' });
 		parser.add_argument('-t', '--dump-after-mins', {
 			help: 'Dump the coverage information to the target file every N minutes.',
-			default: 2
+			default: 360
 		});
 		parser.add_argument('-d', '--debug', {
 			help: 'Print received coverage information to the terminal?',

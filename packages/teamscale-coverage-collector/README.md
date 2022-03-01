@@ -9,7 +9,7 @@ files in the [Teamscale Simple Coverage Format](https://docs.teamscale.com/refer
 The Teamscale JavaScript Profiler consists of this Coverage Collector and the
 [JavaScript Instrumenter](https://www.npmjs.com/package/@teamscale/javascript-instrumenter).
 More details on using them (in combination) can be found 
-on the projects' [Github page](https://github.com/cqse/teamscale-javascript-profiler/).
+in the [Teamscale Documentation](https://docs.teamscale.com/howto/recording-test-coverage-for-javascript/).
 
 The JavaScript Coverage Collector starts a server process that listens for 
 code coverage information from manually or automatically exercised (tested) 
@@ -48,9 +48,4 @@ for example, by setting a corresponding environment variable.
 ```
 export NODE_OPTIONS="$NODE_OPTIONS --max-old-space-size=8192"
 ```
-
-## Publishing
-
-The list of files to publish is defined by the `files` attribute in `package.json`.
-The actual files packed by npm can be listed by running `npx npm-packlist`.
 

@@ -19,9 +19,9 @@ jobs:
       - name: Install the dependencies for all workspaces
         run: yarn workspaces foreach install
       - name: Build all workspaces
-        run: yarn workspaces foreach build
+        run: yarn workspaces foreach run build
       - name: Run the tests for all workspaces
-        run: yarn workspaces foreach test
+        run: yarn workspaces foreach run test
       - name: Run the system test
         run: yarn systemtest
       - name: Publish the Commons Library

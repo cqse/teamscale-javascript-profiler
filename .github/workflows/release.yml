@@ -25,18 +25,18 @@ jobs:
       - name: Run the system test
         run: yarn systemtest
       - name: Publish the Commons Library
-        working-directory: ./packages/cqse-commons
         uses: JS-DevTools/npm-publish@v1
+        working-directory: ./packages/cqse-commons
         with:
           token: ${{ secrets.NPM_TOKEN }}        
       - name: Publish the Collector
-        working-directory: ./packages/teamscale-coverage-collector
         uses: JS-DevTools/npm-publish@v1
+        working-directory: ./packages/teamscale-coverage-collector
         with:
           token: ${{ secrets.NPM_TOKEN }}        
       - name: Publish the Instrumenter
-        working-directory: ./packages/teamscale-javascript-instrumenter
         uses: JS-DevTools/npm-publish@v1
+        working-directory: ./packages/teamscale-javascript-instrumenter
         with:
           token: ${{ secrets.NPM_TOKEN }}        
 

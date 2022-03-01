@@ -34,6 +34,20 @@ Please see our [HOWTO](https://docs.teamscale.com/howto/recording-test-coverage-
 - [Docker Image with the Teamscale Coverage Collector](https://hub.docker.com/r/cqse/teamscale-coverage-collector/tags/)
 - [Node Package of the Teamscale JavaScript Instrumenter](https://www.npmjs.com/package/@teamscale/javascript-instrumenter)
 
+## Releasing
+
+Whenever there is a tested version that should be released, the following steps should be 
+performed on the main branch in a single comment:
+
+1. Increment the version of the affected packages in their `package.json` file—stick to Semantic Versioning.
+2. Update the changelog of the affected packages and move all changes from the section `Next Release` to a new version, e.g., `21.3.0`.
+4. Commit and push your changes.
+5. Create a GitHub Release tag with the same version number and the text from the changelog.
+   
+All tags are built automatically using [Github Actions](https://github.com/cqse/teamscale-jacoco-agent/actions) with the release binaries being uploaded to the GitHub Releases, NpmJs, and DockerHub.
+
+Only use official releases in production. 
+
 ## Contributing
 
 We welcome any contributions to this project. Feel free to send us pull requests,

@@ -6,14 +6,14 @@ on:
 
 jobs:
   build-and-test:
-    name: Build and Deploy
+    name: Build and Test
     runs-on: ubuntu-latest
     steps:
       - name: Check out the code
         uses: actions/checkout@v2
       - uses: actions/setup-node@v2
         with:
-          node-version: '14'
+          node-version: '16'
           cache: 'npm'
       - run: npm install -g yarn
       - name: Install the base dependencies

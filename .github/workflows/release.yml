@@ -25,20 +25,20 @@ jobs:
       - name: Run the system test
         run: yarn systemtest
       - name: Publish the Commons Library
-        uses: JS-DevTools/npm-publish@v1
         working-directory: ./packages/cqse-commons
-        with:
-          token: ${{ secrets.NPM_TOKEN }}        
+        run: npm publish
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
       - name: Publish the Collector
-        uses: JS-DevTools/npm-publish@v1
         working-directory: ./packages/teamscale-coverage-collector
-        with:
-          token: ${{ secrets.NPM_TOKEN }}        
+        run: npm publish
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
       - name: Publish the Instrumenter
-        uses: JS-DevTools/npm-publish@v1
         working-directory: ./packages/teamscale-javascript-instrumenter
-        with:
-          token: ${{ secrets.NPM_TOKEN }}        
+        run: npm publish
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
   release-docker:
     name: Release the Docker Image

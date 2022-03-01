@@ -4,6 +4,10 @@ This is a mono repository that includes all components to instrument
 JavaScript applications in order to collect coverage information and the tools
 for aggregating this information and sending it to [Teamscale](https://www.cqse.eu/en/teamscale/).
 
+**Public Beta.** The Teamscale JavaScript Profiler is still in the public beta phase. 
+Your development and testing environment might not yet be fully supported by this approach. 
+Please contact our support (support@teamscale.com) in case you encounter any issues.
+
 ## Motivation
 
 Users want to do Test Gap analysis for their JavaScript/TypeScript code. 
@@ -37,12 +41,12 @@ Please see our [HOWTO](https://docs.teamscale.com/howto/recording-test-coverage-
 ## Releasing
 
 Whenever there is a tested version that should be released, the following steps should be 
-performed on the main branch in a single comment:
+performed on the branch `master` in a single comment:
 
 1. Increment the version of the affected packages in their `package.json` file—stick to Semantic Versioning.
 2. Update the changelog of the affected packages and move all changes from the section `Next Release` to a new version, e.g., `21.3.0`.
-4. Commit and push your changes.
-5. Create a GitHub Release tag with the same version number and the text from the changelog.
+3. Commit and push your changes.
+4. Create a GitHub Release tag with the same version number and the text from the changelog.
    
 All tags are built automatically using [Github Actions](https://github.com/cqse/teamscale-jacoco-agent/actions) with the release binaries being uploaded to the GitHub Releases, NpmJs, and DockerHub.
 

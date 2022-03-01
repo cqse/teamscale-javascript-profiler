@@ -60,9 +60,9 @@ jobs:
         username: ${{ secrets.DOCKERHUB_USER }}
         password: ${{ secrets.DOCKERHUB_TOKEN }}
     - name: Build and push
-      working-directory: ./packages/teamscale-coverage-collector
       uses: docker/build-push-action@v2
       with:
+        context: ./packages/teamscale-coverage-collector
         file: 'Dockerfile'
         push: ${{ github.event_name != 'pull_request' }}
         tags: ${{ steps.meta.outputs.tags }}

@@ -9,7 +9,7 @@ in the Teamscale Simple Coverage Format and sent to a Teamscale instance.
 The Teamscale JavaScript Profiler consists of the [Coverage Collector](https://www.npmjs.com/package/@teamscale/coverage-collector) 
 and this JavaScript Instrumenter.
 More details on using them (in combination) can be found
-on the projects' [Github page](https://github.com/cqse/teamscale-javascript-profiler/).
+in the [Teamscale Documentation](https://docs.teamscale.com/howto/recording-test-coverage-for-javascript/).
 
 The Instrumenter instruments a given (set of) JavaScript file(s) such that (1) coverage 
 information is produced and (2) forwarded to the Collector.
@@ -23,28 +23,6 @@ NodeJs (>= v14) and Yarn are needed as prerequisites.
 yarn clean
 yarn install
 yarn build
-```
-
-### Preparation: Source Maps
-
-Please make sure to enable the generation of source map files to ensure
-that the profiled code can be mapped back to the original.
-
-For example, when the tool Vite is used to bundle the code,
-the generation of source map information can be enabled by setting:
-
-```
-   build: {
-      sourcemap: true
-   }
-```
-
-or
-
-```
-   build: {
-      sourcemap: `inline`
-   }
 ```
 
 ## Workflow Integration
@@ -85,12 +63,8 @@ yarn instrumenter --inplace ./the/path/to/the/file.js --source-map ./the/path/to
 yarn instrumenter ./the/path/to/the/file.js --to ./the/file/path/to/write/to.js
 ```
 
-### Integration with Testing Frameworks
-
-This is planned work: Provide a Babel plugin that provides a code transformation
-such that coverage information is collected and this information is forwarded.
-
 ## Limitations
 
 This tool inherits most of the limitations of IstanbulJs, including 
 a considerable performance impact.
+

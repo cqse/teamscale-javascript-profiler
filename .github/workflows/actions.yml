@@ -1,13 +1,12 @@
 on:
   push:
     branches: '*'
-    tags: 'v*'
   pull_request:
     branches: '*'
 
 jobs:
-  build-linux:
-    name: Linux Build
+  build-and-test:
+    name: Build and Deploy
     runs-on: ubuntu-latest
     steps:
       - uses: actions/setup-node@v2
@@ -28,3 +27,4 @@ jobs:
       - name: Run the system test
         run: yarn systemtest
       - run: echo "Done."
+

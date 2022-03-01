@@ -1,0 +1,70 @@
+on:
+  push:
+    tags: 'v*'
+
+jobs:
+  release-node:
+    name: Release the Node Package
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/setup-node@v2
+        with:
+          node-version: '14'
+          cache: 'npm'
+      - name: Check out the code
+        uses: actions/checkout@v2
+      - run: npm install -g yarn
+      - name: Install the base dependencies
+        run: yarn install
+      - name: Install the dependencies for all workspaces
+        run: yarn workspaces foreach install
+      - name: Build all workspaces
+        run: yarn workspaces foreach build
+      - name: Run the tests for all workspaces
+        run: yarn workspaces foreach test
+      - name: Run the system test
+        run: yarn systemtest
+      - name: Publish the Commons Library
+        working-directory: ./packages/cqse-commons
+        uses: JS-DevTools/npm-publish@v1
+        with:
+          token: ${{ secrets.NPM_TOKEN }}        
+      - name: Publish the Collector
+        working-directory: ./packages/teamscale-coverage-collector
+        uses: JS-DevTools/npm-publish@v1
+        with:
+          token: ${{ secrets.NPM_TOKEN }}        
+      - name: Publish the Instrumenter
+        working-directory: ./packages/teamscale-javascript-instrumenter
+        uses: JS-DevTools/npm-publish@v1
+        with:
+          token: ${{ secrets.NPM_TOKEN }}        
+
+  release-docker:
+    name: Release the Docker Image
+    runs-on: ubuntu-latest
+    steps:
+    - name: Set up QEMU
+      uses: docker/setup-qemu-action@v1
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v1
+    - name: Docker meta
+      id: meta
+      uses: docker/metadata-action@v3
+      with:
+        images: cqse/teamscale-coverage-collector
+    - name: Login to DockerHub
+      if: github.event_name != 'pull_request'
+      uses: docker/login-action@v1
+      with:
+        username: ${{ secrets.DOCKERHUB_USER }}
+        password: ${{ secrets.DOCKERHUB_TOKEN }}
+    - name: Build and push
+      uses: docker/build-push-action@v2
+      working-directory: ./packages/teamscale-coverage-collector
+      with:
+        file: 'Dockerfile'
+        push: ${{ github.event_name != 'pull_request' }}
+        tags: ${{ steps.meta.outputs.tags }}
+        labels: ${{ steps.meta.outputs.labels }}
+

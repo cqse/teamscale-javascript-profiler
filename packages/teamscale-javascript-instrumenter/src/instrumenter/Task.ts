@@ -1,6 +1,7 @@
 import { Optional } from 'typescript-optional';
 import { Contract } from '@cqse/commons';
 import * as matching from 'micromatch';
+import path from 'path';
 
 /**
  * An abstract source map type.
@@ -73,8 +74,8 @@ export class OriginSourcePattern {
 	private readonly exclude: string | undefined;
 
 	constructor(include: string | undefined, exclude: string | undefined) {
-		this.include = include;
-		this.exclude = exclude;
+		this.include = OriginSourcePattern.normalizeGlobPattern(include);
+		this.exclude = OriginSourcePattern.normalizeGlobPattern(exclude);
 	}
 
 	/**
@@ -86,19 +87,40 @@ export class OriginSourcePattern {
 	 *   or (2) if one of the files is supposed to be included.
 	 */
 	public isAnyIncluded(originFiles: string[]): boolean {
+		const normalizedOriginFiles = originFiles.map(OriginSourcePattern.normalizePath);
 		if (this.exclude) {
-			const matchedToExclude = matching.match(originFiles, this.exclude);
+			const matchedToExclude = matching.match(normalizedOriginFiles, this.exclude);
 			if (originFiles.length === matchedToExclude.length) {
 				return false;
 			}
 		}
 
 		if (this.include) {
-			const matchedToInclude = matching.match(originFiles, this.include ?? '**');
+			const matchedToInclude = matching.match(normalizedOriginFiles, this.include ?? '**');
 			return matchedToInclude.length > 0;
 		}
 
 		return true;
+	}
+
+	private static normalizeGlobPattern(pattern: string | undefined): string | undefined {
+		if (!pattern) {
+			return pattern;
+		}
+
+		return OriginSourcePattern.removeTrailingCurrentWorkingDir(pattern);
+	}
+
+	private static normalizePath(toNormalize: string): string {
+		return OriginSourcePattern.removeTrailingCurrentWorkingDir(toNormalize);
+	}
+
+	private static removeTrailingCurrentWorkingDir(removeFrom: string): string {
+		const prefixToRemove = '.' + path.sep;
+		if (removeFrom.startsWith(prefixToRemove)) {
+			return removeFrom.substring(2);
+		}
+		return removeFrom;
 	}
 }
 

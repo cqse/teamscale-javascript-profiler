@@ -7,12 +7,13 @@ jobs:
     name: Release the Node Package
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/setup-node@v2
+      - name: Check out the code
+        uses: actions/checkout@v2
+      - name: Install NodeJS in the desired version
+        uses: actions/setup-node@v2
         with:
           node-version: '16'
           cache: 'npm'
-      - name: Check out the code
-        uses: actions/checkout@v2
       - run: npm install -g yarn
       - name: Install the base dependencies
         run: yarn install
@@ -61,6 +62,7 @@ jobs:
       with:
         username: ${{ secrets.DOCKERHUB_USER }}
         password: ${{ secrets.DOCKERHUB_TOKEN }}
+    - run: ls
     - name: Build and push
       uses: docker/build-push-action@v2
       with:

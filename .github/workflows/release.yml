@@ -6,6 +6,8 @@ jobs:
   release-node:
     name: Release the Node Package
     runs-on: ubuntu-latest
+    env:
+      ENV DBUS_SESSION_BUS_ADDRESS: /dev/null
     steps:
       - name: Check out the code
         uses: actions/checkout@v2

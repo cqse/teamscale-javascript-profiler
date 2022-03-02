@@ -8,6 +8,8 @@ jobs:
   build-and-test:
     name: Build and Test
     runs-on: ubuntu-latest
+    env:
+      ENV DBUS_SESSION_BUS_ADDRESS: /dev/null
     steps:
       - name: Check out the code
         uses: actions/checkout@v2

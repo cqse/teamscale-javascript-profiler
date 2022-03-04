@@ -87,8 +87,8 @@ export class OriginSourcePattern {
 	 *
 	 * @param originFiles - The file set to decide for include or exclude.
 	 *
-	 * @returns `true` if (1) all given files are supposed to be excluded,
-	 *   or (2) if one of the files is supposed to be included.
+	 * @returns `false` if (1) all given files are supposed to be excluded,
+	 *   or (2) `true` if at least one of the files is supposed to be included.
 	 */
 	public isAnyIncluded(originFiles: string[]): boolean {
 		const normalizedOriginFiles = originFiles.map(OriginSourcePattern.normalizePath);

@@ -55,6 +55,8 @@ const TEAMSCALE_MOCK_PORT = 10088;
  */
 function loadFromSimpleCoverage(filename) {
 	const lines = fs.readFileSync(filename, 'utf8').split('\n');
+    console.log(lines);
+
 	const result = {}; // Map<string, Set<number>>
 	let activeSubject = null;
 
@@ -197,7 +199,7 @@ for (const study of caseStudies) {
 
 		const fullStudyDistPath = path.resolve(`${study.rootDir}/${study.distDir}`);
 		console.log(`Instrument the case study in ${fullStudyDistPath}`);
-		execSync(`node ./dist/src/main.js --in-place ${fullStudyDistPath}`,
+		execSync(`node ./dist/src/main.js --exclude-origin "../../node_modules/**/*" --in-place ${fullStudyDistPath}`,
 			{cwd: INSTRUMENTER_DIR, stdio: 'inherit'});
 
 		console.log("## Starting the Web server");

@@ -55,7 +55,6 @@ const TEAMSCALE_MOCK_PORT = 10088;
  */
 function loadFromSimpleCoverage(filename) {
 	const lines = fs.readFileSync(filename, 'utf8').split('\n');
-    console.log(lines);
 
 	const result = {}; // Map<string, Set<number>>
 	let activeSubject = null;

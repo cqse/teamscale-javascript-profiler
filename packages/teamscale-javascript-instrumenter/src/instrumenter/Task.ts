@@ -81,9 +81,13 @@ export class OriginSourcePattern {
 	/**
 	 * Does the given pattern require to include the given set of files?
 	 *
+	 * For example, a JavaScript bundle is compiled from several (origin) source files.
+	 * If one of the files in the bundle is needed, then the full bundle is needed, that is,
+	 * this function is required to return `true`.
+	 *
 	 * @param originFiles - The file set to decide for include or exclude.
 	 *
-	 * @returns `true` if (1) all of the given files are supposed to be excluded,
+	 * @returns `true` if (1) all given files are supposed to be excluded,
 	 *   or (2) if one of the files is supposed to be included.
 	 */
 	public isAnyIncluded(originFiles: string[]): boolean {

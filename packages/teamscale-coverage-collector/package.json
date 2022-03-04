@@ -1,6 +1,6 @@
 {
   "name": "@teamscale/coverage-collector",
-  "version": "0.0.1-beta.20",
+  "version": "0.0.1-beta.21",
   "description": "Collector for JavaScript code coverage information",
   "main": "dist/src/main.js",
   "bin": "dist/src/main.js",

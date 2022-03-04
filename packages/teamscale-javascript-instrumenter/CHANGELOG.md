@@ -2,6 +2,8 @@ We use [Semantic Versioning](https://semver.org/).
 
 # New Release
 
+# 0.0.1-beta.21
+
 - [fix] Include/exclude pattern and the paths to match were not normalized
 
 # 0.0.1-beta.20

@@ -41,7 +41,7 @@ Please see our [HOWTO](https://docs.teamscale.com/howto/recording-test-coverage-
 ## Releasing
 
 Whenever there is a tested version that should be released, the following steps should be 
-performed on the branch `master` in a single comment:
+performed on the branch `master` in a single commit:
 
 1. Increment the version of the affected packages in their `package.json` file—stick to Semantic Versioning.
 2. Update the changelog of the affected packages and move all changes from the section `Next Release` to a new version, e.g., `21.3.0`.

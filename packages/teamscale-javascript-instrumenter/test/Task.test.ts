@@ -27,7 +27,7 @@ test('Exclude pattern with extension. Path normalization', () => {
 	expect(pattern.isAnyIncluded(['./src/app/app.components.ts'])).toBeFalsy();
 });
 
-test('Exclude and pattern', () => {
+test('Exclude and include pattern', () => {
 	const pattern = new OriginSourcePattern('src/bar/**/*.ts', 'src/foo/**/*.ts');
 	expect(
 		pattern.isAnyIncluded(['./src/bar/app.components.ts', './src/foo/messages/messages.component.ts'])

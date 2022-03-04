@@ -175,10 +175,12 @@ function checkCoverage(coverageTargetFile, study) {
 	const expectUncovered = loadFromCoverageDict(study.expectUncoveredLines);
 	const notCoveredButExpected = identifyExpectedButAbsent(actualCoverage, expectCovered);
 	const coveredButNotExpected = identifyUnexpectedButPresent(actualCoverage, expectUncovered);
+
 	if (Object.entries(notCoveredButExpected).length > 0) {
 		console.error('Covered lines are missing', study.name, notCoveredButExpected);
 		process.exit(4);
 	}
+
 	if (Object.entries(coveredButNotExpected).length > 0) {
 		console.error('Lines covered but were expected to not being so.', study.name, coveredButNotExpected);
 		process.exit(5);
@@ -255,8 +257,9 @@ for (const study of caseStudies) {
 				})
 			} finally {
 				console.log("## Stopping the collector");
+				await sleep(1000);
 				collectProcess.kill('SIGINT');
-				await sleep(3000);
+				await sleep(4000);
 			}
 
 			// Check if the coverage collector has written the files

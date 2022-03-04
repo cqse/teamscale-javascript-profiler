@@ -27,8 +27,8 @@ jobs:
       - name: Run the tests for all workspaces
         run: yarn workspaces foreach run test
       - name: Run the system test
-        uses: cypress-io/github-action@v2
+        uses: GabrielBB/xvfb-action@v1
         with:
-          start: yarn systemtest
+          run: yarn systemtest
       - run: echo "Done."
 

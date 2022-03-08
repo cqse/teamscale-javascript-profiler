@@ -251,7 +251,10 @@ export class Main {
 						}
 					);
 
-					logger.info(`Upload with response ${response.status} finished.`);
+					logger.info(`Upload with status code ${response.status} finished.`);
+					if (response.status >= 400) {
+						logger.error(`Upload failed with an error: ${response.statusText}`);
+					}
 				} else {
 					logger.error('Cannot upload to Teamscale: API key and user name must be configured!');
 				}

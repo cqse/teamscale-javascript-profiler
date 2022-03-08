@@ -213,7 +213,7 @@ export class Main {
 			try {
 				// 1. Write coverage to a file
 				const lines = storage.dumpToSimpleCoverageFile(coverageFile);
-				logger.info(`Dumped ${lines} lines of coverage to ${config.dump_to_file}.`);
+				logger.info(`Dumped ${lines} lines of coverage to ${coverageFile}.`);
 
 				// 2. Upload to Teamscale if configured
 				if (!config.teamscale_server_url) {
@@ -251,9 +251,10 @@ export class Main {
 						}
 					);
 
-					logger.info(`Upload with status code ${response.status} finished.`);
 					if (response.status >= 400) {
-						logger.error(`Upload failed with an error: ${response.statusText}`);
+						logger.error(`Upload failed with code ${response.status}: ${response.statusText}`);
+					} else {
+						logger.info(`Upload with status code ${response.status} finished.`);
 					}
 				} else {
 					logger.error('Cannot upload to Teamscale: API key and user name must be configured!');

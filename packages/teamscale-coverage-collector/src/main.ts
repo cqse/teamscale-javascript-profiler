@@ -234,28 +234,37 @@ export class Main {
 					parameters.addIfDefined('revision', config.teamscale_revision);
 					parameters.addIfDefined('partition', config.teamscale_partition);
 
-					const response = await axios.post(
-						`${config.teamscale_server_url.replace(/\/$/, '')}/api/projects/${
-							config.teamscale_project
-						}/external-analysis/session/auto-create/report?${parameters.toString()}`,
-						form,
-						{
-							auth: {
-								username: config.teamscale_user,
-								password: config.teamscale_access_token
-							},
-							headers: {
-								Accept: '*/*',
-								'Content-Type': `multipart/form-data; boundary=${form.getBoundary()}`
+					const response = await axios
+						.post(
+							`${config.teamscale_server_url.replace(/\/$/, '')}/api/projects/${
+								config.teamscale_project
+							}/external-analysis/session/auto-create/report?${parameters.toString()}`,
+							form,
+							{
+								auth: {
+									username: config.teamscale_user,
+									password: config.teamscale_access_token
+								},
+								headers: {
+									Accept: '*/*',
+									'Content-Type': `multipart/form-data; boundary=${form.getBoundary()}`
+								}
 							}
-						}
-					);
-
-					if (response.status >= 400) {
-						logger.error(`Upload failed with code ${response.status}: ${response.statusText}`);
-					} else {
-						logger.info(`Upload with status code ${response.status} finished.`);
-					}
+						)
+						.catch(function (error) {
+							if (error.response) {
+								const response = error.response;
+								if (response.status >= 400) {
+									logger.error(`Upload failed with code ${response.status}: ${response.statusText}`);
+								} else {
+									logger.info(`Upload with status code ${response.status} finished.`);
+								}
+							} else if (error.request) {
+								logger.error(`Upload request did not receive a response.`);
+							} else {
+								logger.error(`Something went wrong when uploading data: ${error.message}`);
+							}
+						});
 				} else {
 					logger.error('Cannot upload to Teamscale: API key and user name must be configured!');
 				}

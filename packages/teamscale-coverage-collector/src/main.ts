@@ -10,6 +10,7 @@ import * as fs from 'fs';
 import axios from 'axios';
 import FormData from 'form-data';
 import QueryParameters from './utils/QueryParameters';
+import { inspect } from 'util';
 
 import tmp from 'tmp';
 
@@ -256,6 +257,9 @@ export class Main {
 								const response = error.response;
 								if (response.status >= 400) {
 									logger.error(`Upload failed with code ${response.status}: ${response.statusText}`);
+									logger.error(
+										`Request failed ${response.status} with following response: ${response.data}`
+									);
 								} else {
 									logger.info(`Upload with status code ${response.status} finished.`);
 								}

@@ -265,7 +265,9 @@ export class Main {
 								}
 							} else if (error.request) {
 								logger.error(`Upload request did not receive a response.`);
-							} else {
+							}
+
+							if (error.message) {
 								logger.error(`Something went wrong when uploading data: ${error.message}`);
 							}
 						});

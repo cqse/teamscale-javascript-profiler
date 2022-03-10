@@ -12,6 +12,7 @@
     "url": "https://github.com/cqse/teamscale-javascript-profiler.git"
   },
   "scripts": {
+    "prepublishOnly": "yarn clean && yarn build",
     "clean": "rimraf dist tsconfig.tsbuildinfo",
     "build": "tsc",
     "collector": "node dist/src/main.js",

@@ -11,7 +11,6 @@ import axios from 'axios';
 import FormData from 'form-data';
 import QueryParameters from './utils/QueryParameters';
 import { inspect } from 'util';
-
 import tmp from 'tmp';
 
 /**
@@ -218,7 +217,7 @@ export class Main {
 
 				// 2. Upload to Teamscale if configured
 				if (config.teamscale_server_url) {
-					await this.uploadToToTeamscale(config, logger, coverageFile, lines);
+					await this.uploadToTeamscale(config, logger, coverageFile, lines);
 				}
 			} finally {
 				if (deleteCoverageFileAfterUpload) {
@@ -230,7 +229,7 @@ export class Main {
 		}
 	}
 
-	private static async uploadToToTeamscale(config: Parameters, logger: Logger, coverageFile: string, lines: number) {
+	private static async uploadToTeamscale(config: Parameters, logger: Logger, coverageFile: string, lines: number) {
 		if (!(config.teamscale_access_token && config.teamscale_user && config.teamscale_server_url)) {
 			logger.error('Cannot upload to Teamscale: API key and user name must be configured!');
 			return;
@@ -275,7 +274,7 @@ export class Main {
 					const response = error.response;
 					if (response.status >= 400) {
 						logger.error(`Upload failed with code ${response.status}: ${response.statusText}`);
-						logger.error(`Request failed ${response.status} with following response: ${response.data}`);
+						logger.error(`Request failed with following response: ${response.data}`);
 					} else {
 						logger.info(`Upload with status code ${response.status} finished.`);
 					}
@@ -285,6 +284,9 @@ export class Main {
 
 				if (error.message) {
 					logger.error(`Something went wrong when uploading data: ${error.message}`);
+					logger.debug(`Details of the error: ${inspect(error)}`);
+				} else {
+					logger.error(`Something went wrong when uploading data: ${inspect(error)}`);
 				}
 			});
 	}

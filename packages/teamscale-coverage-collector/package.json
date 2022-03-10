@@ -1,6 +1,6 @@
 {
   "name": "@teamscale/coverage-collector",
-  "version": "0.0.1-beta.21",
+  "version": "0.0.1-beta.22",
   "description": "Collector for JavaScript code coverage information",
   "main": "dist/src/main.js",
   "bin": "dist/src/main.js",
@@ -12,6 +12,7 @@
     "url": "https://github.com/cqse/teamscale-javascript-profiler.git"
   },
   "scripts": {
+    "prepublishOnly": "yarn clean && yarn build",
     "clean": "rimraf dist tsconfig.tsbuildinfo",
     "build": "tsc",
     "collector": "node dist/src/main.js",

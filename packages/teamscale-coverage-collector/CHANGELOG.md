@@ -2,6 +2,8 @@ We use [Semantic Versioning](https://semver.org/).
 
 # New Release
 
+# 0.0.1-beta.22
+
 - [feature] Logging of the status text in case of an error when uploading to Teamscale added.  
 
 # 0.0.1-beta.20

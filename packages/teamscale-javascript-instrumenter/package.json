@@ -1,6 +1,6 @@
 {
   "name": "@teamscale/javascript-instrumenter",
-  "version": "0.0.1-beta.21",
+  "version": "0.0.1-beta.23",
   "description": "Istanbul-based coverage instrumenter with coverage forwarding via WebSockets",
   "main": "dist/src/main.js",
   "bin": "dist/src/main.js",
@@ -12,6 +12,7 @@
     "url": "https://github.com/cqse/teamscale-javascript-profiler.git"
   },
   "scripts": {
+    "prepublishOnly": "yarn clean && yarn build",
     "clean": "rimraf dist tsconfig.tsbuildinfo",
     "build": "tsc --project tsconfig.json && node esbuild.mjs",
     "instrumenter": "node dist/src/main.js",

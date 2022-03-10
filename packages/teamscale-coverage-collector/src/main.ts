@@ -10,7 +10,7 @@ import * as fs from 'fs';
 import axios from 'axios';
 import FormData from 'form-data';
 import QueryParameters from './utils/QueryParameters';
-
+import { inspect } from 'util';
 import tmp from 'tmp';
 
 /**
@@ -213,47 +213,11 @@ export class Main {
 			try {
 				// 1. Write coverage to a file
 				const lines = storage.dumpToSimpleCoverageFile(coverageFile);
-				logger.info(`Dumped ${lines} lines of coverage to ${config.dump_to_file}.`);
+				logger.info(`Dumped ${lines} lines of coverage to ${coverageFile}.`);
 
 				// 2. Upload to Teamscale if configured
-				if (!config.teamscale_server_url) {
-					logger.info('Upload to Teamscale not configured.');
-				} else if (lines === 0) {
-					// Nothing to upload
-				} else if (config.teamscale_access_token && config.teamscale_user) {
-					logger.info('Preparing upload to Teamscale');
-
-					const form = new FormData();
-					form.append('report', fs.createReadStream(coverageFile), 'coverage.simple');
-
-					const parameters = new QueryParameters();
-					parameters.addIfDefined('format', 'SIMPLE');
-					parameters.addIfDefined('message', config.teamscale_message);
-					parameters.addIfDefined('repository', config.teamscale_repository);
-					parameters.addIfDefined('t', config.teamscale_commit);
-					parameters.addIfDefined('revision', config.teamscale_revision);
-					parameters.addIfDefined('partition', config.teamscale_partition);
-
-					const response = await axios.post(
-						`${config.teamscale_server_url.replace(/\/$/, '')}/api/projects/${
-							config.teamscale_project
-						}/external-analysis/session/auto-create/report?${parameters.toString()}`,
-						form,
-						{
-							auth: {
-								username: config.teamscale_user,
-								password: config.teamscale_access_token
-							},
-							headers: {
-								Accept: '*/*',
-								'Content-Type': `multipart/form-data; boundary=${form.getBoundary()}`
-							}
-						}
-					);
-
-					logger.info(`Upload with response ${response.status} finished.`);
-				} else {
-					logger.error('Cannot upload to Teamscale: API key and user name must be configured!');
+				if (config.teamscale_server_url) {
+					await this.uploadToTeamscale(config, logger, coverageFile, lines);
 				}
 			} finally {
 				if (deleteCoverageFileAfterUpload) {
@@ -263,6 +227,68 @@ export class Main {
 		} catch (e) {
 			logger.error('Coverage dump failed.', e);
 		}
+	}
+
+	private static async uploadToTeamscale(config: Parameters, logger: Logger, coverageFile: string, lines: number) {
+		if (!(config.teamscale_access_token && config.teamscale_user && config.teamscale_server_url)) {
+			logger.error('Cannot upload to Teamscale: API key and user name must be configured!');
+			return;
+		}
+
+		if (lines === 0) {
+			return;
+		}
+
+		logger.info('Preparing upload to Teamscale');
+
+		const form = new FormData();
+		form.append('report', fs.createReadStream(coverageFile), 'coverage.simple');
+
+		const parameters = new QueryParameters();
+		parameters.addIfDefined('format', 'SIMPLE');
+		parameters.addIfDefined('message', config.teamscale_message);
+		parameters.addIfDefined('repository', config.teamscale_repository);
+		parameters.addIfDefined('t', config.teamscale_commit);
+		parameters.addIfDefined('revision', config.teamscale_revision);
+		parameters.addIfDefined('partition', config.teamscale_partition);
+
+		await axios
+			.post(
+				`${config.teamscale_server_url.replace(/\/$/, '')}/api/projects/${
+					config.teamscale_project
+				}/external-analysis/session/auto-create/report?${parameters.toString()}`,
+				form,
+				{
+					auth: {
+						username: config.teamscale_user,
+						password: config.teamscale_access_token
+					},
+					headers: {
+						Accept: '*/*',
+						'Content-Type': `multipart/form-data; boundary=${form.getBoundary()}`
+					}
+				}
+			)
+			.catch(function (error) {
+				if (error.response) {
+					const response = error.response;
+					if (response.status >= 400) {
+						logger.error(`Upload failed with code ${response.status}: ${response.statusText}`);
+						logger.error(`Request failed with following response: ${response.data}`);
+					} else {
+						logger.info(`Upload with status code ${response.status} finished.`);
+					}
+				} else if (error.request) {
+					logger.error(`Upload request did not receive a response.`);
+				}
+
+				if (error.message) {
+					logger.error(`Something went wrong when uploading data: ${error.message}`);
+					logger.debug(`Details of the error: ${inspect(error)}`);
+				} else {
+					logger.error(`Something went wrong when uploading data: ${inspect(error)}`);
+				}
+			});
 	}
 }
 

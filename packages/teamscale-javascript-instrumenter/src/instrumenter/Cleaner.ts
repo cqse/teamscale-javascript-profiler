@@ -3,6 +3,10 @@ import generate from '@babel/generator';
 import traverse, { NodePath } from '@babel/traverse';
 import { Identifier, SourceLocation, UpdateExpression } from '@babel/types';
 
+/**
+ * Remove IstanbulJs instrumentations based on the given
+ * hook `makeCoverable`. Instrumentation is removed of `makeCoverable` returns `false`.
+ */
 export function cleanSourceCode(
 	code: string,
 	esModules: boolean,
@@ -22,11 +26,11 @@ export function cleanSourceCode(
 }
 
 function isCoverageIncrementNode(path: NodePath) {
-	if (path.type.trim() !== 'ExpressionStatement') {
+	if (!path.isExpressionStatement()) {
 		return false;
 	}
 
-	const expr = (path.node as any).expression;
+	const expr = path.node.expression;
 	if (expr.type !== 'UpdateExpression') {
 		return false;
 	}

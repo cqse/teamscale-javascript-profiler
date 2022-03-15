@@ -62,20 +62,16 @@ export class IstanbulInstrumenter implements IInstrumenter {
 	async instrument(task: InstrumentationTask): Promise<TaskResult> {
 		fs.existsSync(this.vaccineFilePath);
 
-		// ATTENTION: Here is potential for parallelization. Maybe we can
-		// run several instrumentation workers in parallel?
+		const resolved = await Promise.all(
+			task.elements.map((taskElement: TaskElement) => {
+				return this.instrumentOne(task.collector, taskElement, task.originSourcePattern);
+			})
+		);
 
-		let result: TaskResult = TaskResult.neutral();
-		for (const taskElement of task.elements) {
-			const instrumentationResult = await this.instrumentOne(
-				task.collector,
-				taskElement,
-				task.originSourcePattern
-			);
-			result = result.withIncrement(instrumentationResult);
-		}
-
-		return Promise.resolve(result);
+		return resolved.reduce(
+			(aggregatedResult, taskResult) => aggregatedResult.withIncrement(taskResult),
+			TaskResult.neutral()
+		);
 	}
 
 	/**
@@ -118,7 +114,7 @@ export class IstanbulInstrumenter implements IInstrumenter {
 			const configurationAlternative = configurationAlternatives[i];
 			let inputSourceMap: RawSourceMap | undefined;
 			try {
-				const instrumenter = istanbul.createInstrumenter();
+				const instrumenter = istanbul.createInstrumenter(configurationAlternative);
 				inputSourceMap = this.loadInputSourceMap(
 					inputFileSource,
 					taskElement.fromFile,
@@ -196,19 +192,10 @@ export class IstanbulInstrumenter implements IInstrumenter {
 		sourcePattern: OriginSourcePattern
 	) {
 		// Read the source map from the instrumented file
-		const instrumentedSourceMapConsumer: SourceMapConsumer | undefined = await (async (
-			instrumentedSource: string
-		): Promise<SourceMapConsumer | undefined> => {
-			const instrumentedSourceMap: RawSourceMap | undefined = this.loadInputSourceMap(
-				instrumentedSource,
-				taskElement.fromFile,
-				Optional.empty()
-			);
-			if (instrumentedSourceMap) {
-				return await new SourceMapConsumer(instrumentedSourceMap);
-			}
-			return undefined;
-		})(instrumentedSource);
+		const instrumentedSourceMapConsumer: SourceMapConsumer | undefined = await this.loadSourceMap(
+			taskElement.fromFile,
+			instrumentedSource
+		);
 
 		// Without a source map, excludes/includes do not work.
 		if (!instrumentedSourceMapConsumer) {
@@ -226,6 +213,21 @@ export class IstanbulInstrumenter implements IInstrumenter {
 			}
 			return sourcePattern.isAnyIncluded([originalPosition.source]);
 		});
+	}
+
+	private async loadSourceMap(
+		instrumentedSource: string,
+		instrumentedSourceFileName: string
+	): Promise<SourceMapConsumer | undefined> {
+		const instrumentedSourceMap: RawSourceMap | undefined = this.loadInputSourceMap(
+			instrumentedSource,
+			instrumentedSourceFileName,
+			Optional.empty()
+		);
+		if (instrumentedSourceMap) {
+			return await new SourceMapConsumer(instrumentedSourceMap);
+		}
+		return undefined;
 	}
 
 	/**

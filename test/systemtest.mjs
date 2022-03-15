@@ -248,7 +248,7 @@ for (const study of caseStudies) {
 					reporter: 'junit',
 					browser: 'chrome',
 					headed: false,
-					quiet: true,
+					quiet: false,
 					config: {
 						baseUrl: `http://localhost:${SERVER_PORT}`,
 						video: false,

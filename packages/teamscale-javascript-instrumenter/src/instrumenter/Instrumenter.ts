@@ -287,10 +287,11 @@ export class IstanbulInstrumenter implements IInstrumenter {
 	}
 
 	/**
-	 * Given a source code file and the task element, load the corresponding sourcemap.
+	 * Given a source code file, load the corresponding sourcemap.
 	 *
 	 * @param inputSource - The source code that might contain sourcemap comments.
-	 * @param taskElement - The task element that can have a reference to an external sourcemap.
+	 * @param taskFile - The name of the file the `inputSource` is from.
+	 * @param externalSourceMapFile - An external source map file to consider.
 	 */
 	private loadInputSourceMap(
 		inputSource: string,

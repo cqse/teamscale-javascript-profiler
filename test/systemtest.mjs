@@ -150,11 +150,21 @@ function identifyExpectedButAbsent(actual, expected) {
  * @returns {ChildProcessWithoutNullStreams}
  */
 function startCollector(coverageTargetFile, logTargetFile, projectId) {
-    return spawn('node', [`${COLLECTOR_DIR}/dist/src/main.js`,
+    const collector = spawn('node', [`${COLLECTOR_DIR}/dist/src/main.js`,
 		`-f`, `${coverageTargetFile}`, `-l`, `${logTargetFile}`, `-e`, `info`],
 		{ env: { ...process.env, TEAMSCALE_SERVER_URL: `http://localhost:${TEAMSCALE_MOCK_PORT}/`,
 				TEAMSCALE_USER: 'admin', TEAMSCALE_ACCESS_TOKEN: 'mockKey', TEAMSCALE_PROJECT: projectId},
 				TEAMSCALE_PARTITION: 'mockPartition', TEAMSCALE_BRANCH: 'mockBranch'});
+
+	collector.stdout.on('data', function (data) {
+		console.log('collector stdout: ' + data.toString());
+	});
+
+	collector.stderr.on('data', function (data) {
+		console.error('collector stderr: ' + data.toString());
+	});
+
+	return collector;
 }
 
 /**
@@ -248,7 +258,7 @@ for (const study of caseStudies) {
 					reporter: 'junit',
 					browser: 'chrome',
 					headed: false,
-					quiet: true,
+					quiet: false,
 					config: {
 						baseUrl: `http://localhost:${SERVER_PORT}`,
 						video: false,

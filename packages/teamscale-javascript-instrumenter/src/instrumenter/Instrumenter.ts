@@ -236,7 +236,7 @@ export class IstanbulInstrumenter implements IInstrumenter {
 	 * @param collector - The collector to send coverage information to.
 	 */
 	private loadVaccine(collector: CollectorSpecifier) {
-		// We first replace some of the parameters in the file with the
+		// We first replace parameters in the file with the
 		// actual values, for example, the collector to send the coverage information to.
 		return fs
 			.readFileSync(this.vaccineFilePath, 'utf8')

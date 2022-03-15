@@ -111,13 +111,6 @@ export class OriginSourcePattern {
 		return true;
 	}
 
-	/**
-	 * Determines if an include or exclude pattern is specified.
-	 */
-	public isDefined(): boolean {
-		return (this.exclude ?? "").length > 0 || (this.include ?? "").length > 0;
-	}
-
 	private static normalizeGlobPattern(pattern: string | undefined): string | undefined {
 		if (!pattern) {
 			return pattern;

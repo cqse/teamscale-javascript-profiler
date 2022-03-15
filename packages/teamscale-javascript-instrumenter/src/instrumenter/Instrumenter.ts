@@ -125,11 +125,12 @@ export class IstanbulInstrumenter implements IInstrumenter {
 				// decide if we should NOT write an instrumented version of it
 				// and use the original code instead and write it to the target path.
 				//
+				const originSourceFiles = inputSourceMap?.sources ?? [];
 				if (
 					this.shouldExcludeFromInstrumentation(
 						sourcePattern,
 						taskElement.fromFile,
-						inputSourceMap?.sources ?? []
+						originSourceFiles
 					)
 				) {
 					fs.writeFileSync(taskElement.toFile, inputFileSource);
@@ -193,8 +194,7 @@ export class IstanbulInstrumenter implements IInstrumenter {
 	) {
 		// Read the source map from the instrumented file
 		const instrumentedSourceMapConsumer: SourceMapConsumer | undefined = await this.loadSourceMap(
-			taskElement.fromFile,
-			instrumentedSource
+			instrumentedSource, taskElement.fromFile
 		);
 
 		// Without a source map, excludes/includes do not work.
@@ -294,7 +294,7 @@ export class IstanbulInstrumenter implements IInstrumenter {
 	 * @param externalSourceMapFile - An external source map file to consider.
 	 */
 	private loadInputSourceMap(
-		inputSource: string,
+		inputSourceCode: string,
 		taskFile: string,
 		externalSourceMapFile: Optional<SourceMapReference>
 	): RawSourceMap | undefined {
@@ -305,7 +305,7 @@ export class IstanbulInstrumenter implements IInstrumenter {
 			}
 			return sourceMapFromMapFile(sourceMapOrigin.sourceMapFilePath);
 		} else {
-			return sourceMapFromCodeComment(inputSource, taskFile);
+			return sourceMapFromCodeComment(inputSourceCode, taskFile);
 		}
 	}
 }

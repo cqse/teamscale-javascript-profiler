@@ -91,6 +91,10 @@ export class OriginSourcePattern {
 	 *   or (2) `true` if at least one of the files is supposed to be included.
 	 */
 	public isAnyIncluded(originFiles: string[]): boolean {
+		if (originFiles.length === 0) {
+			return true;
+		}
+
 		const normalizedOriginFiles = originFiles.map(OriginSourcePattern.normalizePath);
 		if (this.exclude) {
 			const matchedToExclude = matching.match(normalizedOriginFiles, this.exclude);
@@ -105,6 +109,13 @@ export class OriginSourcePattern {
 		}
 
 		return true;
+	}
+
+	/**
+	 * Determines if an include or exclude pattern is specified.
+	 */
+	public isDefined(): boolean {
+		return (this.exclude ?? "").length > 0 || (this.include ?? "").length > 0;
 	}
 
 	private static normalizeGlobPattern(pattern: string | undefined): string | undefined {
@@ -132,6 +143,7 @@ export class OriginSourcePattern {
 		}
 		return removeFrom;
 	}
+
 }
 
 /**

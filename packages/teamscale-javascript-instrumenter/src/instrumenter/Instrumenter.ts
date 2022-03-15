@@ -3,16 +3,19 @@ import {
 	InstrumentationTask,
 	OriginSourcePattern,
 	SourceMapFileReference,
+	SourceMapReference,
 	TaskElement,
 	TaskResult
 } from './Task';
 import { Contract, IllegalArgumentException } from '@cqse/commons';
-import { RawSourceMap } from 'source-map';
+import { RawSourceMap, SourceMapConsumer } from 'source-map';
 import * as istanbul from 'istanbul-lib-instrument';
 import * as fs from 'fs';
 import * as path from 'path';
 import * as convertSourceMap from 'convert-source-map';
 import { Logger } from 'winston';
+import { cleanSourceCode } from './Cleaner';
+import { Optional } from 'typescript-optional';
 
 export const IS_INSTRUMENTED_TOKEN = '/** $IS_JS_PROFILER_INSTRUMENTED=true **/';
 
@@ -56,15 +59,19 @@ export class IstanbulInstrumenter implements IInstrumenter {
 	/**
 	 * {@inheritDoc #IInstrumenter.instrument}
 	 */
-	instrument(task: InstrumentationTask): Promise<TaskResult> {
+	async instrument(task: InstrumentationTask): Promise<TaskResult> {
 		fs.existsSync(this.vaccineFilePath);
 
-		// ATTENTION: Here is potential for parallelization. Maybe we can
-		// run several instrumentation workers in parallel?
-		const result = task.elements
-			.map(e => this.instrumentOne(task.collector, e, task.originSourcePattern))
-			.reduce((prev, current) => current.withIncrement(prev), TaskResult.neutral());
-		return Promise.resolve(result);
+		const resolved = await Promise.all(
+			task.elements.map((taskElement: TaskElement) => {
+				return this.instrumentOne(task.collector, taskElement, task.originSourcePattern);
+			})
+		);
+
+		return resolved.reduce(
+			(aggregatedResult, taskResult) => aggregatedResult.withIncrement(taskResult),
+			TaskResult.neutral()
+		);
 	}
 
 	/**
@@ -74,11 +81,11 @@ export class IstanbulInstrumenter implements IInstrumenter {
 	 * @param taskElement - The task element to perform the instrumentation for.
 	 * @param sourcePattern - A pattern to restrict the instrumentation to only a fraction of the task element.
 	 */
-	instrumentOne(
+	async instrumentOne(
 		collector: CollectorSpecifier,
 		taskElement: TaskElement,
 		sourcePattern: OriginSourcePattern
-	): TaskResult {
+	): Promise<TaskResult> {
 		const inputFileSource = fs.readFileSync(taskElement.fromFile, 'utf8');
 
 		// We skip files that we have already instrumented
@@ -104,20 +111,26 @@ export class IstanbulInstrumenter implements IInstrumenter {
 		// alternative configurations of the instrumenter.
 		const configurationAlternatives = this.configurationAlternativesFor(taskElement);
 		for (let i = 0; i < configurationAlternatives.length; i++) {
-			let inputSourceMap;
+			const configurationAlternative = configurationAlternatives[i];
+			let inputSourceMap: RawSourceMap | undefined;
 			try {
-				const instrumenter = istanbul.createInstrumenter(configurationAlternatives[i]);
-				inputSourceMap = this.loadInputSourceMap(inputFileSource, taskElement);
+				const instrumenter = istanbul.createInstrumenter(configurationAlternative);
+				inputSourceMap = this.loadInputSourceMap(
+					inputFileSource,
+					taskElement.fromFile,
+					taskElement.externalSourceMapFile
+				);
 
 				// Based on the source maps of the file to instrument, we can now
 				// decide if we should NOT write an instrumented version of it
 				// and use the original code instead and write it to the target path.
 				//
+				const originSourceFiles = inputSourceMap?.sources ?? [];
 				if (
 					this.shouldExcludeFromInstrumentation(
 						sourcePattern,
 						taskElement.fromFile,
-						inputSourceMap?.sources ?? []
+						originSourceFiles
 					)
 				) {
 					fs.writeFileSync(taskElement.toFile, inputFileSource);
@@ -126,11 +139,19 @@ export class IstanbulInstrumenter implements IInstrumenter {
 
 				// The main instrumentation (adding coverage statements) is performed now:
 				instrumentedSource = instrumenter
-					.instrumentSync(inputFileSource, taskElement.fromFile, inputSourceMap)
+					.instrumentSync(inputFileSource, taskElement.fromFile, inputSourceMap as any)
 					.replace(/return actualCoverage/g, 'return makeCoverageInterceptor(actualCoverage)')
 					.replace(/new Function\("return this"\)\(\)/g, "typeof window === 'object' ? window : this");
-
 				this.logger.debug('Instrumentation source maps to:', instrumenter.lastSourceMap()?.sources);
+
+				// In case of a bundle, the initial instrumentation step might have added
+				// too much and undesired instrumentations. Remove them now.
+				instrumentedSource = await this.removeUnwantedInstrumentation(
+					taskElement,
+					instrumentedSource,
+					configurationAlternative,
+					sourcePattern
+				);
 
 				// The process also can result in a new source map that we will append in the result.
 				//
@@ -165,13 +186,57 @@ export class IstanbulInstrumenter implements IInstrumenter {
 		return new TaskResult(1, 0, 0, 0, 0, 0, 0);
 	}
 
+	private async removeUnwantedInstrumentation(
+		taskElement: TaskElement,
+		instrumentedSource: string,
+		configurationAlternative: Record<string, unknown>,
+		sourcePattern: OriginSourcePattern
+	) {
+		// Read the source map from the instrumented file
+		const instrumentedSourceMapConsumer: SourceMapConsumer | undefined = await this.loadSourceMap(
+			instrumentedSource, taskElement.fromFile
+		);
+
+		// Without a source map, excludes/includes do not work.
+		if (!instrumentedSourceMapConsumer) {
+			return instrumentedSource;
+		}
+
+		// Remove the unwanted instrumentation
+		return cleanSourceCode(instrumentedSource, configurationAlternative.esModules as boolean, location => {
+			const originalPosition = instrumentedSourceMapConsumer.originalPositionFor({
+				line: location.start.line,
+				column: location.start.column
+			});
+			if (!originalPosition.source) {
+				return true;
+			}
+			return sourcePattern.isAnyIncluded([originalPosition.source]);
+		});
+	}
+
+	private async loadSourceMap(
+		instrumentedSource: string,
+		instrumentedSourceFileName: string
+	): Promise<SourceMapConsumer | undefined> {
+		const instrumentedSourceMap: RawSourceMap | undefined = this.loadInputSourceMap(
+			instrumentedSource,
+			instrumentedSourceFileName,
+			Optional.empty()
+		);
+		if (instrumentedSourceMap) {
+			return await new SourceMapConsumer(instrumentedSourceMap);
+		}
+		return undefined;
+	}
+
 	/**
 	 * Loads the vaccine from the vaccine file and adjusts some template parameters.
 	 *
 	 * @param collector - The collector to send coverage information to.
 	 */
 	private loadVaccine(collector: CollectorSpecifier) {
-		// We first replace some of the parameters in the file with the
+		// We first replace parameters in the file with the
 		// actual values, for example, the collector to send the coverage information to.
 		return fs
 			.readFileSync(this.vaccineFilePath, 'utf8')
@@ -222,20 +287,25 @@ export class IstanbulInstrumenter implements IInstrumenter {
 	}
 
 	/**
-	 * Given a source code file and the task element, load the corresponding sourcemap.
+	 * Given a source code file, load the corresponding sourcemap.
 	 *
 	 * @param inputSource - The source code that might contain sourcemap comments.
-	 * @param taskElement - The task element that can have a reference to an external sourcemap.
+	 * @param taskFile - The name of the file the `inputSource` is from.
+	 * @param externalSourceMapFile - An external source map file to consider.
 	 */
-	private loadInputSourceMap(inputSource: string, taskElement: TaskElement): RawSourceMap | undefined {
-		if (taskElement.externalSourceMapFile.isPresent()) {
-			const sourceMapOrigin = taskElement.externalSourceMapFile.get();
+	private loadInputSourceMap(
+		inputSourceCode: string,
+		taskFile: string,
+		externalSourceMapFile: Optional<SourceMapReference>
+	): RawSourceMap | undefined {
+		if (externalSourceMapFile.isPresent()) {
+			const sourceMapOrigin = externalSourceMapFile.get();
 			if (!(sourceMapOrigin instanceof SourceMapFileReference)) {
 				throw new IllegalArgumentException('Type of source map not yet supported!');
 			}
 			return sourceMapFromMapFile(sourceMapOrigin.sourceMapFilePath);
 		} else {
-			return sourceMapFromCodeComment(inputSource, taskElement.fromFile);
+			return sourceMapFromCodeComment(inputSourceCode, taskFile);
 		}
 	}
 }

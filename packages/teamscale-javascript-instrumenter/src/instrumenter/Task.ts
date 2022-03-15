@@ -91,6 +91,10 @@ export class OriginSourcePattern {
 	 *   or (2) `true` if at least one of the files is supposed to be included.
 	 */
 	public isAnyIncluded(originFiles: string[]): boolean {
+		if (originFiles.length === 0) {
+			return true;
+		}
+
 		const normalizedOriginFiles = originFiles.map(OriginSourcePattern.normalizePath);
 		if (this.exclude) {
 			const matchedToExclude = matching.match(normalizedOriginFiles, this.exclude);
@@ -120,12 +124,19 @@ export class OriginSourcePattern {
 	}
 
 	private static removeTrailingCurrentWorkingDir(removeFrom: string): string {
-		const prefixToRemove = '.' + path.sep;
-		if (removeFrom.startsWith(prefixToRemove)) {
-			return removeFrom.substring(2);
+		return OriginSourcePattern.removePrefix(
+			'webpack:///',
+			OriginSourcePattern.removePrefix('.' + path.sep, removeFrom)
+		);
+	}
+
+	private static removePrefix(prefix: string, removeFrom: string): string {
+		if (removeFrom.startsWith(prefix)) {
+			return removeFrom.substring(prefix.length);
 		}
 		return removeFrom;
 	}
+
 }
 
 /**

@@ -14,7 +14,8 @@
   "scripts": {
     "prepublishOnly": "yarn clean && yarn build",
     "clean": "rimraf dist tsconfig.tsbuildinfo",
-    "build": "tsc --project tsconfig.json && node esbuild.mjs",
+    "build": "tsc --project tsconfig.json && yarn buildVaccine",
+    "buildVaccine": "node esbuild.mjs",
     "instrumenter": "node dist/src/main.js",
     "test": "yarn build && NODE_OPTIONS='--experimental-vm-modules' jest --forceExit --coverage --silent=true --detectOpenHandles"
   },
@@ -22,7 +23,7 @@
     "dist/**/*"
   ],
   "devDependencies": {
-    "@babel/core": "^7.14.0",
+    "@babel/core": "^7.17.5",
     "@babel/plugin-transform-modules-commonjs": "^7.15.4",
     "@babel/preset-env": "^7.14.1",
     "@types/async": "^3.2.6",
@@ -45,6 +46,10 @@
     "typescript": "^4.4.3"
   },
   "dependencies": {
+    "@babel/generator": "^7.17.3",
+    "@babel/parser": "^7.17.3",
+    "@babel/traverse": "^7.17.3",
+    "@babel/types": "^7.17.0",
     "@cqse/commons": "^0.0.1-beta.1",
     "@types/micromatch": "^4.0.2",
     "argparse": "^2.0.1",
@@ -56,7 +61,7 @@
     "micromatch": "4.0.4",
     "mkdirp": "^1.0.4",
     "nyc": "^15.1.0",
-    "source-map": "0.6.1",
+    "source-map": "0.7.3",
     "typescript-optional": "^2.0.1",
     "unload": "^2.2.0",
     "web-worker": "^1.0.0",

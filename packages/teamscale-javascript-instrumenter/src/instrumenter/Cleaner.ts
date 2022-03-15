@@ -1,11 +1,21 @@
 import { parse } from '@babel/parser';
 import generate from '@babel/generator';
 import traverse, { NodePath } from '@babel/traverse';
-import { Identifier, SourceLocation, UpdateExpression } from '@babel/types';
+import {
+	ExpressionStatement,
+	isCallExpression,
+	isIdentifier,
+	isMemberExpression,
+	isNumericLiteral,
+	isUpdateExpression,
+	SourceLocation
+} from '@babel/types';
 
 /**
  * Remove IstanbulJs instrumentations based on the given
- * hook `makeCoverable`. Instrumentation is removed of `makeCoverable` returns `false`.
+ * hook `makeCoverable`.
+ *
+ * An instrumentation is removed if the hook `makeCoverable` returns `false`.
  */
 export function cleanSourceCode(
 	code: string,
@@ -14,7 +24,7 @@ export function cleanSourceCode(
 ): string {
 	const ast = parse(code, { sourceType: esModules ? 'module' : 'script' });
 	traverse(ast, {
-		enter(path) {
+		ExpressionStatement(path) {
 			if (isCoverageIncrementNode(path)) {
 				if (path.node.loc && !makeCoverable(path.node.loc)) {
 					path.remove();
@@ -25,24 +35,23 @@ export function cleanSourceCode(
 	return generate(ast, {}, code).code;
 }
 
-function isCoverageIncrementNode(path: NodePath) {
-	if (!path.isExpressionStatement()) {
-		return false;
-	}
-
+/**
+ * Checks if the given `path.node` to a statement like `cov_104fq7oo4i().f[0]++;`
+ */
+function isCoverageIncrementNode(path: NodePath<ExpressionStatement>) {
 	const expr = path.node.expression;
-	if (expr.type !== 'UpdateExpression') {
+
+	if (!isUpdateExpression(expr)) {
 		return false;
 	}
 
-	const updateExpr: UpdateExpression = expr as UpdateExpression;
 	return (
-		updateExpr.operator === '++' &&
-		updateExpr.argument.type === 'MemberExpression' &&
-		updateExpr.argument.object.type === 'MemberExpression' &&
-		updateExpr.argument.object.object.type === 'CallExpression' &&
-		updateExpr.argument.object.object.callee.type === 'Identifier' &&
-		(updateExpr.argument.object.object.callee as Identifier).name.startsWith('cov_') &&
-		updateExpr.argument.property.type === 'NumericLiteral'
+		expr.operator === '++' &&
+		isMemberExpression(expr.argument) &&
+		isMemberExpression(expr.argument.object) &&
+		isCallExpression(expr.argument.object.object) &&
+		isIdentifier(expr.argument.object.object.callee) &&
+		expr.argument.object.object.callee.name.startsWith('cov_') &&
+		isNumericLiteral(expr.argument.property)
 	);
 }

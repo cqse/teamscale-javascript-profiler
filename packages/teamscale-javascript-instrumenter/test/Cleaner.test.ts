@@ -1,4 +1,4 @@
-import { cleanSourceCode } from '../src/instrumenter/Coverable';
+import { cleanSourceCode } from '../src/instrumenter/Cleaner';
 
 test('Remove All Coverage Increments', () => {
 	const cleaned = cleanSourceCode(

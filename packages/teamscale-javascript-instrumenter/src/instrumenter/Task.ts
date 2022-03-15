@@ -120,9 +120,15 @@ export class OriginSourcePattern {
 	}
 
 	private static removeTrailingCurrentWorkingDir(removeFrom: string): string {
-		const prefixToRemove = '.' + path.sep;
-		if (removeFrom.startsWith(prefixToRemove)) {
-			return removeFrom.substring(2);
+		return OriginSourcePattern.removePrefix(
+			'webpack:///',
+			OriginSourcePattern.removePrefix('.' + path.sep, removeFrom)
+		);
+	}
+
+	private static removePrefix(prefix: string, removeFrom: string): string {
+		if (removeFrom.startsWith(prefix)) {
+			return removeFrom.substring(prefix.length);
 		}
 		return removeFrom;
 	}

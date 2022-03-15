@@ -1,5 +1,7 @@
 # Teamscale JavaScript Profiler
 
+![Build](https://github.com/cqse/teamscale-javascript-profiler/actions/workflows/build-and-test.yml/badge.svg)
+
 This is a mono repository that includes all components to instrument 
 JavaScript applications in order to collect coverage information and the tools
 for aggregating this information and sending it to [Teamscale](https://www.cqse.eu/en/teamscale/).

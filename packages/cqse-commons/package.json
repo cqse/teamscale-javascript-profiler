@@ -9,6 +9,9 @@
     "type": "git",
     "url": "https://github.com/cqse/teamscale-javascript-profiler.git"
   },
+  "files": [
+    "dist/**/*"
+  ],
   "scripts": {
     "build": "tsc",
     "clean": "rimraf lib tsconfig.tsbuildinfo",

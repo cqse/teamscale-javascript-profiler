@@ -1,6 +1,6 @@
 {
   "name": "@teamscale/coverage-collector",
-  "version": "0.0.1-beta.25",
+  "version": "0.0.1-beta.27",
   "description": "Collector for JavaScript code coverage information",
   "main": "dist/src/main.js",
   "bin": "dist/src/main.js",
@@ -22,7 +22,7 @@
     "dist/**/*"
   ],
   "dependencies": {
-    "@cqse/commons": "^0.0.1-beta.1",
+    "@cqse/commons": "^0.0.1-beta.26",
     "argparse": "^2.0.1",
     "async": "^3.2.0",
     "axios": "^0.24.0",

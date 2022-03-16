@@ -1,6 +1,6 @@
 {
   "name": "@cqse/commons",
-  "version": "0.0.1-beta.25",
+  "version": "0.0.1-beta.26",
   "description": "A collection of generic functionality for TypeScript projects.",
   "author": "CQSE GmbH",
   "main": "lib/index.js",
@@ -10,7 +10,8 @@
     "url": "https://github.com/cqse/teamscale-javascript-profiler.git"
   },
   "files": [
-    "dist/**/*"
+    "dist/**/*",
+    "lib/**/*"
   ],
   "scripts": {
     "build": "tsc",

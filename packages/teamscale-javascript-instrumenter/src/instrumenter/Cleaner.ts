@@ -2,13 +2,13 @@ import { parse } from '@babel/parser';
 import generate from '@babel/generator';
 import traverse, { NodePath } from '@babel/traverse';
 import {
+	CallExpression,
 	ExpressionStatement,
 	isCallExpression,
 	isIdentifier,
 	isMemberExpression,
-	isNumericLiteral,
 	isUpdateExpression,
-	SourceLocation
+	SourceLocation, UpdateExpression
 } from '@babel/types';
 
 /**
@@ -25,7 +25,9 @@ export function cleanSourceCode(
 	const ast = parse(code, { sourceType: esModules ? 'module' : 'script' });
 	traverse(ast, {
 		ExpressionStatement(path) {
-			if (isCoverageIncrementNode(path)) {
+			if (isUnsupportedCounterTypeIncrement(path)) {
+				path.remove();
+			} else if (isCoverageIncrementNode(path)) {
 				if (path.node.loc && !makeCoverable(path.node.loc)) {
 					path.remove();
 				}
@@ -45,13 +47,52 @@ function isCoverageIncrementNode(path: NodePath<ExpressionStatement>) {
 		return false;
 	}
 
-	return (
-		expr.operator === '++' &&
+	return extractCoverageCallExpression(expr) !== undefined;
+}
+
+function isUnsupportedCounterTypeIncrement(path: NodePath<ExpressionStatement>) {
+	if (!isUpdateExpression(path.node.expression)) {
+		return false;
+	}
+
+	return extractBranchCounterExpression(path.node.expression) !== undefined;
+}
+
+function extractBranchCounterExpression(expr: UpdateExpression): CallExpression| undefined {
+	if (expr.operator === '++' &&
 		isMemberExpression(expr.argument) &&
 		isMemberExpression(expr.argument.object) &&
-		isCallExpression(expr.argument.object.object) &&
-		isIdentifier(expr.argument.object.object.callee) &&
-		expr.argument.object.object.callee.name.startsWith('cov_') &&
-		isNumericLiteral(expr.argument.property)
-	);
+		isMemberExpression(expr.argument.object.object) &&
+		isCallExpression(expr.argument.object.object.object)) {
+		// Branch counter
+		return extractCoverageObjectCall(expr.argument.object.object.object);
+	}
+
+	return undefined;
+}
+
+function extractFunctionOrStatementCounterExpression(expr: UpdateExpression): CallExpression | undefined {
+	if (expr.operator === '++' &&
+		isMemberExpression(expr.argument) &&
+		isMemberExpression(expr.argument.object) &&
+		isCallExpression(expr.argument.object.object)) {
+		// Function and statement counter
+		return extractCoverageObjectCall(expr.argument.object.object);
+	}
+
+	return undefined;
+}
+
+function extractCoverageCallExpression(expr: UpdateExpression): CallExpression | undefined {
+	return extractBranchCounterExpression(expr)
+		?? extractFunctionOrStatementCounterExpression(expr);
+}
+
+function extractCoverageObjectCall(callExpression: CallExpression | undefined): CallExpression | undefined {
+	if (callExpression && isIdentifier(callExpression.callee)
+		&& callExpression.callee.name.startsWith('cov_')) {
+		return callExpression;
+	}
+
+	return undefined;
 }

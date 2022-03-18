@@ -2,6 +2,8 @@ We use [Semantic Versioning](https://semver.org/).
 
 # New Release
 
+# 0.0.1-beta.28
+
 - [fix] The logger could not resolve a dependency ('../diagnostics')
 
 # 0.0.1-beta.22

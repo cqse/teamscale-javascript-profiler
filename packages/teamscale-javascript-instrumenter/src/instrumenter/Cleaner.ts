@@ -50,6 +50,12 @@ function isCoverageIncrementNode(path: NodePath<ExpressionStatement>) {
 	return extractCoverageCallExpression(expr) !== undefined;
 }
 
+/**
+ * Is the given expression statement a coverage increment that
+ * is not supported by our approach?
+ *
+ * For example, branch coverage is not supported.
+ */
 function isUnsupportedCounterTypeIncrement(path: NodePath<ExpressionStatement>) {
 	if (!isUpdateExpression(path.node.expression)) {
 		return false;
@@ -58,6 +64,10 @@ function isUnsupportedCounterTypeIncrement(path: NodePath<ExpressionStatement>) 
 	return extractBranchCounterExpression(path.node.expression) !== undefined;
 }
 
+/**
+ * Returns the call expression from `cov_2pvvu1hl8v().b[2][0]++;` if
+ * the given UpdateExpression is a branch coverage update expression.
+ */
 function extractBranchCounterExpression(expr: UpdateExpression): CallExpression| undefined {
 	if (expr.operator === '++' &&
 		isMemberExpression(expr.argument) &&
@@ -71,6 +81,10 @@ function extractBranchCounterExpression(expr: UpdateExpression): CallExpression|
 	return undefined;
 }
 
+/**
+ * Returns the call expression from `cov_104fq7oo4i().f[0]++;` if
+ * the given UpdateExpression is a function or statement coverage update expression.
+ */
 function extractFunctionOrStatementCounterExpression(expr: UpdateExpression): CallExpression | undefined {
 	if (expr.operator === '++' &&
 		isMemberExpression(expr.argument) &&
@@ -83,11 +97,18 @@ function extractFunctionOrStatementCounterExpression(expr: UpdateExpression): Ca
 	return undefined;
 }
 
+/**
+ * Given an `UpdateExpression` extract the call expression returning the coverage object.
+ */
 function extractCoverageCallExpression(expr: UpdateExpression): CallExpression | undefined {
 	return extractBranchCounterExpression(expr)
 		?? extractFunctionOrStatementCounterExpression(expr);
 }
 
+/**
+ * Check if the given call expression is a coverage call expression.
+ * If this is not the case return `undefined`, and the call expression itself otherwise.
+ */
 function extractCoverageObjectCall(callExpression: CallExpression | undefined): CallExpression | undefined {
 	if (callExpression && isIdentifier(callExpression.callee)
 		&& callExpression.callee.name.startsWith('cov_')) {

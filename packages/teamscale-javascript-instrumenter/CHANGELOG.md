@@ -2,7 +2,7 @@ We use [Semantic Versioning](https://semver.org/).
 
 # New Release
 
-- [fix] Branch counters were present even if only statement coverage is supported.
+- [fix] Branch counters were present even though they are currently not supported.
 
 # 0.0.1-beta.24
 

@@ -2,6 +2,8 @@ We use [Semantic Versioning](https://semver.org/).
 
 # New Release
 
+- [fix] Branch counters were present even though they are currently not supported.
+
 # 0.0.1-beta.24
 
 - [feature] JavaScript bundles can now be instrumented partially if a source map is present.

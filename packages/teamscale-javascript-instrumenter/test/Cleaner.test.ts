@@ -52,3 +52,49 @@ test('Remove Some Coverage Increments', () => {
 	expect(cleaned).toContain('f[0]++');
 	expect(cleaned).not.toContain('f[1]++');
 });
+
+test('Different types of coverage must be removed', () => {
+	const cleaned = cleanSourceCode(
+		`
+	function foo() {
+		cov_104fq7oo4i().f[0]++;
+		cov_104fq7oo4i().f[1]++;
+		cov_2pvvu1hl8v().b[2][0]++;
+		cov_2pvvu1hl8v().b[2][1]++;
+		saySomething();
+		var i = 1;
+		f++;
+	}
+	`,
+		false,
+		loc => false
+	);
+	expect(cleaned).toContain('f++');
+	expect(cleaned).not.toContain('f[0]++');
+	expect(cleaned).not.toContain('f[0]++');
+	expect(cleaned).not.toContain('b[2][0]++');
+	expect(cleaned).not.toContain('b[2][1]++');
+})
+
+test('Remove unsupported (branch) coverage only', () => {
+	const cleaned = cleanSourceCode(
+		`
+	function foo() {
+		cov_104fq7oo4i().f[0]++;
+		cov_104fq7oo4i().f[1]++;
+		cov_2pvvu1hl8v().b[2][0]++;
+		cov_2pvvu1hl8v().b[2][1]++;
+		saySomething();
+		var i = 1;
+		f++;
+	}
+	`,
+		false,
+		loc => true
+	);
+	expect(cleaned).toContain('f++');
+	expect(cleaned).toContain('f[0]++');
+	expect(cleaned).toContain('f[0]++');
+	expect(cleaned).not.toContain('b[2][0]++');
+	expect(cleaned).not.toContain('b[2][1]++');
+})

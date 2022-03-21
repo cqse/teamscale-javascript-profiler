@@ -1306,7 +1306,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@cqse/commons@^0.0.1-beta.1, @cqse/commons@^0.0.1-beta.25, @cqse/commons@workspace:packages/cqse-commons":
+"@cqse/commons@^0.0.1-beta.1, @cqse/commons@^0.0.1-beta.26, @cqse/commons@workspace:packages/cqse-commons":
   version: 0.0.0-use.local
   resolution: "@cqse/commons@workspace:packages/cqse-commons"
   dependencies:
@@ -1764,7 +1764,7 @@ __metadata:
   dependencies:
     "@babel/core": ^7.14.0
     "@babel/preset-env": ^7.14.1
-    "@cqse/commons": ^0.0.1-beta.25
+    "@cqse/commons": ^0.0.1-beta.26
     "@types/argparse": ^2.0.5
     "@types/async": ^3.2.6
     "@types/jest": ^27.0.1

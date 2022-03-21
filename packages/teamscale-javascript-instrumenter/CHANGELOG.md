@@ -2,6 +2,8 @@ We use [Semantic Versioning](https://semver.org/).
 
 # New Release
 
+# 0.0.1-beta.29
+
 - [fix] Branch counters were present even though they are currently not supported.
 
 # 0.0.1-beta.24

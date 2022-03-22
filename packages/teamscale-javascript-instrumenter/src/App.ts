@@ -54,10 +54,12 @@ export class App {
 			default: 'localhost:54678'
 		});
 		parser.add_argument('-x', '--exclude-origin', {
-			help: 'Glob pattern of files in the source origin to not produce coverage for.'
+			nargs: '*',
+			help: 'Glob pattern(s) of files in the source origin to not produce coverage for. Multiple patterns can be separated by space.'
 		});
 		parser.add_argument('-k', '--include-origin', {
-			help: 'Glob pattern of files in the source origin to produce coverage for.'
+			nargs: '*',
+			help: 'Glob pattern(s) of files in the source origin to produce coverage for. Multiple patterns can be separated by space.'
 		});
 		parser.add_argument('inputs', { nargs: '+', help: 'The input file(s) to instrument.' });
 

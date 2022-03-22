@@ -22,9 +22,9 @@ export type ConfigurationParameters = {
 	source_map?: string;
 	collector: string;
 	// eslint-disable-next-line camelcase
-	include_origin?: string;
+	include_origin?: string[];
 	// eslint-disable-next-line camelcase
-	exclude_origin?: string;
+	exclude_origin?: string[];
 };
 
 /**
@@ -71,16 +71,28 @@ export class TaskBuilder {
 		return this;
 	}
 
-	/** Set the include pattern */
-	setOriginSourceIncludePattern(pattern: string | undefined): this {
-		this.originSourceIncludePattern = pattern;
+	/** Set the include pattern. If multiple patterns are present, concatenates them via the OR operator.  */
+	setOriginSourceIncludePattern(patterns: string[] | undefined): this {
+		this.originSourceIncludePattern = this.joinPatterns(patterns);
 		return this;
 	}
 
-	/** Set the exclude patter */
-	setOriginSourceExcludePattern(pattern: string | undefined): this {
-		this.originSourceExcludePattern = pattern;
+	/** Set the exclude pattern(s). If multiple patterns are present, concatenates them via the OR operator. */
+	setOriginSourceExcludePattern(patterns: string[] | undefined): this {
+		this.originSourceExcludePattern = this.joinPatterns(patterns);
 		return this;
+	}
+
+	/** Joins an array of patterns by concatenating them via the OR operator. */
+	joinPatterns(patterns: string[] | undefined): string {
+		let joinedPattern = '';
+		patterns?.forEach((item, index) => {
+			joinedPattern += '(' + item + ')';
+			if (index + 1 < patterns?.length) {
+				joinedPattern += '|';
+			}
+		});
+		return joinedPattern;
 	}
 
 	/** Add a task element */

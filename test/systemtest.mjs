@@ -20,7 +20,8 @@ const caseStudies = [
 		},
 		expectUncoveredLines: {
 		},
-		excludeOrigin: ['"../../node_modules/**/*"']
+		excludeOrigins: ['"../../node_modules/**/*"'],
+		includeOrigins: []
 	},
 	{name: 'vite-react-app',
 		rootDir: 'test/casestudies/vite-react-app',
@@ -30,7 +31,8 @@ const caseStudies = [
 		},
 		expectUncoveredLines: {
 		},
-        excludeOrigin: ['"../../node_modules/**/*"']
+        excludeOrigins: ['"../../node_modules/**/*"'],
+		includeOrigins: []
 	},
 	{name: 'angular-hero-app',
 		rootDir: 'test/casestudies/angular-hero-app',
@@ -43,7 +45,8 @@ const caseStudies = [
 			"src/app/heroes/heroes.component.ts": ["1-10", 15, 16, "18-20", "37-50"],
 			"src/app/hero-detail/hero-detail.component.ts": ["1-12", "34-42"]
 		},
-        excludeOrigin: ['"../../node_modules/**/*"']
+        excludeOrigins: ['"../../node_modules/**/*"'],
+		includeOrigins: []
 	}
 ];
 
@@ -211,8 +214,9 @@ for (const study of caseStudies) {
 
 		const fullStudyDistPath = path.resolve(`${study.rootDir}/${study.distDir}`);
 		console.log(`Instrument the case study in ${fullStudyDistPath}`);
-		const excludeOriginConcatenated = study.excludeOrigin.join(" ");
-		execSync(`node ./dist/src/main.js --exclude-origin ${excludeOriginConcatenated} --in-place ${fullStudyDistPath}`,
+		const excludeOriginsConcatenated = study.excludeOrigins.join(" ");
+		const includeOriginsConcatenated = study.includeOrigins.join(" ");
+		execSync(`node ./dist/src/main.js --exclude-origin ${excludeOriginsConcatenated} --include-origin ${includeOriginsConcatenated} --in-place ${fullStudyDistPath}`,
 			{cwd: INSTRUMENTER_DIR, stdio: 'inherit'});
 
 		console.log("## Starting the Web server");

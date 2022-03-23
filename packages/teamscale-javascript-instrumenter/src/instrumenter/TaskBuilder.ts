@@ -54,10 +54,10 @@ export class TaskBuilder {
 	private collector: CollectorSpecifier | null;
 
 	/** An include pattern. */
-	private originSourceIncludePattern: string | undefined;
+	private originSourceIncludePatterns: string[] | undefined;
 
 	/** An exclude pattern. */
-	private originSourceExcludePattern: string | undefined;
+	private originSourceExcludePatterns: string[] | undefined;
 
 	constructor() {
 		this.elements = [];
@@ -72,27 +72,15 @@ export class TaskBuilder {
 	}
 
 	/** Set the include pattern. If multiple patterns are present, concatenates them via the OR operator.  */
-	setOriginSourceIncludePattern(patterns: string[] | undefined): this {
-		this.originSourceIncludePattern = this.joinPatterns(patterns);
+	setOriginSourceIncludePatterns(patterns: string[] | undefined): this {
+		this.originSourceIncludePatterns = patterns;
 		return this;
 	}
 
 	/** Set the exclude pattern(s). If multiple patterns are present, concatenates them via the OR operator. */
-	setOriginSourceExcludePattern(patterns: string[] | undefined): this {
-		this.originSourceExcludePattern = this.joinPatterns(patterns);
+	setOriginSourceExcludePatterns(patterns: string[] | undefined): this {
+		this.originSourceExcludePatterns = patterns;
 		return this;
-	}
-
-	/** Joins an array of patterns by concatenating them via the OR operator. */
-	joinPatterns(patterns: string[] | undefined): string {
-		let joinedPattern = '';
-		patterns?.forEach((item, index) => {
-			joinedPattern += '(' + item + ')';
-			if (index + 1 < patterns?.length) {
-				joinedPattern += '|';
-			}
-		});
-		return joinedPattern;
 	}
 
 	/** Add a task element */
@@ -112,8 +100,8 @@ export class TaskBuilder {
 		const target: string | undefined = config.to;
 		const sourceMap: string | undefined = config.source_map;
 		this.setCollectorFromString(config.collector);
-		this.setOriginSourceIncludePattern(config.include_origin);
-		this.setOriginSourceExcludePattern(config.exclude_origin);
+		this.setOriginSourceIncludePatterns(config.include_origin);
+		this.setOriginSourceExcludePatterns(config.exclude_origin);
 
 		// Handle an explicitly specified source map
 		const sourceMapInfo = loadSourceMap(sourceMap);
@@ -198,7 +186,7 @@ export class TaskBuilder {
 	 * Build the instrumentation task.
 	 */
 	public build(): InstrumentationTask {
-		const pattern = new OriginSourcePattern(this.originSourceIncludePattern, this.originSourceExcludePattern);
+		const pattern = new OriginSourcePattern(this.originSourceIncludePatterns, this.originSourceExcludePatterns);
 		return new InstrumentationTask(Contract.requireDefined(this.collector), this.elements, pattern);
 	}
 }

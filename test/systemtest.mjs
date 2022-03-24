@@ -47,6 +47,19 @@ const caseStudies = [
 		},
         excludeOrigins: ['"../../node_modules/**/*"'],
 		includeOrigins: []
+	},
+	{name: 'angular-hero-app-with-excludes',
+		rootDir: 'test/casestudies/angular-hero-app',
+		distDir: 'dist',
+		expectCoveredLines: {
+			"src/app/hero-detail/hero-detail.component.ts": [17,18,19,23,27,28,29,33]
+		},
+		expectUncoveredLines: {
+			"src/app/heroes/heroes.component.ts": ["1-10", 15, 16, "18-20", "37-50"],
+			"src/app/hero-detail/hero-detail.component.ts": ["1-12", "34-42"]
+		},
+		excludeOrigins: ['"../../node_modules/**/*"', '"src/app/heroes/*.ts"'],
+		includeOrigins: []
 	}
 ];
 

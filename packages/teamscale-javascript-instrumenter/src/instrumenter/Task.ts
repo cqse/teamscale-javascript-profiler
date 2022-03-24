@@ -81,11 +81,14 @@ export class OriginSourcePattern {
 				this.include?.push(<string>normalizedIncludeEntry);
 			}
 		}
+		if (this.include.length === 0) {
+			this.include = ['**'];
+		}
 		this.exclude = [];
 		for (const excludeEntry of exclude || []) {
 			const normalizedExcludeEntry = OriginSourcePattern.normalizeGlobPattern(excludeEntry);
 			if (normalizedExcludeEntry !== undefined) {
-				this.include?.push(<string>normalizedExcludeEntry);
+				this.exclude?.push(<string>normalizedExcludeEntry);
 			}
 		}
 	}
@@ -116,7 +119,7 @@ export class OriginSourcePattern {
 		}
 
 		if (this.include) {
-			const matchedToInclude = matching(normalizedOriginFiles, this.include ?? ['**']);
+			const matchedToInclude = matching(normalizedOriginFiles, this.include);
 			return matchedToInclude.length > 0;
 		}
 

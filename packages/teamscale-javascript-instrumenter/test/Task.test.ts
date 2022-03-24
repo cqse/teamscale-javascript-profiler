@@ -34,4 +34,12 @@ test('Exclude and include pattern', () => {
 	).toBeTruthy();
 	expect(pattern.isAnyIncluded(['./src/foo/messages/messages.component.ts'])).toBeFalsy();
 	expect(pattern.isAnyIncluded(['./src/bar/messages/messages.component.ts'])).toBeTruthy();
+	expect(
+		pattern.isAnyIncluded([
+			'./test/foo/unittest.test.ts',
+			'./test/bar/unittest.test.ts',
+			'./build/main.ts',
+			'main.ts'
+		])
+	).toBeFalsy();
 });

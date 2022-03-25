@@ -17,6 +17,7 @@ import * as convertSourceMap from 'convert-source-map';
 import { Logger } from 'winston';
 import { cleanSourceCode } from './Cleaner';
 import { Optional } from 'typescript-optional';
+import async from 'async';
 
 export const IS_INSTRUMENTED_TOKEN = '/** $IS_JS_PROFILER_INSTRUMENTED=true **/';
 
@@ -61,18 +62,15 @@ export class IstanbulInstrumenter implements IInstrumenter {
 	 * {@inheritDoc #IInstrumenter.instrument}
 	 */
 	async instrument(task: InstrumentationTask): Promise<TaskResult> {
-		fs.existsSync(this.vaccineFilePath);
-
-		const resolved = await Promise.all(
-			task.elements.map((taskElement: TaskElement) => {
-				return this.instrumentOne(task.collector, taskElement, task.originSourcePattern);
-			})
-		);
-
-		return resolved.reduce(
-			(aggregatedResult, taskResult) => aggregatedResult.withIncrement(taskResult),
-			TaskResult.neutral()
-		);
+		// We limit the number of instrumentations in parallel to one to
+		// not overuse memory (NodeJS has only limited mem to use).
+		return async.mapLimit(task.elements, 1, async (taskElement: TaskElement) => {
+			return await this.instrumentOne(task.collector, taskElement, task.originSourcePattern);
+		}).then((results) => {
+			return results.reduce((prev, curr) => {
+				return prev.withIncrement(curr);
+			}, TaskResult.neutral());
+		});
 	}
 
 	/**
@@ -196,27 +194,27 @@ export class IstanbulInstrumenter implements IInstrumenter {
 		return await this.loadSourceMap(
 			instrumentedSource, taskElement.fromFile
 		).then((instrumentedSourceMapConsumer: SourceMapConsumer | undefined) => {
-			try {
-				// Without a source map, excludes/includes do not work.
-				if (!instrumentedSourceMapConsumer) {
-					return instrumentedSource;
-				}
-
-				// Remove the unwanted instrumentation
-				return cleanSourceCode(instrumentedSource, configurationAlternative.esModules as boolean, location => {
-					const originalPosition = instrumentedSourceMapConsumer.originalPositionFor({
-						line: location.start.line,
-						column: location.start.column
-					});
-					if (!originalPosition.source) {
-						return true;
-					}
-					return sourcePattern.isAnyIncluded([originalPosition.source]);
-				});
-			} finally {
-				// Explicitly free the source map to avoid memory leaks
-				instrumentedSourceMapConsumer?.destroy();
+			// Without a source map, excludes/includes do not work.
+			if (!instrumentedSourceMapConsumer) {
+				return instrumentedSource;
 			}
+
+			// Remove the unwanted instrumentation
+			const cleaned = cleanSourceCode(instrumentedSource, configurationAlternative.esModules as boolean, location => {
+				const originalPosition = instrumentedSourceMapConsumer.originalPositionFor({
+					line: location.start.line,
+					column: location.start.column
+				});
+				if (!originalPosition.source) {
+					return true;
+				}
+				return sourcePattern.isAnyIncluded([originalPosition.source]);
+			});
+
+			// Explicitly free the source map to avoid memory leaks
+			instrumentedSourceMapConsumer.destroy();
+
+			return cleaned;
 		});
 	}
 

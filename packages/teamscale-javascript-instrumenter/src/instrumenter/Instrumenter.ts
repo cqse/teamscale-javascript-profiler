@@ -11,6 +11,7 @@ import { Contract, IllegalArgumentException } from '@cqse/commons';
 import { RawSourceMap, SourceMapConsumer } from 'source-map';
 import * as istanbul from 'istanbul-lib-instrument';
 import * as fs from 'fs';
+import * as mkdirp from'mkdirp';
 import * as path from 'path';
 import * as convertSourceMap from 'convert-source-map';
 import { Logger } from 'winston';
@@ -91,7 +92,7 @@ export class IstanbulInstrumenter implements IInstrumenter {
 		// We skip files that we have already instrumented
 		if (inputFileSource.startsWith(IS_INSTRUMENTED_TOKEN)) {
 			if (!taskElement.isInPlace()) {
-				fs.writeFileSync(taskElement.toFile, inputFileSource);
+				writeToFile(taskElement.toFile, inputFileSource);
 			}
 			return new TaskResult(0, 0, 0, 1, 0, 0, 0);
 		}
@@ -133,7 +134,7 @@ export class IstanbulInstrumenter implements IInstrumenter {
 						originSourceFiles
 					)
 				) {
-					fs.writeFileSync(taskElement.toFile, inputFileSource);
+					writeToFile(taskElement.toFile, inputFileSource);
 					return new TaskResult(0, 1, 0, 0, 0, 0, 0);
 				}
 
@@ -146,19 +147,27 @@ export class IstanbulInstrumenter implements IInstrumenter {
 
 				// In case of a bundle, the initial instrumentation step might have added
 				// too much and undesired instrumentations. Remove them now.
-				instrumentedSource = await this.removeUnwantedInstrumentation(
+				return await this.removeUnwantedInstrumentation(
 					taskElement,
 					instrumentedSource,
 					configurationAlternative,
 					sourcePattern
-				);
+				).then(instrumentedSource => {
+					// The process also can result in a new source map that we will append in the result.
+					//
+					// `lastSourceMap` === Sourcemap for the last file that was instrumented.
+					finalSourceMap = convertSourceMap.fromObject(instrumenter.lastSourceMap()).toComment();
 
-				// The process also can result in a new source map that we will append in the result.
-				//
-				// `lastSourceMap` === Sourcemap for the last file that was instrumented.
-				finalSourceMap = convertSourceMap.fromObject(instrumenter.lastSourceMap()).toComment();
+					// We now can glue together the final version of the instrumented file.
+					const vaccineSource = this.loadVaccine(collector);
 
-				break;
+					writeToFile(
+						taskElement.toFile,
+						`${IS_INSTRUMENTED_TOKEN} ${vaccineSource} ${instrumentedSource} \n${finalSourceMap}`
+					);
+
+					return new TaskResult(1, 0, 0, 0, 0, 0, 0);
+				});
 			} catch (e) {
 				// If also the last configuration alternative failed,
 				// we emit a corresponding warning or signal an error.
@@ -168,22 +177,13 @@ export class IstanbulInstrumenter implements IInstrumenter {
 							`Failed loading input source map for ${taskElement.fromFile}: ${(e as Error).message}`
 						);
 					}
-					fs.writeFileSync(taskElement.toFile, inputFileSource);
+					writeToFile(taskElement.toFile, inputFileSource);
 					return TaskResult.error(e as Error);
 				}
 			}
 		}
 
-		// We now can glue together the final version of the instrumented file.
-		//
-		const vaccineSource = this.loadVaccine(collector);
-
-		fs.writeFileSync(
-			taskElement.toFile,
-			`${IS_INSTRUMENTED_TOKEN} ${vaccineSource} ${instrumentedSource} \n${finalSourceMap}`
-		);
-
-		return new TaskResult(1, 0, 0, 0, 0, 0, 0);
+		return new TaskResult(0, 0, 0, 0, 0, 1, 0);
 	}
 
 	private async removeUnwantedInstrumentation(
@@ -193,25 +193,30 @@ export class IstanbulInstrumenter implements IInstrumenter {
 		sourcePattern: OriginSourcePattern
 	) {
 		// Read the source map from the instrumented file
-		const instrumentedSourceMapConsumer: SourceMapConsumer | undefined = await this.loadSourceMap(
+		return await this.loadSourceMap(
 			instrumentedSource, taskElement.fromFile
-		);
+		).then((instrumentedSourceMapConsumer: SourceMapConsumer | undefined) => {
+			try {
+				// Without a source map, excludes/includes do not work.
+				if (!instrumentedSourceMapConsumer) {
+					return instrumentedSource;
+				}
 
-		// Without a source map, excludes/includes do not work.
-		if (!instrumentedSourceMapConsumer) {
-			return instrumentedSource;
-		}
-
-		// Remove the unwanted instrumentation
-		return cleanSourceCode(instrumentedSource, configurationAlternative.esModules as boolean, location => {
-			const originalPosition = instrumentedSourceMapConsumer.originalPositionFor({
-				line: location.start.line,
-				column: location.start.column
-			});
-			if (!originalPosition.source) {
-				return true;
+				// Remove the unwanted instrumentation
+				return cleanSourceCode(instrumentedSource, configurationAlternative.esModules as boolean, location => {
+					const originalPosition = instrumentedSourceMapConsumer.originalPositionFor({
+						line: location.start.line,
+						column: location.start.column
+					});
+					if (!originalPosition.source) {
+						return true;
+					}
+					return sourcePattern.isAnyIncluded([originalPosition.source]);
+				});
+			} finally {
+				// Explicitly free the source map to avoid memory leaks
+				instrumentedSourceMapConsumer?.destroy();
 			}
-			return sourcePattern.isAnyIncluded([originalPosition.source]);
 		});
 	}
 
@@ -364,4 +369,9 @@ function sourceMapFromCodeComment(sourcecode: string, sourceFilePath: string): R
 function sourceMapFromMapFile(mapFilePath: string): RawSourceMap | undefined {
 	const content: string = fs.readFileSync(mapFilePath, 'utf8');
 	return JSON.parse(content) as RawSourceMap;
+}
+
+function writeToFile(filePath: string, fileContent: string) {
+	mkdirp.sync(path.dirname(filePath));
+	fs.writeFileSync(filePath, fileContent);
 }

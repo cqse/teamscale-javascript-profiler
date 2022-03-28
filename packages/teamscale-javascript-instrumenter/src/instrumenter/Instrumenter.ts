@@ -13,9 +13,9 @@ import * as istanbul from 'istanbul-lib-instrument';
 import * as fs from 'fs';
 import * as path from 'path';
 import * as convertSourceMap from 'convert-source-map';
-import { Logger } from 'winston';
 import { cleanSourceCode } from './Cleaner';
 import { Optional } from 'typescript-optional';
+import Logger from "bunyan";
 
 export const IS_INSTRUMENTED_TOKEN = '/** $IS_JS_PROFILER_INSTRUMENTED=true **/';
 

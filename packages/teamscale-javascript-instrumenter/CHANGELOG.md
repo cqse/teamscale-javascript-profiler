@@ -2,6 +2,8 @@ We use [Semantic Versioning](https://semver.org/).
 
 # New Release
 
+- [fix] The logger was logging asynchronously making it hard to debug the progress.
+
 # 0.0.1-beta.29
 
 - [fix] Branch counters were present even though they are currently not supported.

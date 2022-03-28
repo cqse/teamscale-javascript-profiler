@@ -2,6 +2,8 @@ We use [Semantic Versioning](https://semver.org/).
 
 # New Release
 
+- [fix] Too many files were instrumented in parallel causing memory and performance issues.
+
 # 0.0.1-beta.29
 
 - [fix] Branch counters were present even though they are currently not supported.

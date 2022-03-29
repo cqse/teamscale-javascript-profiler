@@ -136,10 +136,11 @@ export class Main {
 		const logfilePath = config.log_to_file.trim() ;
 		mkdirp.sync(path.dirname(logfilePath));
 
+		const logLevel = config.log_level as LogLevel;
 		return Logger.createLogger({name: "Instrumenter",
 			streams: [
 				{
-					level: 'info',
+					level: logLevel,
 					stream: {
 						write: (rec: Record<any, any>) => {
 							console.log('[%s] %s: %s',
@@ -151,7 +152,7 @@ export class Main {
 					type: 'raw'
 				},
 				{
-					level: config.log_level as LogLevel,
+					level: logLevel,
 					path: logfilePath
 				}
 			]});

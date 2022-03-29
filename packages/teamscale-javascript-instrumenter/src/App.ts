@@ -72,10 +72,11 @@ export class App {
 		const logfilePath = 'logs/instrumenter.log';
 		mkdirp.sync(path.dirname(logfilePath));
 
+		const logLevel = config.debug ? 'debug': 'error';
 		return Logger.createLogger({name: "Instrumenter",
 			streams: [
 				{
-					level: 'info',
+					level: logLevel,
 					stream: {
 						write: (rec: any) => {
 							console.log('[%s] %s: %s',
@@ -87,7 +88,7 @@ export class App {
 					type: 'raw'
 				},
 				{
-					level: config.debug ? 'debug': 'error',
+					level: logLevel,
 					path: logfilePath
 				}
 			]});

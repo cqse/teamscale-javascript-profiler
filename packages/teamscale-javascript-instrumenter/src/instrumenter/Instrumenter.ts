@@ -145,27 +145,27 @@ export class IstanbulInstrumenter implements IInstrumenter {
 
 				// In case of a bundle, the initial instrumentation step might have added
 				// too much and undesired instrumentations. Remove them now.
-				return await this.removeUnwantedInstrumentation(
+				instrumentedSource = await this.removeUnwantedInstrumentation(
 					taskElement,
 					instrumentedSource,
 					configurationAlternative,
 					sourcePattern
-				).then(instrumentedSource => {
-					// The process also can result in a new source map that we will append in the result.
-					//
-					// `lastSourceMap` === Sourcemap for the last file that was instrumented.
-					finalSourceMap = convertSourceMap.fromObject(instrumenter.lastSourceMap()).toComment();
+				);
 
-					// We now can glue together the final version of the instrumented file.
-					const vaccineSource = this.loadVaccine(collector);
+				// The process also can result in a new source map that we will append in the result.
+				//
+				// `lastSourceMap` === Sourcemap for the last file that was instrumented.
+				finalSourceMap = convertSourceMap.fromObject(instrumenter.lastSourceMap()).toComment();
 
-					writeToFile(
-						taskElement.toFile,
-						`${IS_INSTRUMENTED_TOKEN} ${vaccineSource} ${instrumentedSource} \n${finalSourceMap}`
-					);
+				// We now can glue together the final version of the instrumented file.
+				const vaccineSource = this.loadVaccine(collector);
 
-					return new TaskResult(1, 0, 0, 0, 0, 0, 0);
-				});
+				writeToFile(
+					taskElement.toFile,
+					`${IS_INSTRUMENTED_TOKEN} ${vaccineSource} ${instrumentedSource} \n${finalSourceMap}`
+				);
+
+				return new TaskResult(1, 0, 0, 0, 0, 0, 0);
 			} catch (e) {
 				// If also the last configuration alternative failed,
 				// we emit a corresponding warning or signal an error.
@@ -191,31 +191,31 @@ export class IstanbulInstrumenter implements IInstrumenter {
 		sourcePattern: OriginSourcePattern
 	) {
 		// Read the source map from the instrumented file
-		return await this.loadSourceMap(
+		const instrumentedSourceMapConsumer: SourceMapConsumer | undefined = await this.loadSourceMap(
 			instrumentedSource, taskElement.fromFile
-		).then((instrumentedSourceMapConsumer: SourceMapConsumer | undefined) => {
-			// Without a source map, excludes/includes do not work.
-			if (!instrumentedSourceMapConsumer) {
-				return instrumentedSource;
-			}
+		);
 
-			// Remove the unwanted instrumentation
-			const cleaned = cleanSourceCode(instrumentedSource, configurationAlternative.esModules as boolean, location => {
-				const originalPosition = instrumentedSourceMapConsumer.originalPositionFor({
-					line: location.start.line,
-					column: location.start.column
-				});
-				if (!originalPosition.source) {
-					return true;
-				}
-				return sourcePattern.isAnyIncluded([originalPosition.source]);
+		// Without a source map, excludes/includes do not work.
+		if (!instrumentedSourceMapConsumer) {
+			return instrumentedSource;
+		}
+
+		// Remove the unwanted instrumentation
+		const cleaned = cleanSourceCode(instrumentedSource, configurationAlternative.esModules as boolean, location => {
+			const originalPosition = instrumentedSourceMapConsumer.originalPositionFor({
+				line: location.start.line,
+				column: location.start.column
 			});
-
-			// Explicitly free the source map to avoid memory leaks
-			instrumentedSourceMapConsumer.destroy();
-
-			return cleaned;
+			if (!originalPosition.source) {
+				return true;
+			}
+			return sourcePattern.isAnyIncluded([originalPosition.source]);
 		});
+
+		// Explicitly free the source map to avoid memory leaks
+		instrumentedSourceMapConsumer.destroy();
+
+		return cleaned;
 	}
 
 	private async loadSourceMap(

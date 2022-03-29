@@ -2,7 +2,7 @@
 
 import { version } from '../package.json';
 import { ArgumentParser } from 'argparse';
-import Logger from "bunyan";
+import Logger, {LogLevel} from "bunyan";
 import { DataStorage } from './storage/DataStorage';
 import { WebSocketCollectingServer } from './receiver/CollectingServer';
 import 'dotenv/config';
@@ -30,7 +30,6 @@ type Parameters = {
 	log_level: string;
 	// eslint-disable-next-line camelcase
 	dump_after_mins: number;
-	debug: boolean;
 	port: number;
 	// eslint-disable-next-line camelcase
 	teamscale_server_url?: string;
@@ -152,7 +151,7 @@ export class Main {
 					type: 'raw'
 				},
 				{
-					level: config.debug ? 'debug': 'error',
+					level: config.log_level as LogLevel,
 					path: logfilePath
 				}
 			]});

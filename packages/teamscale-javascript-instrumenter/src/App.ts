@@ -78,7 +78,7 @@ export class App {
 				{
 					level: logLevel,
 					stream: {
-						write: (rec: any) => {
+						write: (rec: Record<any, any>) => {
 							console.log('[%s] %s: %s',
 								rec.time.toISOString(),
 								Logger.nameFromLevel[rec.level],

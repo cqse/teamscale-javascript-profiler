@@ -3,7 +3,7 @@ import { IDataStorage } from '../storage/DataStorage';
 import { Contract } from '@cqse/commons';
 import { IncomingMessage } from 'http';
 import { Session } from './Session';
-import { Logger } from 'winston';
+import Logger from "bunyan";
 
 /**
  * Various constants that are used to exchange data between

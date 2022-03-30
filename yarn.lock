@@ -1756,7 +1756,7 @@ __metadata:
     "@types/tmp": ^0.2.3
     "@types/ws": ^7.4.2
     argparse: ^2.0.1
-    async: ^3.2.0
+    async: ^3.2.3
     axios: ^0.24.0
     babel-jest: ^27.2.0
     bunyan: ^1.8.15
@@ -1764,6 +1764,7 @@ __metadata:
     esbuild: ^0.13.4
     form-data: ^4.0.0
     jest: ^27.2.0
+    mkdirp: ^1.0.4
     rimraf: ^3.0.2
     rxjs: ^7.1.0
     source-map: ^0.7.3

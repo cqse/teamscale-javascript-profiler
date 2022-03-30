@@ -1,6 +1,6 @@
 {
   "name": "@teamscale/coverage-collector",
-  "version": "0.0.1-beta.30",
+  "version": "0.0.1-beta.32",
   "description": "Collector for JavaScript code coverage information",
   "main": "dist/src/main.js",
   "bin": "dist/src/main.js",
@@ -24,11 +24,12 @@
   "dependencies": {
     "@cqse/commons": "^0.0.1-beta.26",
     "argparse": "^2.0.1",
-    "async": "^3.2.0",
+    "async": "^3.2.3",
     "axios": "^0.24.0",
     "bunyan": "^1.8.15",
     "dotenv": "^14.1.0",
     "form-data": "^4.0.0",
+    "mkdirp": "^1.0.4",
     "rxjs": "^7.1.0",
     "source-map": "^0.7.3",
     "tmp": "^0.2.1",

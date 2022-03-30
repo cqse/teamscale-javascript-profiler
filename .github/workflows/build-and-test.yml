@@ -20,12 +20,24 @@ jobs:
       - run: npm install -g yarn
       - name: Install the base dependencies
         run: yarn install
-      - name: Install the dependencies for all workspaces
-        run: yarn workspaces foreach install
-      - name: Build all workspaces
-        run: yarn workspaces foreach run build
-      - name: Run the tests for all workspaces
-        run: yarn workspaces foreach run test
+      - name: Install, build, and test the Commons Library
+        working-directory: ./packages/cqse-commons
+        run: | 
+          yarn install
+          yarn build
+          yarn test
+      - name: Install, build, and test the Instrumenter
+        working-directory: ./packages/teamscale-javascript-instrumenter
+        run: | 
+          yarn install
+          yarn build
+          yarn test
+      - name: Install, build, and test the Collector
+        working-directory: ./packages/teamscale-coverage-collector
+        run: | 
+          yarn install
+          yarn build
+          yarn test
       - name: Run the system test
         uses: GabrielBB/xvfb-action@v1
         with:

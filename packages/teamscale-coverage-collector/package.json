@@ -1,6 +1,6 @@
 {
   "name": "@teamscale/coverage-collector",
-  "version": "0.0.1-beta.32",
+  "version": "0.0.1-beta.33",
   "description": "Collector for JavaScript code coverage information",
   "main": "dist/src/main.js",
   "bin": "dist/src/main.js",
@@ -43,6 +43,7 @@
     "@types/async": "^3.2.6",
     "@types/bunyan": "^1.8.8",
     "@types/jest": "^27.0.1",
+    "@types/mkdirp": "^1.0.2",
     "@types/node": "^15.0.1",
     "@types/source-map": "^0.5.7",
     "@types/tmp": "^0.2.3",

@@ -1759,6 +1759,7 @@ __metadata:
     async: ^3.2.0
     axios: ^0.24.0
     babel-jest: ^27.2.0
+    bunyan: ^1.8.15
     dotenv: ^14.1.0
     esbuild: ^0.13.4
     form-data: ^4.0.0

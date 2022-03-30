@@ -1,6 +1,6 @@
 {
   "name": "@teamscale/javascript-instrumenter",
-  "version": "0.0.1-beta.29",
+  "version": "0.0.1-beta.30",
   "description": "Istanbul-based coverage instrumenter with coverage forwarding via WebSockets",
   "main": "dist/src/main.js",
   "bin": "dist/src/main.js",

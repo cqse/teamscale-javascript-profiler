@@ -3,7 +3,7 @@ import * as sourceMap from 'source-map';
 import { Position, BasicSourceMapConsumer, NullableMappedPosition } from 'source-map';
 import { IDataStorage } from '../storage/DataStorage';
 import { Contract } from '@cqse/commons';
-import { Logger } from 'winston';
+import Logger from "bunyan";
 
 /** The type of sourcemap consumer we use. */
 type SourceMapConsumer = BasicSourceMapConsumer;

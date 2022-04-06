@@ -1,6 +1,6 @@
 import { Contract, removePrefix } from '@cqse/commons';
 import * as fs from 'fs';
-import { Logger } from 'winston';
+import Logger from "bunyan";
 
 /**
  * Lines covered for the specified file.

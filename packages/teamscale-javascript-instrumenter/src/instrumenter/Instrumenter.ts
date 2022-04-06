@@ -11,11 +11,13 @@ import { Contract, IllegalArgumentException } from '@cqse/commons';
 import { RawSourceMap, SourceMapConsumer } from 'source-map';
 import * as istanbul from 'istanbul-lib-instrument';
 import * as fs from 'fs';
+import * as mkdirp from'mkdirp';
 import * as path from 'path';
 import * as convertSourceMap from 'convert-source-map';
-import { Logger } from 'winston';
 import { cleanSourceCode } from './Cleaner';
 import { Optional } from 'typescript-optional';
+import Logger from "bunyan";
+import async from 'async';
 
 export const IS_INSTRUMENTED_TOKEN = '/** $IS_JS_PROFILER_INSTRUMENTED=true **/';
 
@@ -60,18 +62,15 @@ export class IstanbulInstrumenter implements IInstrumenter {
 	 * {@inheritDoc #IInstrumenter.instrument}
 	 */
 	async instrument(task: InstrumentationTask): Promise<TaskResult> {
-		fs.existsSync(this.vaccineFilePath);
-
-		const resolved = await Promise.all(
-			task.elements.map((taskElement: TaskElement) => {
-				return this.instrumentOne(task.collector, taskElement, task.originSourcePattern);
-			})
-		);
-
-		return resolved.reduce(
-			(aggregatedResult, taskResult) => aggregatedResult.withIncrement(taskResult),
-			TaskResult.neutral()
-		);
+		// We limit the number of instrumentations in parallel to one to
+		// not overuse memory (NodeJS has only limited mem to use).
+		return async.mapLimit(task.elements, 1, async (taskElement: TaskElement) => {
+			return await this.instrumentOne(task.collector, taskElement, task.originSourcePattern);
+		}).then((results) => {
+			return results.reduce((prev, curr) => {
+				return prev.withIncrement(curr);
+			}, TaskResult.neutral());
+		});
 	}
 
 	/**
@@ -91,7 +90,7 @@ export class IstanbulInstrumenter implements IInstrumenter {
 		// We skip files that we have already instrumented
 		if (inputFileSource.startsWith(IS_INSTRUMENTED_TOKEN)) {
 			if (!taskElement.isInPlace()) {
-				fs.writeFileSync(taskElement.toFile, inputFileSource);
+				writeToFile(taskElement.toFile, inputFileSource);
 			}
 			return new TaskResult(0, 0, 0, 1, 0, 0, 0);
 		}
@@ -133,7 +132,7 @@ export class IstanbulInstrumenter implements IInstrumenter {
 						originSourceFiles
 					)
 				) {
-					fs.writeFileSync(taskElement.toFile, inputFileSource);
+					writeToFile(taskElement.toFile, inputFileSource);
 					return new TaskResult(0, 1, 0, 0, 0, 0, 0);
 				}
 
@@ -158,7 +157,15 @@ export class IstanbulInstrumenter implements IInstrumenter {
 				// `lastSourceMap` === Sourcemap for the last file that was instrumented.
 				finalSourceMap = convertSourceMap.fromObject(instrumenter.lastSourceMap()).toComment();
 
-				break;
+				// We now can glue together the final version of the instrumented file.
+				const vaccineSource = this.loadVaccine(collector);
+
+				writeToFile(
+					taskElement.toFile,
+					`${IS_INSTRUMENTED_TOKEN} ${vaccineSource} ${instrumentedSource} \n${finalSourceMap}`
+				);
+
+				return new TaskResult(1, 0, 0, 0, 0, 0, 0);
 			} catch (e) {
 				// If also the last configuration alternative failed,
 				// we emit a corresponding warning or signal an error.
@@ -168,22 +175,13 @@ export class IstanbulInstrumenter implements IInstrumenter {
 							`Failed loading input source map for ${taskElement.fromFile}: ${(e as Error).message}`
 						);
 					}
-					fs.writeFileSync(taskElement.toFile, inputFileSource);
+					writeToFile(taskElement.toFile, inputFileSource);
 					return TaskResult.error(e as Error);
 				}
 			}
 		}
 
-		// We now can glue together the final version of the instrumented file.
-		//
-		const vaccineSource = this.loadVaccine(collector);
-
-		fs.writeFileSync(
-			taskElement.toFile,
-			`${IS_INSTRUMENTED_TOKEN} ${vaccineSource} ${instrumentedSource} \n${finalSourceMap}`
-		);
-
-		return new TaskResult(1, 0, 0, 0, 0, 0, 0);
+		return new TaskResult(0, 0, 0, 0, 0, 1, 0);
 	}
 
 	private async removeUnwantedInstrumentation(
@@ -203,7 +201,7 @@ export class IstanbulInstrumenter implements IInstrumenter {
 		}
 
 		// Remove the unwanted instrumentation
-		return cleanSourceCode(instrumentedSource, configurationAlternative.esModules as boolean, location => {
+		const cleaned = cleanSourceCode(instrumentedSource, configurationAlternative.esModules as boolean, location => {
 			const originalPosition = instrumentedSourceMapConsumer.originalPositionFor({
 				line: location.start.line,
 				column: location.start.column
@@ -213,6 +211,11 @@ export class IstanbulInstrumenter implements IInstrumenter {
 			}
 			return sourcePattern.isAnyIncluded([originalPosition.source]);
 		});
+
+		// Explicitly free the source map to avoid memory leaks
+		instrumentedSourceMapConsumer.destroy();
+
+		return cleaned;
 	}
 
 	private async loadSourceMap(
@@ -364,4 +367,9 @@ function sourceMapFromCodeComment(sourcecode: string, sourceFilePath: string): R
 function sourceMapFromMapFile(mapFilePath: string): RawSourceMap | undefined {
 	const content: string = fs.readFileSync(mapFilePath, 'utf8');
 	return JSON.parse(content) as RawSourceMap;
+}
+
+function writeToFile(filePath: string, fileContent: string) {
+	mkdirp.sync(path.dirname(filePath));
+	fs.writeFileSync(filePath, fileContent);
 }

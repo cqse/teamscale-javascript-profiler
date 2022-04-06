@@ -1,9 +1,9 @@
-import LocalWebServer from 'local-web-server'
-import cypress from 'cypress'
-import {execSync} from 'child_process'
-import path  from 'path';
-import * as fs  from 'fs';
-import * as fsp  from 'fs/promises';
+import LocalWebServer from 'local-web-server';
+import cypress from 'cypress';
+import { execSync } from 'child_process';
+import path from 'path';
+import * as fs from 'fs';
+import * as fsp from 'fs/promises';
 import { spawn } from 'child_process';
 import ServerMock from 'mock-http-server';
 
@@ -12,51 +12,55 @@ import ServerMock from 'mock-http-server';
  * the expected coverage produced by our tool chain.
  */
 const caseStudies = [
-	{name: 'vite-react-ts-app',
+	{
+		name: 'vite-react-ts-app',
 		rootDir: 'test/casestudies/vite-react-ts-app',
 		distDir: 'dist',
 		expectCoveredLines: {
 			'../../src/App.tsx': [6, 14]
 		},
-		expectUncoveredLines: {
-		},
-		excludeOrigins: ['"../../node_modules/**/*"'],
+		expectUncoveredLines: {},
+		excludeOrigins: [],
 		includeOrigins: []
 	},
-	{name: 'vite-react-app',
+	{
+		name: 'vite-react-app',
 		rootDir: 'test/casestudies/vite-react-app',
 		distDir: 'dist',
 		expectCoveredLines: {
 			'../../src/App.jsx': [6, 14]
 		},
-		expectUncoveredLines: {
-		},
-        excludeOrigins: ['"../../node_modules/**/*"'],
+		expectUncoveredLines: {},
+		excludeOrigins: [],
 		includeOrigins: []
 	},
-	{name: 'angular-hero-app',
+	{
+		name: 'angular-hero-app',
 		rootDir: 'test/casestudies/angular-hero-app',
 		distDir: 'dist',
 		expectCoveredLines: {
-			"src/app/heroes/heroes.component.ts": [14,12,17,21,22],
-			"src/app/hero-detail/hero-detail.component.ts": [17,18,19,23,27,28,29,33]
+			'src/app/heroes/heroes.component.ts': [14, 12, 17, 21, 22],
+			'src/app/hero-detail/hero-detail.component.ts': [17, 18, 19, 23, 27, 28, 29, 33]
 		},
 		expectUncoveredLines: {
-			"src/app/heroes/heroes.component.ts": ["1-10", 15, 16, "18-20", "37-50"],
-			"src/app/hero-detail/hero-detail.component.ts": ["1-12", "34-42"]
+			'src/app/heroes/heroes.component.ts': ['1-10', 15, 16, '18-20', '37-50'],
+			'src/app/hero-detail/hero-detail.component.ts': ['1-12', '34-42'],
+			'node_modules/@angular/core/fesm2015/core.mjs': ['1-50']
 		},
-        excludeOrigins: ['"../../node_modules/**/*"'],
+		excludeOrigins: [],
 		includeOrigins: []
 	},
-	{name: 'angular-hero-app-with-excludes',
+	{
+		name: 'angular-hero-app-with-excludes',
 		rootDir: 'test/casestudies/angular-hero-app',
 		distDir: 'dist',
 		expectCoveredLines: {
-			"src/app/hero-detail/hero-detail.component.ts": [17,18,19,23,27,28,29,33]
+			'src/app/hero-detail/hero-detail.component.ts': [17, 18, 19, 23, 27, 28, 29, 33]
 		},
 		expectUncoveredLines: {
-			"src/app/heroes/heroes.component.ts": ["1-10", 15, 16, "18-20", "37-50"],
-			"src/app/hero-detail/hero-detail.component.ts": ["1-12", "34-42"]
+			'src/app/heroes/heroes.component.ts': ['1-10', 15, 16, '18-20', '37-50'],
+			'src/app/hero-detail/hero-detail.component.ts': ['1-12', '34-42'],
+			'node_modules/@angular/core/fesm2015/core.mjs': ['1-50']
 		},
 		excludeOrigins: ['"../../node_modules/**/*"', '"src/app/heroes/*.ts"'],
 		includeOrigins: []
@@ -78,8 +82,8 @@ function loadFromSimpleCoverage(filename) {
 	const result = {}; // Map<string, Set<number>>
 	let activeSubject = null;
 
-	const isCoveredLineNum = (line) => /[\d]+/.test(line);
-	const isCoverageSubject = (line) => !isCoveredLineNum(line);
+	const isCoveredLineNum = line => /^[\d]+$/.test(line);
+	const isCoverageSubject = line => !isCoveredLineNum(line);
 
 	for (const line of lines) {
 		if (line.trim().length === 0) {
@@ -90,9 +94,9 @@ function loadFromSimpleCoverage(filename) {
 			activeSubject = line;
 			result[activeSubject] = new Set();
 		} else if (activeSubject === null) {
-			throw new Error("File must start with a coverage subject!");
+			throw new Error('File must start with a coverage subject!');
 		} else if (isCoveredLineNum(line)) {
-			result[activeSubject].add(Number.parseInt(line))
+			result[activeSubject].add(Number.parseInt(line));
 		}
 	}
 
@@ -106,7 +110,7 @@ function loadFromSimpleCoverage(filename) {
 function loadFromCoverageDict(dict) {
 	const result = {};
 	if (!dict) {
-		throw new Error("Coverage dict is not defined!");
+		throw new Error('Coverage dict is not defined!');
 	}
 
 	for (const [key, value] of Object.entries(dict)) {
@@ -115,8 +119,8 @@ function loadFromCoverageDict(dict) {
 			if (typeof covered === 'number') {
 				result[key].add(covered);
 			} else if (typeof covered === 'string') {
-				const range = covered.split("-");
-				for (let lineNo=range[0]; lineNo<range[1]; lineNo++) {
+				const range = covered.split('-');
+				for (let lineNo = range[0]; lineNo < range[1]; lineNo++) {
 					result[key].add(lineNo);
 				}
 			}
@@ -169,11 +173,21 @@ function identifyExpectedButAbsent(actual, expected) {
  * @returns {ChildProcessWithoutNullStreams}
  */
 function startCollector(coverageTargetFile, logTargetFile, projectId) {
-    const collector = spawn('node', [`${COLLECTOR_DIR}/dist/src/main.js`,
-		`-f`, `${coverageTargetFile}`, `-l`, `${logTargetFile}`, `-e`, `info`],
-		{ env: { ...process.env, TEAMSCALE_SERVER_URL: `http://localhost:${TEAMSCALE_MOCK_PORT}/`,
-				TEAMSCALE_USER: 'admin', TEAMSCALE_ACCESS_TOKEN: 'mockKey', TEAMSCALE_PROJECT: projectId},
-				TEAMSCALE_PARTITION: 'mockPartition', TEAMSCALE_BRANCH: 'mockBranch'});
+	const collector = spawn(
+		'node',
+		[`${COLLECTOR_DIR}/dist/src/main.js`, `-f`, `${coverageTargetFile}`, `-l`, `${logTargetFile}`, `-e`, `info`],
+		{
+			env: {
+				...process.env,
+				TEAMSCALE_SERVER_URL: `http://localhost:${TEAMSCALE_MOCK_PORT}/`,
+				TEAMSCALE_USER: 'admin',
+				TEAMSCALE_ACCESS_TOKEN: 'mockKey',
+				TEAMSCALE_PROJECT: projectId
+			},
+			TEAMSCALE_PARTITION: 'mockPartition',
+			TEAMSCALE_BRANCH: 'mockBranch'
+		}
+	);
 
 	collector.stdout.on('data', function (data) {
 		console.log('collector stdout: ' + data.toString());
@@ -191,7 +205,7 @@ function startCollector(coverageTargetFile, logTargetFile, projectId) {
  * @returns {Promise<unknown>}
  */
 function sleep(ms) {
-	return new Promise((resolve) => {
+	return new Promise(resolve => {
 		setTimeout(resolve, ms);
 	});
 }
@@ -218,25 +232,27 @@ function checkCoverage(coverageTargetFile, study) {
 }
 
 for (const study of caseStudies) {
-	console.group("# Case study", study.name);
+	console.group('# Case study', study.name);
 	try {
-		console.log("## Build the case study");
-		execSync('npm install', {cwd: study.rootDir});
-		execSync('npm run clean', {cwd: study.rootDir});
-		execSync('npm run build', {cwd: study.rootDir});
+		console.log('## Build the case study');
+		execSync('npm install', { cwd: study.rootDir });
+		execSync('npm run clean', { cwd: study.rootDir });
+		execSync('npm run build', { cwd: study.rootDir });
 
 		const fullStudyDistPath = path.resolve(`${study.rootDir}/${study.distDir}`);
 		console.log(`Instrument the case study in ${fullStudyDistPath}`);
-		const excludeOriginsConcatenated = study.excludeOrigins.join(" ");
-		const includeOriginsConcatenated = study.includeOrigins.join(" ");
-		execSync(`node ./dist/src/main.js --exclude-origin ${excludeOriginsConcatenated} --include-origin ${includeOriginsConcatenated} --in-place ${fullStudyDistPath}`,
-			{cwd: INSTRUMENTER_DIR, stdio: 'inherit'});
+		const excludeOriginsConcatenated = study.excludeOrigins.join(' ');
+		const includeOriginsConcatenated = study.includeOrigins.join(' ');
+		execSync(
+			`node ./dist/src/main.js --exclude-origin "node_modules/**/*.*" ${excludeOriginsConcatenated} --include-origin ${includeOriginsConcatenated} --in-place ${fullStudyDistPath}`,
+			{ cwd: INSTRUMENTER_DIR, stdio: 'inherit' }
+		);
 
-		console.log("## Starting the Web server");
+		console.log('## Starting the Web server');
 		const ws = await LocalWebServer.create({
 			port: SERVER_PORT,
 			directory: `${study.rootDir}/${study.distDir}`
-		})
+		});
 
 		try {
 			const coverageTargetFile = path.resolve(`${study.rootDir}/coverage.simple`);
@@ -251,44 +267,44 @@ for (const study of caseStudies) {
 			}
 
 			// Start the Teamscale mock serer
-			let teamscaleServerMock = new ServerMock({ host: "localhost", port: TEAMSCALE_MOCK_PORT });
+			let teamscaleServerMock = new ServerMock({ host: 'localhost', port: TEAMSCALE_MOCK_PORT });
 			teamscaleServerMock.on({
-				method: "POST",
+				method: 'POST',
 				path: `/api/projects/${study.name}/external-analysis/session/auto-create/report`,
 				reply: {
 					status: 200,
-					headers: { "content-type": "text/plain" },
-					body: "Thanks for the report!"
+					headers: { 'content-type': 'text/plain' },
+					body: 'Thanks for the report!'
 				}
 			});
 
 			await new Promise((resolve, reject) => {
-				console.log("## Starting the Teamscale mock server")
+				console.log('## Starting the Teamscale mock server');
 				teamscaleServerMock.start(resolve);
-			})
+			});
 
 			// Start the new collector
-			console.log("## Starting the collector");
+			console.log('## Starting the collector');
 			console.log(`Collector is logging to ${logTargetFile}`);
 			const collectProcess = startCollector(coverageTargetFile, logTargetFile, study.name);
 
 			try {
-				console.log("## Running Cypress");
+				console.log('## Running Cypress');
 				await cypress.run({
 					configFile: 'cypress.json',
 					reporter: 'junit',
 					browser: 'chrome',
 					headed: false,
-					quiet: false,
+					quiet: true,
 					config: {
 						baseUrl: `http://localhost:${SERVER_PORT}`,
 						video: false,
-						integrationFolder: `test/integration/${study.name}/`,
+						integrationFolder: `test/integration/${study.name}/`
 					},
-					env: {},
-				})
+					env: {}
+				});
 			} finally {
-				console.log("## Stopping the collector");
+				console.log('## Stopping the collector');
 				await sleep(1000);
 				collectProcess.kill('SIGINT');
 				await sleep(4000);
@@ -297,10 +313,10 @@ for (const study of caseStudies) {
 			// Check if the coverage collector has written the files
 			// it was assumed to write.
 			if (!fs.existsSync(logTargetFile)) {
-				throw new Error("The coverage collector is supposed to write a log file!");
+				throw new Error('The coverage collector is supposed to write a log file!');
 			}
 			if (!fs.existsSync(coverageTargetFile)) {
-				throw new Error("The coverage collector did not write a coverage file!");
+				throw new Error('The coverage collector did not write a coverage file!');
 			}
 
 			// Analyze the coverage
@@ -308,19 +324,19 @@ for (const study of caseStudies) {
 			checkCoverage(coverageTargetFile, study);
 
 			// Check the calls to the Teamscale mock server
-			const mockedRequests = teamscaleServerMock.requests({ method: "POST" }).length;
+			const mockedRequests = teamscaleServerMock.requests({ method: 'POST' }).length;
 			if (mockedRequests === 0) {
-				throw new Error("No coverage information was sent to the Teamscale mock server!");
+				throw new Error('No coverage information was sent to the Teamscale mock server!');
 			} else {
-				console.log(`Received ${mockedRequests} requests in the Teamscale mock server.`)
+				console.log(`Received ${mockedRequests} requests in the Teamscale mock server.`);
 			}
 
 			await new Promise((resolve, reject) => {
-				console.log("## Stopping the Teamscale mock server");
+				console.log('## Stopping the Teamscale mock server');
 				teamscaleServerMock.stop(resolve);
 			});
 		} finally {
-			console.log("## Stop the case study Web server");
+			console.log('## Stop the case study Web server');
 			ws.server.close();
 		}
 	} finally {

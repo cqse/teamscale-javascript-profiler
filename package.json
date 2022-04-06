@@ -7,7 +7,7 @@
     "clean": "yarn workspaces foreach run clean",
     "build": "yarn workspaces foreach run build",
     "test": "yarn workspaces foreach run test",
-    "systemtest": "node ./test/systemtest.mjs",
+    "systemtest": "yarn build && node ./test/systemtest.mjs",
     "lint": "yarn run eslint . --ext .ts"
   },
   "workspaces": [

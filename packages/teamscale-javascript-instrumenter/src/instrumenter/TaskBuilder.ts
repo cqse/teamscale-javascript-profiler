@@ -156,9 +156,11 @@ export class TaskBuilder {
 				if (isPattern(input)) {
 					inputFiles.forEach(f => this.addElement(f, path.join(target, path.basename(f)), sourceMapInfo));
 				} else {
-					inputFiles.forEach(f =>
-						this.addElement(f, path.join(target, path.relative(input, path.basename(f))), sourceMapInfo)
-					);
+					inputFiles.forEach(f => {
+						const pathRelativeToInputDir = path.relative(input, f);
+						const targetFileName = path.join(target, pathRelativeToInputDir);
+						this.addElement(f, targetFileName, sourceMapInfo)
+					});
 				}
 			} else {
 				throw new InvalidConfigurationException(`The specified input '${input}' was not found.`);

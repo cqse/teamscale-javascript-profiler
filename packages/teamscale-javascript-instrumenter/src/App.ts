@@ -5,8 +5,9 @@ import { Contract } from '@cqse/commons';
 import { ConfigurationParameters, TaskBuilder } from './instrumenter/TaskBuilder';
 import * as path from 'path';
 import { version } from '../package.json';
-import winston, { Logger } from 'winston';
 import { existsSync } from 'fs';
+import mkdirp from "mkdirp";
+import Logger from "bunyan";
 
 /**
  * Entry points of the instrumenter, including command line argument parsing.
@@ -69,29 +70,37 @@ export class App {
 	/**
 	 * Construct the logger.
 	 */
-	private static buildLogger(config: ConfigurationParameters): winston.Logger {
-		return winston.createLogger({
-			level: config.debug ? 'debug' : 'info',
-			format: winston.format.json(),
-			defaultMeta: {},
-			transports: [
-				new winston.transports.File({ filename: 'logs/instrumenter-error.log', level: 'error' }),
-				new winston.transports.File({ filename: 'logs/instrumenter-combined.log' }),
-				new winston.transports.Console({ format: winston.format.simple(), level: 'info' })
-			]
-		});
+	private static buildLogger(config: ConfigurationParameters): Logger {
+		const logfilePath = 'logs/instrumenter.log';
+		mkdirp.sync(path.dirname(logfilePath));
+
+		const logLevel = config.debug ? 'debug': 'error';
+		return Logger.createLogger({name: "Instrumenter",
+			streams: [
+				{
+					level: logLevel,
+					stream: {
+						write: (rec: Record<any, any>) => {
+							console.log('[%s] %s: %s',
+								rec.time.toISOString(),
+								Logger.nameFromLevel[rec.level],
+								rec.msg);
+						}
+					},
+					type: 'raw'
+				},
+				{
+					level: logLevel,
+					path: logfilePath
+				}
+			]});
 	}
 
 	/**
 	 * A logger for testing.
 	 */
 	private static buildDummyLogger(): Logger {
-		return winston.createLogger({
-			level: 'info',
-			format: winston.format.json(),
-			defaultMeta: {},
-			transports: [new winston.transports.Console({ format: winston.format.simple(), level: 'info' })]
-		});
+		return Logger.createLogger({name: "Instrumenter"});
 	}
 
 	/**

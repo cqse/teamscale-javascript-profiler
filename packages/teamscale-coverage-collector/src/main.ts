@@ -2,7 +2,7 @@
 
 import { version } from '../package.json';
 import { ArgumentParser } from 'argparse';
-import winston, { Logger } from 'winston';
+import Logger, {LogLevel} from "bunyan";
 import { DataStorage } from './storage/DataStorage';
 import { WebSocketCollectingServer } from './receiver/CollectingServer';
 import 'dotenv/config';
@@ -12,6 +12,8 @@ import FormData from 'form-data';
 import QueryParameters from './utils/QueryParameters';
 import { inspect } from 'util';
 import tmp from 'tmp';
+import mkdirp from "mkdirp";
+import path from "path";
 
 /**
  * The command line parameters the profiler can be configured with.
@@ -28,7 +30,6 @@ type Parameters = {
 	log_level: string;
 	// eslint-disable-next-line camelcase
 	dump_after_mins: number;
-	debug: boolean;
 	port: number;
 	// eslint-disable-next-line camelcase
 	teamscale_server_url?: string;
@@ -131,18 +132,32 @@ export class Main {
 	/**
 	 * Construct the logger.
 	 */
-	private static buildLogger(config: Parameters): winston.Logger {
-		return winston.createLogger({
-			level: config.log_level,
-			format: winston.format.json(),
-			defaultMeta: {},
-			transports: [
-				new winston.transports.File({ filename: 'logs/collector-error.log', level: 'error' }),
-				new winston.transports.File({ filename: config.log_to_file.trim() }),
-				new winston.transports.Console({ format: winston.format.simple(), level: config.log_level })
-			]
-		});
+	private static buildLogger(config: Parameters): Logger {
+		const logfilePath = config.log_to_file.trim() ;
+		mkdirp.sync(path.dirname(logfilePath));
+
+		const logLevel = config.log_level as LogLevel;
+		return Logger.createLogger({name: "Instrumenter",
+			streams: [
+				{
+					level: logLevel,
+					stream: {
+						write: (rec: Record<any, any>) => {
+							console.log('[%s] %s: %s',
+								rec.time.toISOString(),
+								Logger.nameFromLevel[rec.level],
+								rec.msg);
+						}
+					},
+					type: 'raw'
+				},
+				{
+					level: logLevel,
+					path: logfilePath
+				}
+			]});
 	}
+
 
 	/**
 	 * Entry point of the Teamscale JavaScript Profiler.

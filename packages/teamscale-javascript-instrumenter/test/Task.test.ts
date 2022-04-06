@@ -43,3 +43,28 @@ test('Exclude and include pattern', () => {
 		])
 	).toBeFalsy();
 });
+
+test('Exclude and include pattern on file extensions', () => {
+	const pattern = new OriginSourcePattern(['**/*.java', '**/*.md'], ['**/*.cc', '**/*.cpp', '**/*.h', '**/*.hpp']);
+	expect(pattern.isAnyIncluded(['./ServerConnector.java', './Server.h'])).toBeTruthy();
+	expect(
+		pattern.isAnyIncluded(['./ServerConnector.java', './ServerVerifier.java', './ServerStarter.java'])
+	).toBeTruthy();
+	expect(
+		pattern.isAnyIncluded([
+			'./ServerConnector.java',
+			'./ServerVerifier.java',
+			'./ServerStarter.java',
+			'main.cpp',
+			'Logger.java'
+		])
+	).toBeTruthy();
+	expect(pattern.isAnyIncluded(['proj/docs/README.md'])).toBeTruthy();
+	expect(pattern.isAnyIncluded(['proj/src/reader.cpp', 'proj/test/reader_test.cpp'])).toBeFalsy();
+});
+
+test('Exclude and include pattern precedence', () => {
+	const pattern = new OriginSourcePattern(['**/ab/**', '**/cd/**'], ['**/ef/**', '**/gh/**', '**/ij/**', '**/kl/**']);
+	expect(pattern.isAnyIncluded(['./xy/ef/file1.ts', './kl/file2.ts'])).toBeFalsy();
+	expect(pattern.isAnyIncluded(['./xy/ef/file1.ts', './kl/file2.ts', './xy/ij/ab/file3.ts'])).toBeFalsy(); // exclude has precedence over include
+});

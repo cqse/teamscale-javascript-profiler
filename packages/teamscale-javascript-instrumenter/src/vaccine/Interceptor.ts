@@ -5,6 +5,11 @@ import { universe } from './utils';
  */
 const STATEMENT_COVERAGE_ID = 's';
 
+/**
+ * The identifier of Istanbul coverage on the branch level.
+ */
+const BRANCH_COVERAGE_ID = 'b';
+
 export type InstanbulCoverageData = {
 	path: string;
 	statementMap: Record<string, unknown>;
@@ -12,9 +17,15 @@ export type InstanbulCoverageData = {
 	hash: string;
 };
 
+export type CodeRange = {
+	start: { line: number; column: number };
+	end: { line: number; column: number };
+}
+
 export type IstanbulCoverageStore = {
 	hash: string;
-	statementMap: Record<string, { start: { line: number; column: number } }>;
+	statementMap: Record<string, CodeRange>;
+	branchMap: Record<string, { locations: CodeRange[] }>;
 } & Record<string, InstanbulCoverageData>;
 
 type CoverageBroadcastFunction = (fileId: string, coveredLine: number, coveredColumn: number) => void;
@@ -49,13 +60,28 @@ class Interceptor implements ProxyHandler<IstanbulCoverageStore> {
 	public set(obj: never, prop: symbol | string, value: never): boolean {
 		const fullPath = [...this.path, prop];
 
-		// Handle "Statement" coverage
 		if (fullPath[0] === STATEMENT_COVERAGE_ID) {
-			const fileId = this.coverageObj.hash;
-			const start = this.coverageObj.statementMap[fullPath[1] as string].start;
-			(universe()._$Bc as CoverageBroadcastFunction)(fileId, start.line, start.column);
+			// Handle "Statement" coverage.
+			const codeRange = this.coverageObj.statementMap[fullPath[1] as string];
+			this.broadcastCodeRangeCoverage(codeRange);
+		} else if (fullPath[0] === BRANCH_COVERAGE_ID) {
+			// Handle "Branch" coverage.
+			// This is important because often statements of the original code
+			// are encoded into branch expressions as part of "Sequence Expressions".
+			const codeRange = this.coverageObj.branchMap[fullPath[1] as string].locations[Number.parseInt(fullPath[2] as string)];
+			this.broadcastCodeRangeCoverage(codeRange);
 		}
+
 		return true;
+	}
+
+	private broadcastCodeRangeCoverage(range: CodeRange): void {
+		const fileId = this.coverageObj.hash;
+		let line = range.start.line;
+		while (line <= range.end.line) {
+			(universe()._$Bc as CoverageBroadcastFunction)(fileId, line, range.start.column);
+			line++
+		}
 	}
 }
 

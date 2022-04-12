@@ -21,6 +21,15 @@ const caseStudies = [
 		expectUncoveredLines: {
 		}
 	},
+	{name: 'vite-react-ts-coverable-app',
+		rootDir: 'test/casestudies/vite-react-ts-coverable-app',
+		distDir: 'dist',
+		expectCoveredLines: {
+			'../../src/App.tsx': [11, 23, 27, 32]
+		},
+		expectUncoveredLines: {
+		}
+	},
 	{name: 'vite-react-app',
 		rootDir: 'test/casestudies/vite-react-app',
 		distDir: 'dist',

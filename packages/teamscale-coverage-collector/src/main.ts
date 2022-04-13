@@ -137,6 +137,7 @@ export class Main {
 		mkdirp.sync(path.dirname(logfilePath));
 
 		const logLevel = config.log_level as LogLevel;
+        const prettyFile = fs.createWriteStream(`${logfilePath}.pretty`)
 		return Logger.createLogger({name: "Instrumenter",
 			streams: [
 				{
@@ -147,14 +148,16 @@ export class Main {
 								rec.time.toISOString(),
 								Logger.nameFromLevel[rec.level],
 								rec.msg);
-						}
+							prettyFile.write(`${JSON.stringify(rec, null,"  ")}\n`);
+						},
+						end: () => prettyFile.close()
 					},
 					type: 'raw'
 				},
 				{
 					level: logLevel,
 					path: logfilePath
-				}
+				},
 			]});
 	}
 

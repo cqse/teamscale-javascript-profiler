@@ -137,9 +137,11 @@ export class Main {
 		mkdirp.sync(path.dirname(logfilePath));
 
 		const logLevel = config.log_level as LogLevel;
-        const prettyFile = fs.createWriteStream(`${logfilePath}.pretty`)
+        const prettyJsonFile = fs.createWriteStream(`${logfilePath}.pretty`);
+		const prettyLog4jFile = fs.createWriteStream(`${logfilePath}4j`);
 		return Logger.createLogger({name: "Instrumenter",
 			streams: [
+				// console output
 				{
 					level: logLevel,
 					stream: {
@@ -148,16 +150,37 @@ export class Main {
 								rec.time.toISOString(),
 								Logger.nameFromLevel[rec.level],
 								rec.msg);
-							prettyFile.write(`${JSON.stringify(rec, null,"  ")}\n`);
 						},
-						end: () => prettyFile.close()
 					},
 					type: 'raw'
 				},
+				// standard file output (one JSON object per line)
 				{
 					level: logLevel,
 					path: logfilePath
 				},
+				// pretty JSON (can also be achieved with the CLI tool)
+				{
+					level: logLevel,
+					stream: {
+						write: (rec: Record<any, any>) => {
+							prettyJsonFile.write(`${JSON.stringify(rec, null, "  ")}\n`);
+						},
+						end: () => prettyJsonFile.close()
+					},
+					type: 'raw'
+				},
+				// log4j-like
+				{
+					level: logLevel,
+					stream: {
+						write: (rec: Record<any, any>) => {
+							prettyLog4jFile.write(`[${rec.time.toISOString()}] ${Logger.nameFromLevel[rec.level].toUpperCase()}: ${rec.msg}\n`)
+						},
+						end: () => prettyLog4jFile.close()
+					},
+					type: 'raw'
+				}
 			]});
 	}
 

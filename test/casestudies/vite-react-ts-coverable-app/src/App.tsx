@@ -12,19 +12,19 @@ function computeC(x: number, y: number): number {
   }
 
   if (x > 10) {
-    return y + 1;
-  } else {
     return y + 2;
+  } else {
+    return y + 3;
   }
 }
 
 function computeB(x: number, y: number): number {
   if (x > 5) {
-    return y + 1;
+    return y + 4;
   } else if (x > 5 && y === 123) {
-    return y + 2;
+    return y + 5;
   } else {
-    return y + 3;
+    return y + 6;
   }
 }
 

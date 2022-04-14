@@ -137,7 +137,6 @@ export class Main {
 		mkdirp.sync(path.dirname(logfilePath));
 
 		const logLevel = config.log_level as LogLevel;
-        const prettyJsonFile = fs.createWriteStream(`${logfilePath}.pretty`);
 		const prettyLog4jFile = fs.createWriteStream(`${logfilePath}4j`);
 		return Logger.createLogger({name: "Instrumenter",
 			streams: [
@@ -158,17 +157,6 @@ export class Main {
 				{
 					level: logLevel,
 					path: logfilePath
-				},
-				// pretty JSON (can also be achieved with the CLI tool)
-				{
-					level: logLevel,
-					stream: {
-						write: (rec: Record<any, any>) => {
-							prettyJsonFile.write(`${JSON.stringify(rec, null, "  ")}\n`);
-						},
-						end: () => prettyJsonFile.close()
-					},
-					type: 'raw'
 				},
 				// log4j-like
 				{

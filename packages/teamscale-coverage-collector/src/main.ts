@@ -138,17 +138,14 @@ export class Main {
 
 		const logLevel = config.log_level as LogLevel;
 		const prettyLog4jFile = fs.createWriteStream(`${logfilePath}4j`);
-		return Logger.createLogger({name: "Instrumenter",
+		return Logger.createLogger({name: "Collector",
 			streams: [
 				// console output
 				{
 					level: logLevel,
 					stream: {
 						write: (rec: Record<any, any>) => {
-							console.log('[%s] %s: %s',
-								rec.time.toISOString(),
-								Logger.nameFromLevel[rec.level],
-								rec.msg);
+							console.log(`[${rec.time.toISOString()}] ${Logger.nameFromLevel[rec.level].toUpperCase()}: ${rec.msg}`);
 						},
 					},
 					type: 'raw'

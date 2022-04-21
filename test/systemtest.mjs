@@ -12,15 +12,6 @@ import ServerMock from 'mock-http-server';
  * the expected coverage produced by our tool chain.
  */
 const caseStudies = [
-	{name: 'vite-react-ts-app',
-		rootDir: 'test/casestudies/vite-react-ts-app',
-		distDir: 'dist',
-		expectCoveredLines: {
-			'../../src/App.tsx': [6, 14]
-		},
-		expectUncoveredLines: {
-		}
-	},
 	{name: 'vite-react-ts-coverable-app',
 		rootDir: 'test/casestudies/vite-react-ts-coverable-app',
 		distDir: 'dist',

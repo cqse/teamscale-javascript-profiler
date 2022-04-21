@@ -85,7 +85,7 @@ export class Main {
 		});
 		parser.add_argument('--pretty-print', {
 			help: 'Creates an additional log file that is more readable.',
-			default: false
+			action: 'store_true'
 		});
 
 		// Parameters for the upload to Teamscale

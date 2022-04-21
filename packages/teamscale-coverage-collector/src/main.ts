@@ -14,6 +14,8 @@ import { inspect } from 'util';
 import tmp from 'tmp';
 import mkdirp from "mkdirp";
 import path from "path";
+import { StdConsoleLogger } from './utils/StdConsoleLogger';
+import { PrettyFileLogger } from './utils/PrettyFileLogger';
 
 /**
  * The command line parameters the profiler can be configured with.
@@ -31,6 +33,8 @@ type Parameters = {
 	// eslint-disable-next-line camelcase
 	dump_after_mins: number;
 	port: number;
+	// eslint-disable-next-line camelcase
+	pretty_print: boolean;
 	// eslint-disable-next-line camelcase
 	teamscale_server_url?: string;
 	// eslint-disable-next-line camelcase
@@ -77,6 +81,10 @@ export class Main {
 		});
 		parser.add_argument('-d', '--debug', {
 			help: 'Print received coverage information to the terminal?',
+			default: false
+		});
+		parser.add_argument('--pretty-print', {
+			help: 'Creates an additional log file that is more readable.',
 			default: false
 		});
 
@@ -137,36 +145,29 @@ export class Main {
 		mkdirp.sync(path.dirname(logfilePath));
 
 		const logLevel = config.log_level as LogLevel;
-		const prettyLog4jFile = fs.createWriteStream(`${logfilePath}4j`);
-		return Logger.createLogger({name: "Collector",
+		const logger = Logger.createLogger({name: "Collector",
 			streams: [
 				// console output
 				{
 					level: logLevel,
-					stream: {
-						write: (rec: Record<any, any>) => {
-							console.log(`[${rec.time.toISOString()}] ${Logger.nameFromLevel[rec.level].toUpperCase()}: ${rec.msg}`);
-						},
-					},
+					stream: new StdConsoleLogger(),
 					type: 'raw'
 				},
 				// standard file output (one JSON object per line)
 				{
 					level: logLevel,
 					path: logfilePath
-				},
-				// log4j-like
-				{
-					level: logLevel,
-					stream: {
-						write: (rec: Record<any, any>) => {
-							prettyLog4jFile.write(`[${rec.time.toISOString()}] ${Logger.nameFromLevel[rec.level].toUpperCase()}: ${rec.msg}\n`)
-						},
-						end: () => prettyLog4jFile.close()
-					},
-					type: 'raw'
 				}
 			]});
+		// additional more readable log file
+		if (config.pretty_print) {
+			logger.addStream({
+				level: logLevel,
+				stream: new PrettyFileLogger(fs.createWriteStream(`${logfilePath}4j`)),
+				type: 'raw'
+			});
+		}
+		return logger;
 	}
 
 

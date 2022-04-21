@@ -39,7 +39,7 @@ function App() {
   const [count, setCount] = useState(0)
 
   const r = computeA(count, count);
-  logSomething("Hello!");
+  logSomething("Hello New World!");
 
   return (
     <div className="App">

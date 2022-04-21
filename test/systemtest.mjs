@@ -16,7 +16,7 @@ const caseStudies = [
 		rootDir: 'test/casestudies/vite-react-ts-coverable-app',
 		distDir: 'dist',
 		expectCoveredLines: {
-			'../../src/App.tsx': [11, 23, 27, 32]
+			'../../src/App.tsx': [6, 11, 23, 27, 32, 33, 34]
 		},
 		expectUncoveredLines: {
 		}
@@ -209,7 +209,7 @@ for (const study of caseStudies) {
 
 		const fullStudyDistPath = path.resolve(`${study.rootDir}/${study.distDir}`);
 		console.log(`Instrument the case study in ${fullStudyDistPath}`);
-		execSync(`node ./dist/src/main.js --exclude-origin "node_modules/**/*.*" --in-place ${fullStudyDistPath}`,
+		execSync(`node ./dist/src/main.js --exclude-origin "../../node_modules/**/*.*" --in-place ${fullStudyDistPath}`,
 			{cwd: INSTRUMENTER_DIR, stdio: 'inherit'});
 
 		console.log("## Starting the Web server");

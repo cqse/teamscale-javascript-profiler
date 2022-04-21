@@ -81,7 +81,7 @@ export class Session {
 			let column = scanFromColumn;
 			let lastCoveredLine = -1;
 			while (column <= scanToColumn) {
-				const originalPosition: NullableMappedPosition = this.mapToOriginal(fileId, startLine, column);
+				const originalPosition: NullableMappedPosition = this.mapToOriginal(fileId, line, column);
 				if (originalPosition.line && originalPosition.source) {
 					if (lastCoveredLine !== originalPosition.line) {
 						this.storage.putCoverage(this.projectId, originalPosition.source, [originalPosition.line]);
@@ -92,7 +92,7 @@ export class Session {
 				}
 
 				// Step to the next column to map back to the original
-				column = column + (originalPosition.name?.length ?? 1);
+				column = column + Math.max(1, (originalPosition.name?.length ?? 1));
 			}
 
 			// And the next line

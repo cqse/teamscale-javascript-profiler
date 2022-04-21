@@ -2,7 +2,7 @@
 
 import { version } from '../package.json';
 import { ArgumentParser } from 'argparse';
-import Logger, {LogLevel} from "bunyan";
+import Logger, { LogLevel } from 'bunyan';
 import { DataStorage } from './storage/DataStorage';
 import { WebSocketCollectingServer } from './receiver/CollectingServer';
 import 'dotenv/config';
@@ -12,8 +12,8 @@ import FormData from 'form-data';
 import QueryParameters from './utils/QueryParameters';
 import { inspect } from 'util';
 import tmp from 'tmp';
-import mkdirp from "mkdirp";
-import path from "path";
+import mkdirp from 'mkdirp';
+import path from 'path';
 import { StdConsoleLogger } from './utils/StdConsoleLogger';
 import { PrettyFileLogger } from './utils/PrettyFileLogger';
 
@@ -34,7 +34,7 @@ type Parameters = {
 	dump_after_mins: number;
 	port: number;
 	// eslint-disable-next-line camelcase
-	pretty_print: boolean;
+	json_log: boolean;
 	// eslint-disable-next-line camelcase
 	teamscale_server_url?: string;
 	// eslint-disable-next-line camelcase
@@ -83,8 +83,8 @@ export class Main {
 			help: 'Print received coverage information to the terminal?',
 			default: false
 		});
-		parser.add_argument('--pretty-print', {
-			help: 'Creates an additional log file that is more readable.',
+		parser.add_argument('-j', '--json-log', {
+			help: 'Additional JSON-like log file format.',
 			action: 'store_true'
 		});
 
@@ -141,35 +141,25 @@ export class Main {
 	 * Construct the logger.
 	 */
 	private static buildLogger(config: Parameters): Logger {
-		const logfilePath = config.log_to_file.trim() ;
+		const logfilePath = config.log_to_file.trim();
 		mkdirp.sync(path.dirname(logfilePath));
 
 		const logLevel = config.log_level as LogLevel;
-		const logger = Logger.createLogger({name: "Collector",
+		const logger = Logger.createLogger({
+			name: 'Collector',
 			streams: [
 				// console output
-				{
-					level: logLevel,
-					stream: new StdConsoleLogger(),
-					type: 'raw'
-				},
-				// standard file output (one JSON object per line)
-				{
-					level: logLevel,
-					path: logfilePath
-				}
-			]});
-		// additional more readable log file
-		if (config.pretty_print) {
-			logger.addStream({
-				level: logLevel,
-				stream: new PrettyFileLogger(fs.createWriteStream(`${logfilePath}4j`)),
-				type: 'raw'
-			});
+				{ level: logLevel, stream: new StdConsoleLogger(), type: 'raw' },
+				// default log file
+				{ level: logLevel, stream: new PrettyFileLogger(fs.createWriteStream(logfilePath)), type: 'raw' }
+			]
+		});
+		// If the given flag is set, we also log with a JSON-like format
+		if (config.json_log) {
+			logger.addStream({ level: logLevel, path: `${logfilePath}.json` });
 		}
 		return logger;
 	}
-
 
 	/**
 	 * Entry point of the Teamscale JavaScript Profiler.

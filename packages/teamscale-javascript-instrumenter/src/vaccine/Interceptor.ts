@@ -10,23 +10,24 @@ const STATEMENT_COVERAGE_ID = 's';
  */
 const BRANCH_COVERAGE_ID = 'b';
 
-export type InstanbulCoverageData = {
-	path: string;
-	statementMap: Record<string, unknown>;
-	inputSourceMap: unknown;
-	hash: string;
-};
-
+/**
+ * The range in a source file to consider.
+ */
 export type CodeRange = {
 	start: { line: number; column: number };
 	end: { line: number; column: number };
 }
 
+/**
+ * The fraction of the IstanbulJS coverage object we are interested in.
+ */
 export type IstanbulCoverageStore = {
 	hash: string;
 	statementMap: Record<string, CodeRange>;
 	branchMap: Record<string, { locations: CodeRange[] }>;
-} & Record<string, InstanbulCoverageData>;
+	path: string;
+	inputSourceMap: unknown;
+};
 
 type CoverageBroadcastFunction = (fileId: string, startLine: number, startColumn: number, endLine: number, endColumn: number) => void;
 

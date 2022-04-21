@@ -1,7 +1,7 @@
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-ignore: DataWorker import
 import DataWorker from './worker/vaccine.worker.ts';
-import { InstanbulCoverageData, IstanbulCoverageStore, makeProxy } from './Interceptor';
+import { IstanbulCoverageStore, makeProxy } from './Interceptor';
 import * as unload from 'unload';
 import { getWindow, universe, hasWindow, universeAttribute } from './utils';
 import { ProtocolMessageTypes } from './protocol';
@@ -27,7 +27,7 @@ function setWorker(worker: DataWorker): DataWorker {
 
 /**
  * The function that intercepts changes to the Istanbul code coverage.
- * Also the Web worker to forward the coverage information is started.
+ * Also, the Web worker to forward the coverage information is started.
  */
 universe().makeCoverageInterceptor = function (coverage: IstanbulCoverageStore) {
 	// The `fileId` is used to map coverage and source maps. Note that

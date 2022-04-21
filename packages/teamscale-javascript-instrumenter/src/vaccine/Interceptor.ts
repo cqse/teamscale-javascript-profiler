@@ -28,7 +28,7 @@ export type IstanbulCoverageStore = {
 	branchMap: Record<string, { locations: CodeRange[] }>;
 } & Record<string, InstanbulCoverageData>;
 
-type CoverageBroadcastFunction = (fileId: string, coveredLine: number, coveredColumn: number) => void;
+type CoverageBroadcastFunction = (fileId: string, startLine: number, startColumn: number, endLine: number, endColumn: number) => void;
 
 /**
  * Used to intercept updates to Istanbuls' coverage object.
@@ -62,13 +62,16 @@ class Interceptor implements ProxyHandler<IstanbulCoverageStore> {
 
 		if (fullPath[0] === STATEMENT_COVERAGE_ID) {
 			// Handle "Statement" coverage.
-			const codeRange = this.coverageObj.statementMap[fullPath[1] as string];
+			const statementId = fullPath[1] as string;
+			const codeRange = this.coverageObj.statementMap[statementId];
 			this.broadcastCodeRangeCoverage(codeRange);
 		} else if (fullPath[0] === BRANCH_COVERAGE_ID) {
 			// Handle "Branch" coverage.
 			// This is important because often statements of the original code
 			// are encoded into branch expressions as part of "Sequence Expressions".
-			const codeRange = this.coverageObj.branchMap[fullPath[1] as string].locations[Number.parseInt(fullPath[2] as string)];
+			const branchId = fullPath[1] as string;
+			const locationNo = Number.parseInt(fullPath[2] as string);
+			const codeRange = this.coverageObj.branchMap[branchId].locations[locationNo];
 			this.broadcastCodeRangeCoverage(codeRange);
 		}
 
@@ -77,11 +80,7 @@ class Interceptor implements ProxyHandler<IstanbulCoverageStore> {
 
 	private broadcastCodeRangeCoverage(range: CodeRange): void {
 		const fileId = this.coverageObj.hash;
-		let line = range.start.line;
-		while (line <= range.end.line) {
-			(universe()._$Bc as CoverageBroadcastFunction)(fileId, line, range.start.column);
-			line++
-		}
+		(universe()._$Bc as CoverageBroadcastFunction)(fileId, range.start.line, range.start.column, range.end.line, range.end.column);
 	}
 }
 

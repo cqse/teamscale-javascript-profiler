@@ -4,6 +4,7 @@ import { Position, BasicSourceMapConsumer, NullableMappedPosition } from 'source
 import { IDataStorage } from '../storage/DataStorage';
 import { Contract } from '@cqse/commons';
 import Logger from "bunyan";
+import {start} from "repl";
 
 /** The type of sourcemap consumer we use. */
 type SourceMapConsumer = BasicSourceMapConsumer;
@@ -65,6 +66,7 @@ export class Session {
 	 * @param column - The column within the bundle.
 	 */
 	public putCoverage(fileId: string, startLine: number, startColumn: number, endLine: number, endColumn: number): void {
+		// Iterate over the lines to scan
 		let line = startLine;
 		while (line <= endLine) {
 			// Determine the column range to consider for this line
@@ -74,9 +76,17 @@ export class Session {
 			} else {
 				scanFromColumn = 0;
 			}
-			// Since we do not know the length of the different lines, we assume
-			// all to end in `endColumn`.
-			const scanToColumn = endColumn;
+
+			let scanToColumn;
+			if (line === endLine) {
+				scanToColumn = endColumn;
+			} else {
+				// Since we do not know the length of the different lines, we assume
+				// all to end in the lager of `endColumn` and `startColumn`.
+				// A better estimate (or the correct value) is supposed to be implemented
+				// in context of TS-30077.
+				scanToColumn = Math.max(endColumn, startColumn);
+			}
 
 			let column = scanFromColumn;
 			let lastCoveredLine = -1;
@@ -91,7 +101,9 @@ export class Session {
 					this.storage.signalUnmappedCoverage(this.projectId);
 				}
 
-				// Step to the next column to map back to the original
+				// Step to the next column to map back to the original.
+				// `originalPosition.name` is the token on the position, that is, if it is present
+				// we increment the column by its length.
 				column = column + Math.max(1, (originalPosition.name?.length ?? 1));
 			}
 

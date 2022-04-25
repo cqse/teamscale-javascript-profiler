@@ -2,6 +2,10 @@ We use [Semantic Versioning](https://semver.org/).
 
 # New Release
 
+# 0.0.1-beta.35
+
+- [feature] Multiple include/exclude patterns can be specified. Separated by a blank.
+
 # 0.0.1-beta.34
 
 - [fix] The full source code range (start to end column) was not mapped back to the original source.

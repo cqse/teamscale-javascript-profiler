@@ -136,7 +136,6 @@ export class OriginSourcePattern {
 		}
 		return removeFrom;
 	}
-
 }
 
 /**

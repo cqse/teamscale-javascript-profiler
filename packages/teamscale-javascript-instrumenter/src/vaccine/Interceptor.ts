@@ -16,7 +16,7 @@ const BRANCH_COVERAGE_ID = 'b';
 export type CodeRange = {
 	start: { line: number; column: number };
 	end: { line: number; column: number };
-}
+};
 
 /**
  * The fraction of the IstanbulJS coverage object we are interested in.
@@ -29,7 +29,13 @@ export type IstanbulCoverageStore = {
 	inputSourceMap: unknown;
 };
 
-type CoverageBroadcastFunction = (fileId: string, startLine: number, startColumn: number, endLine: number, endColumn: number) => void;
+type CoverageBroadcastFunction = (
+	fileId: string,
+	startLine: number,
+	startColumn: number,
+	endLine: number,
+	endColumn: number
+) => void;
 
 /**
  * Used to intercept updates to Istanbuls' coverage object.
@@ -81,7 +87,13 @@ class Interceptor implements ProxyHandler<IstanbulCoverageStore> {
 
 	private broadcastCodeRangeCoverage(range: CodeRange): void {
 		const fileId = this.coverageObj.hash;
-		(universe()._$Bc as CoverageBroadcastFunction)(fileId, range.start.line, range.start.column, range.end.line, range.end.column);
+		(universe()._$Bc as CoverageBroadcastFunction)(
+			fileId,
+			range.start.line,
+			range.start.column,
+			range.end.line,
+			range.end.column
+		);
 	}
 }
 

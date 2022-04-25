@@ -2,7 +2,7 @@
 
 import { version } from '../package.json';
 import { ArgumentParser } from 'argparse';
-import Logger, {LogLevel} from "bunyan";
+import Logger, { LogLevel } from 'bunyan';
 import { DataStorage } from './storage/DataStorage';
 import { WebSocketCollectingServer } from './receiver/CollectingServer';
 import 'dotenv/config';
@@ -12,8 +12,8 @@ import FormData from 'form-data';
 import QueryParameters from './utils/QueryParameters';
 import { inspect } from 'util';
 import tmp from 'tmp';
-import mkdirp from "mkdirp";
-import path from "path";
+import mkdirp from 'mkdirp';
+import path from 'path';
 
 /**
  * The command line parameters the profiler can be configured with.
@@ -133,20 +133,23 @@ export class Main {
 	 * Construct the logger.
 	 */
 	private static buildLogger(config: Parameters): Logger {
-		const logfilePath = config.log_to_file.trim() ;
+		const logfilePath = config.log_to_file.trim();
 		mkdirp.sync(path.dirname(logfilePath));
 
 		const logLevel = config.log_level as LogLevel;
-		return Logger.createLogger({name: "Instrumenter",
+		return Logger.createLogger({
+			name: 'Instrumenter',
 			streams: [
 				{
 					level: logLevel,
 					stream: {
 						write: (rec: Record<any, any>) => {
-							console.log('[%s] %s: %s',
+							console.log(
+								'[%s] %s: %s',
 								rec.time.toISOString(),
 								Logger.nameFromLevel[rec.level],
-								rec.msg);
+								rec.msg
+							);
 						}
 					},
 					type: 'raw'
@@ -155,9 +158,9 @@ export class Main {
 					level: logLevel,
 					path: logfilePath
 				}
-			]});
+			]
+		});
 	}
-
 
 	/**
 	 * Entry point of the Teamscale JavaScript Profiler.

@@ -74,26 +74,26 @@ export class OriginSourcePattern {
 	private readonly exclude: string[] | undefined;
 
 	constructor(include: string[] | undefined, exclude: string[] | undefined) {
-		this.include = [];
-		for (const includeEntry of include || []) {
-			const normalizedIncludeEntry = OriginSourcePattern.normalizeGlobPattern(includeEntry);
-			if (normalizedIncludeEntry !== undefined) {
-				this.include?.push(<string>normalizedIncludeEntry);
-			}
+		this.include = this.normalizePatterns(include);
+		this.exclude = this.normalizePatterns(exclude);
+	}
+
+	/**
+	 * Normalizes all patterns (normally either include or exclude patterns), and returns all
+	 * valid normalized patterns. Returns undefined if the patterns list is undefined, or all
+	 * items inside the list are undefined.
+	 */
+	private normalizePatterns(patterns: string[] | undefined): string[] | undefined {
+		if (patterns === undefined || patterns.length === 0) {
+			return undefined;
 		}
-		if (this.include.length === 0) {
-			this.include = undefined;
+		const normalizedPatterns = patterns
+			.map(pattern => OriginSourcePattern.normalizeGlobPattern(pattern))
+			.filter(pattern => pattern !== undefined) as string[];
+		if (patterns.length === 0) {
+			return undefined;
 		}
-		this.exclude = [];
-		for (const excludeEntry of exclude || []) {
-			const normalizedExcludeEntry = OriginSourcePattern.normalizeGlobPattern(excludeEntry);
-			if (normalizedExcludeEntry !== undefined) {
-				this.exclude?.push(<string>normalizedExcludeEntry);
-			}
-		}
-		if (this.exclude.length === 0) {
-			this.exclude = undefined;
-		}
+		return normalizedPatterns;
 	}
 
 	/**

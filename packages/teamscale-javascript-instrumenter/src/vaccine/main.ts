@@ -1,7 +1,7 @@
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-ignore: DataWorker import
 import DataWorker from './worker/vaccine.worker.ts';
-import { InstanbulCoverageData, IstanbulCoverageStore, makeProxy } from './Interceptor';
+import { IstanbulCoverageStore, makeProxy } from './Interceptor';
 import * as unload from 'unload';
 import { getWindow, universe, hasWindow, universeAttribute } from './utils';
 import { ProtocolMessageTypes } from './protocol';
@@ -27,7 +27,7 @@ function setWorker(worker: DataWorker): DataWorker {
 
 /**
  * The function that intercepts changes to the Istanbul code coverage.
- * Also the Web worker to forward the coverage information is started.
+ * Also, the Web worker to forward the coverage information is started.
  */
 universe().makeCoverageInterceptor = function (coverage: IstanbulCoverageStore) {
 	// The `fileId` is used to map coverage and source maps. Note that
@@ -89,9 +89,9 @@ universe().makeCoverageInterceptor = function (coverage: IstanbulCoverageStore) 
 
 	(function registerCoverageReporter() {
 		const reported = new Set<string>();
-		universe()._$Bc = (fileId: string, coveredLine: number, coveredColumn: number) => {
+		universe()._$Bc = (fileId: string, startLine: number, startColumn: number, endLine: number, endColumn: number) => {
 			// Do not send lines that have already been sent to reduce the network load
-			const coverageMessage = `${fileId}:${coveredLine}:${coveredColumn}`;
+			const coverageMessage = `${fileId}:${startLine}:${startColumn}:${endLine}:${endColumn}`;
 			if (!reported.has(coverageMessage)) {
 				getWorker().postMessage(coverageMessage);
 				reported.add(coverageMessage);

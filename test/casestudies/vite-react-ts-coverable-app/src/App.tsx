@@ -2,8 +2,44 @@ import React, { useState } from 'react'
 import logo from './logo.svg'
 import './App.css'
 
+function logSomething(msg: string): void {
+  console.log(msg);
+}
+
+function computeC(x: number, y: number): number {
+  if (x > 0 || y > 0) {
+    return 0;
+  }
+
+  if (x > 10) {
+    return y + 2;
+  } else {
+    return y + 3;
+  }
+}
+
+function computeB(x: number, y: number): number {
+  if (x > 5) {
+    return y + 4;
+  } else if (x > 5 && y === 123) {
+    return y + 5;
+  } else {
+    return y + 6;
+  }
+}
+
+function computeA(x: number, y: number): number {
+  const b1 = computeB(x + 1, y);
+  const b2 = computeB(5, y);
+  const c1 = computeC(1, 1);
+  return b1 + b2 + c1;
+}
+
 function App() {
   const [count, setCount] = useState(0)
+
+  const r = computeA(count, count);
+  logSomething("Hello New World!");
 
   return (
     <div className="App">
@@ -12,7 +48,7 @@ function App() {
         <p>Hello Vite + React!</p>
         <p>
           <button onClick={() => setCount((count) => count + 1)}>
-            count is: {count}
+            count is: {count} and r is: {r}
           </button>
         </p>
         <p>

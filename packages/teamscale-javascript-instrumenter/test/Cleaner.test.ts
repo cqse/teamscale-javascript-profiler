@@ -76,7 +76,7 @@ test('Different types of coverage must be removed', () => {
 	expect(cleaned).not.toContain('b[2][1]++');
 })
 
-test('Remove unsupported (branch) coverage only', () => {
+test('Remove unsupported coverage only', () => {
 	const cleaned = cleanSourceCode(
 		`
 	function foo() {
@@ -95,6 +95,21 @@ test('Remove unsupported (branch) coverage only', () => {
 	expect(cleaned).toContain('f++');
 	expect(cleaned).toContain('f[0]++');
 	expect(cleaned).toContain('f[0]++');
-	expect(cleaned).not.toContain('b[2][0]++');
-	expect(cleaned).not.toContain('b[2][1]++');
+	expect(cleaned).toContain('b[2][0]++');
+	expect(cleaned).toContain('b[2][1]++');
+})
+
+test('Also handle coverage increments in sequence expressions.', () => {
+	const cleaned = cleanSourceCode(
+	`
+	function s(e, r) {
+	  cov_oqh6rsgrd().f[6]++;
+	  cov_oqh6rsgrd().s[18]++;
+	  return e > 5 ? (cov_oqh6rsgrd().b[3][0]++, r + 1) : (cov_oqh6rsgrd().b[3][1]++, (cov_oqh6rsgrd().b[5][0]++, e > 5) && (cov_oqh6rsgrd().b[5][1]++, 123 === r) ? (cov_oqh6rsgrd().b[4][0]++, r + 2) : (cov_oqh6rsgrd().b[4][1]++, r + 3));
+	}
+	`,
+		false,
+		loc => false
+	);
+	expect(cleaned).not.toContain('b[3][0]++');
 })

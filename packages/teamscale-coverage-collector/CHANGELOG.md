@@ -2,6 +2,10 @@ We use [Semantic Versioning](https://semver.org/).
 
 # New Release
 
+# 0.0.1-beta.34
+
+- [feature] Support for deriving coverage that spans multiple lines and columns.
+
 # 0.0.1-beta.30
 
 - [fix] The logger was logging asynchronously making it hard to debug the progress.

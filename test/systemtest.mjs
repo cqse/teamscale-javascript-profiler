@@ -13,11 +13,12 @@ import ServerMock from 'mock-http-server';
  */
 const caseStudies = [
 	{
-		name: 'vite-react-ts-app',
-		rootDir: 'test/casestudies/vite-react-ts-app',
+		name: 'vite-react-ts-coverable-app',
+		includePattern: '../../src/**/*.*',
+		rootDir: 'test/casestudies/vite-react-ts-coverable-app',
 		distDir: 'dist',
 		expectCoveredLines: {
-			'../../src/App.tsx': [6, 14]
+			'../../src/App.tsx': [6, 11, 23, 27, 32, 33, 34]
 		},
 		expectUncoveredLines: {},
 		excludeOrigins: [],
@@ -26,6 +27,7 @@ const caseStudies = [
 	{
 		name: 'vite-react-app',
 		rootDir: 'test/casestudies/vite-react-app',
+		includePattern: '../../src/**/*.*',
 		distDir: 'dist',
 		expectCoveredLines: {
 			'../../src/App.jsx': [6, 14]
@@ -53,6 +55,7 @@ const caseStudies = [
 	{
 		name: 'angular-hero-app-with-excludes',
 		rootDir: 'test/casestudies/angular-hero-app',
+		includePattern: 'src/**/*.*',
 		distDir: 'dist',
 		expectCoveredLines: {
 			'src/app/hero-detail/hero-detail.component.ts': [17, 18, 19, 23, 27, 28, 29, 33]
@@ -241,6 +244,7 @@ for (const study of caseStudies) {
 
 		const fullStudyDistPath = path.resolve(`${study.rootDir}/${study.distDir}`);
 		console.log(`Instrument the case study in ${fullStudyDistPath}`);
+
 		const excludeOriginsConcatenated = study.excludeOrigins.join(' ');
 		const includeOriginsConcatenated = study.includeOrigins.join(' ');
 		execSync(
@@ -307,7 +311,7 @@ for (const study of caseStudies) {
 				console.log('## Stopping the collector');
 				await sleep(1000);
 				collectProcess.kill('SIGINT');
-				await sleep(4000);
+				await sleep(10000);
 			}
 
 			// Check if the coverage collector has written the files

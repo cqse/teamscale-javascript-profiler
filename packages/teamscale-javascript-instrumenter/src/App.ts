@@ -6,8 +6,8 @@ import { ConfigurationParameters, TaskBuilder } from './instrumenter/TaskBuilder
 import * as path from 'path';
 import { version } from '../package.json';
 import { existsSync } from 'fs';
-import mkdirp from "mkdirp";
-import Logger from "bunyan";
+import mkdirp from 'mkdirp';
+import Logger from 'bunyan';
 
 /**
  * Entry points of the instrumenter, including command line argument parsing.
@@ -74,17 +74,20 @@ export class App {
 		const logfilePath = 'logs/instrumenter.log';
 		mkdirp.sync(path.dirname(logfilePath));
 
-		const logLevel = config.debug ? 'debug': 'error';
-		return Logger.createLogger({name: "Instrumenter",
+		const logLevel = config.debug ? 'debug' : 'error';
+		return Logger.createLogger({
+			name: 'Instrumenter',
 			streams: [
 				{
 					level: logLevel,
 					stream: {
 						write: (rec: Record<any, any>) => {
-							console.log('[%s] %s: %s',
+							console.log(
+								'[%s] %s: %s',
 								rec.time.toISOString(),
 								Logger.nameFromLevel[rec.level],
-								rec.msg);
+								rec.msg
+							);
 						}
 					},
 					type: 'raw'
@@ -93,14 +96,15 @@ export class App {
 					level: logLevel,
 					path: logfilePath
 				}
-			]});
+			]
+		});
 	}
 
 	/**
 	 * A logger for testing.
 	 */
 	private static buildDummyLogger(): Logger {
-		return Logger.createLogger({name: "Instrumenter"});
+		return Logger.createLogger({ name: 'Instrumenter' });
 	}
 
 	/**

@@ -159,7 +159,7 @@ export class TaskBuilder {
 					inputFiles.forEach(f => {
 						const pathRelativeToInputDir = path.relative(input, f);
 						const targetFileName = path.join(target, pathRelativeToInputDir);
-						this.addElement(f, targetFileName, sourceMapInfo)
+						this.addElement(f, targetFileName, sourceMapInfo);
 					});
 				}
 			} else {

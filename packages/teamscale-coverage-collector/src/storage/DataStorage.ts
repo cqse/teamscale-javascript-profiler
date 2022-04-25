@@ -1,6 +1,6 @@
 import { Contract, removePrefix } from '@cqse/commons';
 import * as fs from 'fs';
-import Logger from "bunyan";
+import Logger from 'bunyan';
 
 /**
  * Lines covered for the specified file.
@@ -110,6 +110,7 @@ export class ProjectCoverage {
 				yield transform(e);
 			}
 		}
+
 		return iterate(this.coveredLinesByFile.entries(), ([file, lines]) => {
 			return {
 				sourceFile: file,

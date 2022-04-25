@@ -3,7 +3,7 @@ import { IDataStorage } from '../storage/DataStorage';
 import { Contract } from '@cqse/commons';
 import { IncomingMessage } from 'http';
 import { Session } from './Session';
-import Logger from "bunyan";
+import Logger from 'bunyan';
 
 /**
  * Various constants that are used to exchange data between
@@ -143,11 +143,21 @@ export class WebSocketCollectingServer {
 			for (const position of positions) {
 				const positionParts = position.split(':');
 				if (positionParts.length === 2) {
-					session.putCoverage(fileId, Number.parseInt(positionParts[0]), Number.parseInt(positionParts[1]),
-						Number.parseInt(positionParts[1]), Number.parseInt(positionParts[2]));
+					session.putCoverage(
+						fileId,
+						Number.parseInt(positionParts[0]),
+						Number.parseInt(positionParts[1]),
+						Number.parseInt(positionParts[1]),
+						Number.parseInt(positionParts[2])
+					);
 				} else if (positionParts.length === 4) {
-					session.putCoverage(fileId, Number.parseInt(positionParts[0]), Number.parseInt(positionParts[1]),
-						Number.parseInt(positionParts[2]), Number.parseInt(positionParts[3]));
+					session.putCoverage(
+						fileId,
+						Number.parseInt(positionParts[0]),
+						Number.parseInt(positionParts[1]),
+						Number.parseInt(positionParts[2]),
+						Number.parseInt(positionParts[3])
+					);
 				}
 			}
 		}

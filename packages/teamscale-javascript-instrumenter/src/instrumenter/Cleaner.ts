@@ -6,7 +6,8 @@ import {
 	isCallExpression,
 	isIdentifier,
 	isMemberExpression,
-	SourceLocation, UpdateExpression
+	SourceLocation,
+	UpdateExpression
 } from '@babel/types';
 
 /**
@@ -44,12 +45,14 @@ function isCoverageIncrementNode(path: NodePath<UpdateExpression>) {
  * Returns the call expression from `cov_2pvvu1hl8v().b[2][0]++;` if
  * the given UpdateExpression is a branch coverage update expression.
  */
-function extractBranchCounterExpression(expr: UpdateExpression): CallExpression| undefined {
-	if (expr.operator === '++' &&
+function extractBranchCounterExpression(expr: UpdateExpression): CallExpression | undefined {
+	if (
+		expr.operator === '++' &&
 		isMemberExpression(expr.argument) &&
 		isMemberExpression(expr.argument.object) &&
 		isMemberExpression(expr.argument.object.object) &&
-		isCallExpression(expr.argument.object.object.object)) {
+		isCallExpression(expr.argument.object.object.object)
+	) {
 		// Branch counter
 		return extractCoverageObjectCall(expr.argument.object.object.object);
 	}
@@ -62,10 +65,12 @@ function extractBranchCounterExpression(expr: UpdateExpression): CallExpression|
  * the given UpdateExpression is a function or statement coverage update expression.
  */
 function extractFunctionOrStatementCounterExpression(expr: UpdateExpression): CallExpression | undefined {
-	if (expr.operator === '++' &&
+	if (
+		expr.operator === '++' &&
 		isMemberExpression(expr.argument) &&
 		isMemberExpression(expr.argument.object) &&
-		isCallExpression(expr.argument.object.object)) {
+		isCallExpression(expr.argument.object.object)
+	) {
 		// Function and statement counter
 		return extractCoverageObjectCall(expr.argument.object.object);
 	}
@@ -77,8 +82,7 @@ function extractFunctionOrStatementCounterExpression(expr: UpdateExpression): Ca
  * Given an `UpdateExpression` extract the call expression returning the coverage object.
  */
 function extractCoverageCallExpression(expr: UpdateExpression): CallExpression | undefined {
-	return extractBranchCounterExpression(expr)
-		?? extractFunctionOrStatementCounterExpression(expr);
+	return extractBranchCounterExpression(expr) ?? extractFunctionOrStatementCounterExpression(expr);
 }
 
 /**
@@ -86,8 +90,7 @@ function extractCoverageCallExpression(expr: UpdateExpression): CallExpression |
  * If this is not the case return `undefined`, and the call expression itself otherwise.
  */
 function extractCoverageObjectCall(callExpression: CallExpression | undefined): CallExpression | undefined {
-	if (callExpression && isIdentifier(callExpression.callee)
-		&& callExpression.callee.name.startsWith('cov_')) {
+	if (callExpression && isIdentifier(callExpression.callee) && callExpression.callee.name.startsWith('cov_')) {
 		return callExpression;
 	}
 

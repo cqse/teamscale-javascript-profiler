@@ -11,12 +11,12 @@ import { Contract, IllegalArgumentException } from '@cqse/commons';
 import { RawSourceMap, SourceMapConsumer } from 'source-map';
 import * as istanbul from 'istanbul-lib-instrument';
 import * as fs from 'fs';
-import * as mkdirp from'mkdirp';
+import * as mkdirp from 'mkdirp';
 import * as path from 'path';
 import * as convertSourceMap from 'convert-source-map';
 import { cleanSourceCode } from './Cleaner';
 import { Optional } from 'typescript-optional';
-import Logger from "bunyan";
+import Logger from 'bunyan';
 import async from 'async';
 
 export const IS_INSTRUMENTED_TOKEN = '/** $IS_JS_PROFILER_INSTRUMENTED=true **/';
@@ -64,13 +64,15 @@ export class IstanbulInstrumenter implements IInstrumenter {
 	async instrument(task: InstrumentationTask): Promise<TaskResult> {
 		// We limit the number of instrumentations in parallel to one to
 		// not overuse memory (NodeJS has only limited mem to use).
-		return async.mapLimit(task.elements, 1, async (taskElement: TaskElement) => {
-			return await this.instrumentOne(task.collector, taskElement, task.originSourcePattern);
-		}).then((results) => {
-			return results.reduce((prev, curr) => {
-				return prev.withIncrement(curr);
-			}, TaskResult.neutral());
-		});
+		return async
+			.mapLimit(task.elements, 1, async (taskElement: TaskElement) => {
+				return await this.instrumentOne(task.collector, taskElement, task.originSourcePattern);
+			})
+			.then(results => {
+				return results.reduce((prev, curr) => {
+					return prev.withIncrement(curr);
+				}, TaskResult.neutral());
+			});
 	}
 
 	/**
@@ -125,13 +127,7 @@ export class IstanbulInstrumenter implements IInstrumenter {
 				// and use the original code instead and write it to the target path.
 				//
 				const originSourceFiles = inputSourceMap?.sources ?? [];
-				if (
-					this.shouldExcludeFromInstrumentation(
-						sourcePattern,
-						taskElement.fromFile,
-						originSourceFiles
-					)
-				) {
+				if (this.shouldExcludeFromInstrumentation(sourcePattern, taskElement.fromFile, originSourceFiles)) {
 					writeToFile(taskElement.toFile, inputFileSource);
 					return new TaskResult(0, 1, 0, 0, 0, 0, 0);
 				}
@@ -192,7 +188,8 @@ export class IstanbulInstrumenter implements IInstrumenter {
 	) {
 		// Read the source map from the instrumented file
 		const instrumentedSourceMapConsumer: SourceMapConsumer | undefined = await this.loadSourceMap(
-			instrumentedSource, taskElement.fromFile
+			instrumentedSource,
+			taskElement.fromFile
 		);
 
 		// Without a source map, excludes/includes do not work.

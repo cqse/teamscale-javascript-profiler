@@ -3,7 +3,7 @@ import * as sourceMap from 'source-map';
 import { Position, BasicSourceMapConsumer, NullableMappedPosition } from 'source-map';
 import { IDataStorage } from '../storage/DataStorage';
 import { Contract } from '@cqse/commons';
-import Logger from "bunyan";
+import Logger from 'bunyan';
 
 /** The type of sourcemap consumer we use. */
 type SourceMapConsumer = BasicSourceMapConsumer;
@@ -64,7 +64,13 @@ export class Session {
 	 * @param line - The line number within the bundle.
 	 * @param column - The column within the bundle.
 	 */
-	public putCoverage(fileId: string, startLine: number, startColumn: number, endLine: number, endColumn: number): void {
+	public putCoverage(
+		fileId: string,
+		startLine: number,
+		startColumn: number,
+		endLine: number,
+		endColumn: number
+	): void {
 		// Iterate over the lines to scan
 		let line = startLine;
 		while (line <= endLine) {
@@ -103,7 +109,7 @@ export class Session {
 				// Step to the next column to map back to the original.
 				// `originalPosition.name` is the token on the position, that is, if it is present
 				// we increment the column by its length.
-				column = column + Math.max(1, (originalPosition.name?.length ?? 1));
+				column = column + Math.max(1, originalPosition.name?.length ?? 1);
 			}
 
 			// And the next line

@@ -44,11 +44,10 @@ const caseStudies = [
 		},
 		expectUncoveredLines: {
 			'src/app/heroes/heroes.component.ts': ['1-10', 15, 16, '18-20', '37-50'],
-			'src/app/hero-detail/hero-detail.component.ts': ['1-12', '34-42'],
-			'node_modules/@angular/core/fesm2015/core.mjs': ['1-50']
+			'src/app/hero-detail/hero-detail.component.ts': ['1-12', '34-42']
 		},
 		excludeOrigins: [],
-		includeOrigins: []
+		includeOrigins: ['src/app/**/*.*']
 	},
 	{
 		name: 'angular-hero-app-with-excludes',
@@ -63,22 +62,6 @@ const caseStudies = [
 		},
 		excludeOrigins: ['src/app/heroes/*.ts'],
 		includeOrigins: []
-	},
-	{
-		name: 'angular-hero-app',
-		rootDir: 'test/casestudies/angular-hero-app',
-		distDir: 'dist',
-		expectCoveredLines: {
-			'src/app/heroes/heroes.component.ts': [14, 12, 17, 21, 22],
-			'src/app/hero-detail/hero-detail.component.ts': [17, 18, 19, 23, 27, 28, 29, 33]
-		},
-		expectUncoveredLines: {
-			'src/app/heroes/heroes.component.ts': ['1-10', 15, 16, '18-20', '37-50'],
-			'src/app/hero-detail/hero-detail.component.ts': ['1-12', '34-42'],
-			'node_modules/@angular/core/fesm2015/core.mjs': ['1-50']
-		},
-		excludeOrigins: [],
-		includeOrigins: ['src/**/*.*']
 	}
 ];
 

@@ -12,17 +12,19 @@ import ServerMock from 'mock-http-server';
  * the expected coverage produced by our tool chain.
  */
 const caseStudies = [
-	{name: 'vite-react-ts-app',
-		rootDir: 'test/casestudies/vite-react-ts-app',
+	{name: 'vite-react-ts-coverable-app',
+		includePattern: "../../src/**/*.*",
+		rootDir: 'test/casestudies/vite-react-ts-coverable-app',
 		distDir: 'dist',
 		expectCoveredLines: {
-			'../../src/App.tsx': [6, 14]
+			'../../src/App.tsx': [6, 11, 23, 27, 32, 33, 34]
 		},
 		expectUncoveredLines: {
 		}
 	},
 	{name: 'vite-react-app',
 		rootDir: 'test/casestudies/vite-react-app',
+		includePattern: "../../src/**/*.*",
 		distDir: 'dist',
 		expectCoveredLines: {
 			'../../src/App.jsx': [6, 14]
@@ -32,6 +34,7 @@ const caseStudies = [
 	},
 	{name: 'angular-hero-app',
 		rootDir: 'test/casestudies/angular-hero-app',
+		includePattern: "src/**/*.*",
 		distDir: 'dist',
 		expectCoveredLines: {
 			"src/app/heroes/heroes.component.ts": [14,12,17,21,22],
@@ -209,7 +212,7 @@ for (const study of caseStudies) {
 
 		const fullStudyDistPath = path.resolve(`${study.rootDir}/${study.distDir}`);
 		console.log(`Instrument the case study in ${fullStudyDistPath}`);
-		execSync(`node ./dist/src/main.js --exclude-origin "node_modules/**/*.*" --in-place ${fullStudyDistPath}`,
+		execSync(`node ./dist/src/main.js --include-origin "${study.includePattern}" --in-place ${fullStudyDistPath}`,
 			{cwd: INSTRUMENTER_DIR, stdio: 'inherit'});
 
 		console.log("## Starting the Web server");
@@ -271,7 +274,7 @@ for (const study of caseStudies) {
 				console.log("## Stopping the collector");
 				await sleep(1000);
 				collectProcess.kill('SIGINT');
-				await sleep(4000);
+				await sleep(10000);
 			}
 
 			// Check if the coverage collector has written the files

@@ -3,11 +3,9 @@ import generate from '@babel/generator';
 import traverse, { NodePath } from '@babel/traverse';
 import {
 	CallExpression,
-	ExpressionStatement,
 	isCallExpression,
 	isIdentifier,
 	isMemberExpression,
-	isUpdateExpression,
 	SourceLocation, UpdateExpression
 } from '@babel/types';
 
@@ -24,10 +22,8 @@ export function cleanSourceCode(
 ): string {
 	const ast = parse(code, { sourceType: esModules ? 'module' : 'script' });
 	traverse(ast, {
-		ExpressionStatement(path) {
-			if (isUnsupportedCounterTypeIncrement(path)) {
-				path.remove();
-			} else if (isCoverageIncrementNode(path)) {
+		UpdateExpression(path) {
+			if (isCoverageIncrementNode(path)) {
 				if (path.node.loc && !makeCoverable(path.node.loc)) {
 					path.remove();
 				}
@@ -40,28 +36,8 @@ export function cleanSourceCode(
 /**
  * Checks if the given `path.node` to a statement like `cov_104fq7oo4i().f[0]++;`
  */
-function isCoverageIncrementNode(path: NodePath<ExpressionStatement>) {
-	const expr = path.node.expression;
-
-	if (!isUpdateExpression(expr)) {
-		return false;
-	}
-
-	return extractCoverageCallExpression(expr) !== undefined;
-}
-
-/**
- * Is the given expression statement a coverage increment that
- * is not supported by our approach?
- *
- * For example, branch coverage is not supported.
- */
-function isUnsupportedCounterTypeIncrement(path: NodePath<ExpressionStatement>) {
-	if (!isUpdateExpression(path.node.expression)) {
-		return false;
-	}
-
-	return extractBranchCounterExpression(path.node.expression) !== undefined;
+function isCoverageIncrementNode(path: NodePath<UpdateExpression>) {
+	return extractCoverageCallExpression(path.node) !== undefined;
 }
 
 /**

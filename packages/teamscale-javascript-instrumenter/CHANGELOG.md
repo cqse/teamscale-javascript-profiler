@@ -2,6 +2,9 @@ We use [Semantic Versioning](https://semver.org/).
 
 # New Release
 
+- [fix] The full source code range (start to end column) was not mapped back to the original source.
+- [fix] Branch coverage was not collected while being necessary in the presence of sequence expressions.
+
 # 0.0.1-beta.30
 
 - [fix] The logger was logging asynchronously making it hard to debug the progress.

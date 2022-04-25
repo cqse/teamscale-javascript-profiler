@@ -135,14 +135,20 @@ export class WebSocketCollectingServer {
 	 * @param body - The body of the message (to be parsed).
 	 */
 	private handleCoverageMessage(session: Session, body: string) {
-		const bodyPattern = /(?<fileId>\S+) (?<positions>((\d+:\d+)\s+)*(\d+:\d+))/;
+		const bodyPattern = /(?<fileId>\S+) (?<positions>((\d+:\d+(:\d+:\d+)?\s+)*(\d+:\d+(:\d+:\d+)?)))/;
 		const matches = bodyPattern.exec(body);
 		if (matches?.groups) {
 			const fileId = matches.groups.fileId;
 			const positions = (matches.groups.positions ?? '').split(/\s+/);
 			for (const position of positions) {
-				const [line, column] = position.split(':');
-				session.putCoverage(fileId, Number.parseInt(line), Number.parseInt(column));
+				const positionParts = position.split(':');
+				if (positionParts.length === 2) {
+					session.putCoverage(fileId, Number.parseInt(positionParts[0]), Number.parseInt(positionParts[1]),
+						Number.parseInt(positionParts[1]), Number.parseInt(positionParts[2]));
+				} else if (positionParts.length === 4) {
+					session.putCoverage(fileId, Number.parseInt(positionParts[0]), Number.parseInt(positionParts[1]),
+						Number.parseInt(positionParts[2]), Number.parseInt(positionParts[3]));
+				}
 			}
 		}
 	}

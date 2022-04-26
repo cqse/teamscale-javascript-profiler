@@ -1,6 +1,6 @@
 import { Optional } from 'typescript-optional';
 import { Contract } from '@cqse/commons';
-import * as matching from 'micromatch';
+import matching from 'micromatch';
 import path from 'path';
 
 /**
@@ -65,17 +65,35 @@ export class CollectorSpecifier {
  */
 export class OriginSourcePattern {
 	/** Glob pattern describing the set of files in the origin for that coverage should be produced. */
-	private readonly include: string | undefined;
+	private readonly include: string[] | undefined;
 
 	/**
 	 * Glob pattern describing the set of files in the origin for that coverage should EXPLICITLY NOT be produced.
 	 * An exclude is stronger than an include.
 	 */
-	private readonly exclude: string | undefined;
+	private readonly exclude: string[] | undefined;
 
-	constructor(include: string | undefined, exclude: string | undefined) {
-		this.include = OriginSourcePattern.normalizeGlobPattern(include);
-		this.exclude = OriginSourcePattern.normalizeGlobPattern(exclude);
+	constructor(include: string[] | undefined, exclude: string[] | undefined) {
+		this.include = this.normalizePatterns(include);
+		this.exclude = this.normalizePatterns(exclude);
+	}
+
+	/**
+	 * Normalizes all patterns (normally either include or exclude patterns), and returns all
+	 * valid normalized patterns. Returns undefined if the patterns list is undefined, or all
+	 * items inside the list are undefined.
+	 */
+	private normalizePatterns(patterns: string[] | undefined): string[] | undefined {
+		if (patterns === undefined || patterns.length === 0) {
+			return undefined;
+		}
+		const normalizedPatterns = patterns
+			.map(pattern => OriginSourcePattern.normalizeGlobPattern(pattern))
+			.filter(pattern => pattern !== undefined) as string[];
+		if (patterns.length === 0) {
+			return undefined;
+		}
+		return normalizedPatterns;
 	}
 
 	/**
@@ -97,14 +115,14 @@ export class OriginSourcePattern {
 
 		const normalizedOriginFiles = originFiles.map(OriginSourcePattern.normalizePath);
 		if (this.exclude) {
-			const matchedToExclude = matching.match(normalizedOriginFiles, this.exclude);
+			const matchedToExclude = matching(normalizedOriginFiles, this.exclude);
 			if (originFiles.length === matchedToExclude.length) {
 				return false;
 			}
 		}
 
 		if (this.include) {
-			const matchedToInclude = matching.match(normalizedOriginFiles, this.include ?? '**');
+			const matchedToInclude = matching(normalizedOriginFiles, this.include || ['**']);
 			return matchedToInclude.length > 0;
 		}
 
@@ -136,7 +154,6 @@ export class OriginSourcePattern {
 		}
 		return removeFrom;
 	}
-
 }
 
 /**

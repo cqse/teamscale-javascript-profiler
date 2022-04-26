@@ -26,7 +26,7 @@
     "eslint-plugin-promise": "^5.1.0",
     "eslint-plugin-react": "^7.25.1",
     "eslint-plugin-workspaces": "^0.6.2",
-    "http-server": "^13.0.2",
+    "http-server": "^14.1.0",
     "local-web-server": "^5.1.1",
     "mkdirp": "^1.0.4",
     "mock-http-server": "^1.4.5",

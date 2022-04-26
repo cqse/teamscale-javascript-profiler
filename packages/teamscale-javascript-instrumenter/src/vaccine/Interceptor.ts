@@ -5,19 +5,37 @@ import { universe } from './utils';
  */
 const STATEMENT_COVERAGE_ID = 's';
 
-export type InstanbulCoverageData = {
-	path: string;
-	statementMap: Record<string, unknown>;
-	inputSourceMap: unknown;
-	hash: string;
+/**
+ * The identifier of Istanbul coverage on the branch level.
+ */
+const BRANCH_COVERAGE_ID = 'b';
+
+/**
+ * The range in a source file to consider.
+ */
+export type CodeRange = {
+	start: { line: number; column: number };
+	end: { line: number; column: number };
 };
 
+/**
+ * The fraction of the IstanbulJS coverage object we are interested in.
+ */
 export type IstanbulCoverageStore = {
 	hash: string;
-	statementMap: Record<string, { start: { line: number; column: number } }>;
-} & Record<string, InstanbulCoverageData>;
+	statementMap: Record<string, CodeRange>;
+	branchMap: Record<string, { locations: CodeRange[] }>;
+	path: string;
+	inputSourceMap: unknown;
+};
 
-type CoverageBroadcastFunction = (fileId: string, coveredLine: number, coveredColumn: number) => void;
+type CoverageBroadcastFunction = (
+	fileId: string,
+	startLine: number,
+	startColumn: number,
+	endLine: number,
+	endColumn: number
+) => void;
 
 /**
  * Used to intercept updates to Istanbuls' coverage object.
@@ -49,13 +67,33 @@ class Interceptor implements ProxyHandler<IstanbulCoverageStore> {
 	public set(obj: never, prop: symbol | string, value: never): boolean {
 		const fullPath = [...this.path, prop];
 
-		// Handle "Statement" coverage
 		if (fullPath[0] === STATEMENT_COVERAGE_ID) {
-			const fileId = this.coverageObj.hash;
-			const start = this.coverageObj.statementMap[fullPath[1] as string].start;
-			(universe()._$Bc as CoverageBroadcastFunction)(fileId, start.line, start.column);
+			// Handle "Statement" coverage.
+			const statementId = fullPath[1] as string;
+			const codeRange = this.coverageObj.statementMap[statementId];
+			this.broadcastCodeRangeCoverage(codeRange);
+		} else if (fullPath[0] === BRANCH_COVERAGE_ID) {
+			// Handle "Branch" coverage.
+			// This is important because often statements of the original code
+			// are encoded into branch expressions as part of "Sequence Expressions".
+			const branchId = fullPath[1] as string;
+			const locationNo = Number.parseInt(fullPath[2] as string);
+			const codeRange = this.coverageObj.branchMap[branchId].locations[locationNo];
+			this.broadcastCodeRangeCoverage(codeRange);
 		}
+
 		return true;
+	}
+
+	private broadcastCodeRangeCoverage(range: CodeRange): void {
+		const fileId = this.coverageObj.hash;
+		(universe()._$Bc as CoverageBroadcastFunction)(
+			fileId,
+			range.start.line,
+			range.start.column,
+			range.end.line,
+			range.end.column
+		);
 	}
 }
 

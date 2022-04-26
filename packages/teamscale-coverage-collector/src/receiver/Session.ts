@@ -3,7 +3,7 @@ import * as sourceMap from 'source-map';
 import { Position, BasicSourceMapConsumer, NullableMappedPosition } from 'source-map';
 import { IDataStorage } from '../storage/DataStorage';
 import { Contract } from '@cqse/commons';
-import Logger from "bunyan";
+import Logger from 'bunyan';
 
 /** The type of sourcemap consumer we use. */
 type SourceMapConsumer = BasicSourceMapConsumer;
@@ -64,12 +64,56 @@ export class Session {
 	 * @param line - The line number within the bundle.
 	 * @param column - The column within the bundle.
 	 */
-	public putCoverage(fileId: string, line: number, column: number): void {
-		const originalPosition: NullableMappedPosition = this.mapToOriginal(fileId, line, column);
-		if (originalPosition.line && originalPosition.source) {
-			this.storage.putCoverage(this.projectId, originalPosition.source, [originalPosition.line]);
-		} else {
-			this.storage.signalUnmappedCoverage(this.projectId);
+	public putCoverage(
+		fileId: string,
+		startLine: number,
+		startColumn: number,
+		endLine: number,
+		endColumn: number
+	): void {
+		// Iterate over the lines to scan
+		let line = startLine;
+		while (line <= endLine) {
+			// Determine the column range to consider for this line
+			let scanFromColumn;
+			if (line === startLine) {
+				scanFromColumn = startColumn;
+			} else {
+				scanFromColumn = 0;
+			}
+
+			let scanToColumn;
+			if (line === endLine) {
+				scanToColumn = endColumn;
+			} else {
+				// Since we do not know the length of the different lines, we assume
+				// all to end in the lager of `endColumn` and `startColumn`.
+				// A better estimate (or the correct value) is supposed to be implemented
+				// in context of TS-30077.
+				scanToColumn = Math.max(endColumn, startColumn);
+			}
+
+			let column = scanFromColumn;
+			let lastCoveredLine = -1;
+			while (column <= scanToColumn) {
+				const originalPosition: NullableMappedPosition = this.mapToOriginal(fileId, line, column);
+				if (originalPosition.line && originalPosition.source) {
+					if (lastCoveredLine !== originalPosition.line) {
+						this.storage.putCoverage(this.projectId, originalPosition.source, [originalPosition.line]);
+						lastCoveredLine = originalPosition.line;
+					}
+				} else {
+					this.storage.signalUnmappedCoverage(this.projectId);
+				}
+
+				// Step to the next column to map back to the original.
+				// `originalPosition.name` is the token on the position, that is, if it is present
+				// we increment the column by its length.
+				column = column + Math.max(1, originalPosition.name?.length ?? 1);
+			}
+
+			// And the next line
+			line++;
 		}
 	}
 

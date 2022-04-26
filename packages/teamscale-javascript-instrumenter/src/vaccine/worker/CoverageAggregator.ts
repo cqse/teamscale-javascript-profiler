@@ -93,21 +93,22 @@ export class CoverageAggregator {
 	 * Add coverage information.
 	 *
 	 * @param positionCoverageInfo - A string that encodes the coverage information.
-	 *      The string is supposed to be formatted as follows: `<fileId>:<lineNumber>:<columNumber>`
+	 *      The string is supposed to be formatted as follows: `<fileId>:<startLine>:<startColumn>:<endLine>:<endColumn>`
 	 */
 	public add(positionCoverageInfo: string): void {
 		const parts = positionCoverageInfo.split(':');
-		if (parts.length !== 3) {
+		if (parts.length !== 5) {
 			return;
 		}
-		const [fileId, line, column] = parts;
 
+		const fileId = parts[0];
 		let coveredPositions: Set<string> | undefined = this.cachedCoveredPositions.get(fileId);
 		if (!coveredPositions) {
 			coveredPositions = new Set();
 			this.cachedCoveredPositions.set(fileId, coveredPositions);
 		}
-		coveredPositions.add(`${line}:${column}`);
+
+		coveredPositions.add(`${parts[1]}:${parts[2]}:${parts[3]}:${parts[4]}`);
 
 		this.numberOfCachedPositions += 1;
 		this.flushCountdown.restartCountdown();

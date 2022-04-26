@@ -22,9 +22,9 @@ export type ConfigurationParameters = {
 	source_map?: string;
 	collector: string;
 	// eslint-disable-next-line camelcase
-	include_origin?: string;
+	include_origin?: string[];
 	// eslint-disable-next-line camelcase
-	exclude_origin?: string;
+	exclude_origin?: string[];
 };
 
 /**
@@ -54,10 +54,10 @@ export class TaskBuilder {
 	private collector: CollectorSpecifier | null;
 
 	/** An include pattern. */
-	private originSourceIncludePattern: string | undefined;
+	private originSourceIncludePatterns: string[] | undefined;
 
 	/** An exclude pattern. */
-	private originSourceExcludePattern: string | undefined;
+	private originSourceExcludePatterns: string[] | undefined;
 
 	constructor() {
 		this.elements = [];
@@ -71,15 +71,15 @@ export class TaskBuilder {
 		return this;
 	}
 
-	/** Set the include pattern */
-	setOriginSourceIncludePattern(pattern: string | undefined): this {
-		this.originSourceIncludePattern = pattern;
+	/** Set the include pattern. If multiple patterns are present, concatenates them via the OR operator.  */
+	setOriginSourceIncludePatterns(patterns: string[] | undefined): this {
+		this.originSourceIncludePatterns = patterns;
 		return this;
 	}
 
-	/** Set the exclude patter */
-	setOriginSourceExcludePattern(pattern: string | undefined): this {
-		this.originSourceExcludePattern = pattern;
+	/** Set the exclude pattern(s). If multiple patterns are present, concatenates them via the OR operator. */
+	setOriginSourceExcludePatterns(patterns: string[] | undefined): this {
+		this.originSourceExcludePatterns = patterns;
 		return this;
 	}
 
@@ -100,8 +100,8 @@ export class TaskBuilder {
 		const target: string | undefined = config.to;
 		const sourceMap: string | undefined = config.source_map;
 		this.setCollectorFromString(config.collector);
-		this.setOriginSourceIncludePattern(config.include_origin);
-		this.setOriginSourceExcludePattern(config.exclude_origin);
+		this.setOriginSourceIncludePatterns(config.include_origin);
+		this.setOriginSourceExcludePatterns(config.exclude_origin);
 
 		// Handle an explicitly specified source map
 		const sourceMapInfo = loadSourceMap(sourceMap);
@@ -159,7 +159,7 @@ export class TaskBuilder {
 					inputFiles.forEach(f => {
 						const pathRelativeToInputDir = path.relative(input, f);
 						const targetFileName = path.join(target, pathRelativeToInputDir);
-						this.addElement(f, targetFileName, sourceMapInfo)
+						this.addElement(f, targetFileName, sourceMapInfo);
 					});
 				}
 			} else {
@@ -188,7 +188,7 @@ export class TaskBuilder {
 	 * Build the instrumentation task.
 	 */
 	public build(): InstrumentationTask {
-		const pattern = new OriginSourcePattern(this.originSourceIncludePattern, this.originSourceExcludePattern);
+		const pattern = new OriginSourcePattern(this.originSourceIncludePatterns, this.originSourceExcludePatterns);
 		return new InstrumentationTask(Contract.requireDefined(this.collector), this.elements, pattern);
 	}
 }

@@ -154,10 +154,12 @@ export class Main {
 				{ level: logLevel, stream: new PrettyFileLogger(fs.createWriteStream(logfilePath)), type: 'raw' }
 			]
 		});
+    
 		// If the given flag is set, we also log with a JSON-like format
 		if (config.json_log) {
 			logger.addStream({ level: logLevel, path: `${logfilePath}.json` });
 		}
+    
 		return logger;
 	}
 

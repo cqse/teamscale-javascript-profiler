@@ -2,6 +2,11 @@ We use [Semantic Versioning](https://semver.org/).
 
 # New Release
 
+# 0.0.1-beta.36
+
+- [feature] Logger now uses a simplified and more readable logging format by default.
+  To get an additional log file with the old JSON format add the command line argument `-j` or `--json-log`.
+
 # 0.0.1-beta.34
 
 - [feature] Support for deriving coverage that spans multiple lines and columns.

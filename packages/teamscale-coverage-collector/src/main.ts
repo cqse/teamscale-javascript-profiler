@@ -14,6 +14,8 @@ import { inspect } from 'util';
 import tmp from 'tmp';
 import mkdirp from 'mkdirp';
 import path from 'path';
+import { StdConsoleLogger } from './utils/StdConsoleLogger';
+import { PrettyFileLogger } from './utils/PrettyFileLogger';
 
 /**
  * The command line parameters the profiler can be configured with.
@@ -31,6 +33,8 @@ type Parameters = {
 	// eslint-disable-next-line camelcase
 	dump_after_mins: number;
 	port: number;
+	// eslint-disable-next-line camelcase
+	json_log: boolean;
 	// eslint-disable-next-line camelcase
 	teamscale_server_url?: string;
 	// eslint-disable-next-line camelcase
@@ -78,6 +82,10 @@ export class Main {
 		parser.add_argument('-d', '--debug', {
 			help: 'Print received coverage information to the terminal?',
 			default: false
+		});
+		parser.add_argument('-j', '--json-log', {
+			help: 'Additional JSON-like log file format.',
+			action: 'store_true'
 		});
 
 		// Parameters for the upload to Teamscale
@@ -137,29 +145,22 @@ export class Main {
 		mkdirp.sync(path.dirname(logfilePath));
 
 		const logLevel = config.log_level as LogLevel;
-		return Logger.createLogger({
-			name: 'Instrumenter',
+		const logger = Logger.createLogger({
+			name: 'Collector',
 			streams: [
-				{
-					level: logLevel,
-					stream: {
-						write: (rec: Record<any, any>) => {
-							console.log(
-								'[%s] %s: %s',
-								rec.time.toISOString(),
-								Logger.nameFromLevel[rec.level],
-								rec.msg
-							);
-						}
-					},
-					type: 'raw'
-				},
-				{
-					level: logLevel,
-					path: logfilePath
-				}
+				// console output
+				{ level: logLevel, stream: new StdConsoleLogger(), type: 'raw' },
+				// default log file
+				{ level: logLevel, stream: new PrettyFileLogger(fs.createWriteStream(logfilePath)), type: 'raw' }
 			]
 		});
+    
+		// If the given flag is set, we also log with a JSON-like format
+		if (config.json_log) {
+			logger.addStream({ level: logLevel, path: `${logfilePath}.json` });
+		}
+    
+		return logger;
 	}
 
 	/**

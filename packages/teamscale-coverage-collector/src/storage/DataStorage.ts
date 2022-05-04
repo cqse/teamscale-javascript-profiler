@@ -56,6 +56,11 @@ export interface IWriteableStorage {
 	 * @param project - The project to add the information to.
 	 */
 	signalUnmappedCoverage(project: string): void;
+
+	/**
+	 * Discard the coverage information that has been collected up to this point.
+	 */
+	discardCollectedCoverage(): void;
 }
 
 /**
@@ -226,17 +231,10 @@ export class DataStorage implements IDataStorage {
 
 		const [lines, content] = toSimpleCoverage();
 		if (clearAfterDump) {
-			this.clearCoverage();
+			this.discardCollectedCoverage();
 		}
 		fs.writeFileSync(filePath.trim(), content, { flag: 'w', encoding: 'utf8' });
 		return lines;
-	}
-
-	/**
-	 * Clear all coverage information that has to be collected up to this point.
-	 */
-	private clearCoverage(): void {
-		this.coverageByProject.clear();
 	}
 
 	/**
@@ -244,5 +242,12 @@ export class DataStorage implements IDataStorage {
 	 */
 	getProjects(): string[] {
 		return Array.from(this.coverageByProject.keys());
+	}
+
+	/**
+	 * {@inheritDoc IWritableStorage.discardCollectedCoverage}
+	 */
+	discardCollectedCoverage(): void {
+		this.coverageByProject.clear();
 	}
 }

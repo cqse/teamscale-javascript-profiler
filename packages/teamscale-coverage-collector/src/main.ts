@@ -193,7 +193,7 @@ export class Main {
 		const server = new WebSocketCollectingServer(config.port, storage, logger);
 
 		// Enable the remote control API if configured
-		this.startControlServer(config, storage, server, logger);
+		this.startControlServer(config, storage, logger);
 
 		// Start the server socket.
 		// ATTENTION: The server is executed asynchronously
@@ -320,12 +320,7 @@ export class Main {
 			});
 	}
 
-	private static startControlServer(
-		config: Parameters,
-		storage: DataStorage,
-		server: WebSocketCollectingServer,
-		logger: Logger
-	) {
+	private static startControlServer(config: Parameters, storage: DataStorage, logger: Logger) {
 		if (!config.enable_control_port) {
 			return;
 		}
@@ -361,6 +356,11 @@ export class Main {
 			const uploadMessage = (request.body as string).trim();
 			config.teamscale_message = uploadMessage;
 			logger.info(`Switching the upload message to '${uploadMessage}' via the control API.`);
+		});
+
+		controlServer.post('/discard', async () => {
+			storage.discardCollectedCoverage();
+			logger.info(`Discarding collected coverage information as requested via the control API.`);
 		});
 	}
 }

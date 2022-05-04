@@ -16,6 +16,7 @@ import mkdirp from 'mkdirp';
 import path from 'path';
 import { StdConsoleLogger } from './utils/StdConsoleLogger';
 import { PrettyFileLogger } from './utils/PrettyFileLogger';
+import express, { Express } from 'express';
 
 /**
  * The command line parameters the profiler can be configured with.
@@ -53,6 +54,8 @@ type Parameters = {
 	teamscale_repository?: string;
 	// eslint-disable-next-line camelcase
 	teamscale_message?: string;
+	// eslint-disable-next-line camelcase
+	enable_control_port?: number;
 };
 
 /**
@@ -75,6 +78,10 @@ export class Main {
 		parser.add_argument('-f', '--dump-to-file', { help: 'Target file to write coverage to.' });
 		parser.add_argument('-l', '--log-to-file', { help: 'Log file', default: 'logs/collector-combined.log' });
 		parser.add_argument('-e', '--log-level', { help: 'Log level', default: 'info' });
+		parser.add_argument('-c', '--enable-control-port', {
+			help: 'Enables the remote control API on the specified port (<=0 means "disabled").',
+			default: 0
+		});
 		parser.add_argument('-t', '--dump-after-mins', {
 			help: 'Dump the coverage information to the target file every N minutes.',
 			default: 360
@@ -154,12 +161,12 @@ export class Main {
 				{ level: logLevel, stream: new PrettyFileLogger(fs.createWriteStream(logfilePath)), type: 'raw' }
 			]
 		});
-    
+
 		// If the given flag is set, we also log with a JSON-like format
 		if (config.json_log) {
 			logger.addStream({ level: logLevel, path: `${logfilePath}.json` });
 		}
-    
+
 		return logger;
 	}
 
@@ -184,6 +191,9 @@ export class Main {
 		// Prepare the storage and the server
 		const storage = new DataStorage(logger);
 		const server = new WebSocketCollectingServer(config.port, storage, logger);
+
+		// Enable the remote control API if configured
+		this.startControlServer(config, storage, server, logger);
 
 		// Start the server socket.
 		// ATTENTION: The server is executed asynchronously
@@ -231,7 +241,7 @@ export class Main {
 			const coverageFile = config.dump_to_file ?? tmp.tmpNameSync();
 			try {
 				// 1. Write coverage to a file
-				const lines = storage.dumpToSimpleCoverageFile(coverageFile);
+				const lines = storage.dumpToSimpleCoverageFile(coverageFile, false);
 				logger.info(`Dumped ${lines} lines of coverage to ${coverageFile}.`);
 
 				// 2. Upload to Teamscale if configured
@@ -308,6 +318,50 @@ export class Main {
 					logger.error(`Something went wrong when uploading data: ${inspect(error)}`);
 				}
 			});
+	}
+
+	private static startControlServer(
+		config: Parameters,
+		storage: DataStorage,
+		server: WebSocketCollectingServer,
+		logger: Logger
+	) {
+		if (!config.enable_control_port) {
+			return;
+		}
+
+		const controlServer: Express = express();
+		controlServer.use(express.text({}));
+		controlServer.listen(config.enable_control_port);
+
+		controlServer.put('/partition', request => {
+			const targetPartition = (request.body as string).trim();
+			config.teamscale_partition = targetPartition;
+			logger.info(`Switched the target partition to '${targetPartition}' via the control API.`);
+		});
+
+		controlServer.post('/dump', async (request, response) => {
+			logger.info('Dumping coverage requested via the control API.');
+			await this.dumpCoverage(config, storage, logger);
+		});
+
+		controlServer.post('/revision', async request => {
+			const targetRevision = (request.body as string).trim();
+			config.teamscale_commit = targetRevision;
+			logger.info(`Switching the target revision to '${targetRevision}' via the control API.`);
+		});
+
+		controlServer.post('/commit', async request => {
+			const targetCommit = (request.body as string).trim();
+			config.teamscale_revision = targetCommit;
+			logger.info(`Switching the target commit to '${targetCommit}' via the control API.`);
+		});
+
+		controlServer.post('/message', async request => {
+			const uploadMessage = (request.body as string).trim();
+			config.teamscale_message = uploadMessage;
+			logger.info(`Switching the upload message to '${uploadMessage}' via the control API.`);
+		});
 	}
 }
 

@@ -43,16 +43,18 @@ export class TaskElement {
  * receive the coverage information.
  */
 export class CollectorSpecifier {
-	/** Hostname the collector is running on */
-	public readonly host: string;
+	/** The URL specifying the address the collector is reachable at. */
+	public readonly url: string;
 
-	/** Port on the host the collector listens to */
-	public readonly port: number;
-
-	constructor(collector: string) {
-		Contract.requireStringPattern(collector, '.+:[0-9]+', 'Invalid collector pattern used!');
-		this.host = collector.split(':')[0];
-		this.port = Number.parseInt(collector.split(':')[1]);
+	constructor(specifier: string) {
+		if (specifier.indexOf('://') > 0) {
+			this.url = specifier;
+		} else {
+			Contract.requireStringPattern(specifier, '.+:[0-9]+', 'Invalid collector pattern used!');
+			const host = specifier.split(':')[0];
+			const port = Number.parseInt(specifier.split(':')[1]);
+			this.url = `ws://${host}:${port}`;
+		}
 	}
 }
 

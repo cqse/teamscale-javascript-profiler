@@ -48,7 +48,7 @@ export class CollectorSpecifier {
 
 	constructor(specifier: string) {
 		if (specifier.indexOf('://') > 0) {
-			// A trailing will be removed
+			// A trailing slash will be removed
 			this.url = specifier.replace(/\/$/, '');
 		} else {
 			Contract.requireStringPattern(specifier, '.+:[0-9]+', 'Invalid collector pattern used!');

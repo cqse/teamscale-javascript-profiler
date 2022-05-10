@@ -51,7 +51,7 @@ export class App {
 			help: 'External location of source-map files to consider.'
 		});
 		parser.add_argument('-c', '--collector', {
-			help: 'The collector (`host:port` or `wss://host:port/path` or `ws://host:port/path`) to send coverage information to.',
+			help: 'The collector (`host:port` or `wss://host:port/` or `ws://host:port/`) to send coverage information to.',
 			default: 'ws://localhost:54678'
 		});
 		parser.add_argument('-x', '--exclude-origin', {

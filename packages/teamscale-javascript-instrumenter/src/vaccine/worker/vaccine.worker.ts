@@ -9,9 +9,9 @@ import { ProtocolMessageTypes } from '../protocol';
 console.log('Starting coverage forwarding worker.');
 
 // Create the client socket.
-// ATTENTION: Parts of the URLs, for example, $REPORT_TO_HOST,
+// ATTENTION: Parts of the URLs, for example, $REPORT_TO_URL,
 // get replaced when injecting the code into the code to record coverage for.
-const socket = new CachingSocket('ws://$REPORT_TO_HOST:$REPORT_TO_PORT/socket');
+const socket = new CachingSocket('$REPORT_TO_URL/socket');
 const aggregator = new CoverageAggregator(socket);
 
 // Handling of the messages the WebWorker receives

@@ -2,6 +2,8 @@ We use [Semantic Versioning](https://semver.org/).
 
 # New Release
 
+# 0.0.1-beta.36
+
 - [feature] Allow for specifying a full URL where the collector process is reachable. For example, `wss://test.local:8043/`. 
 
 # 0.0.1-beta.35

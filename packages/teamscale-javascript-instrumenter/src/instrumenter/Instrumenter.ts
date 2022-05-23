@@ -66,7 +66,12 @@ export class IstanbulInstrumenter implements IInstrumenter {
 		// not overuse memory (NodeJS has only limited mem to use).
 		return async
 			.mapLimit(task.elements, 1, async (taskElement: TaskElement) => {
-				return await this.instrumentOne(task.collector, taskElement, task.originSourcePattern);
+				return await this.instrumentOne(
+					task.collector,
+					taskElement,
+					task.originSourcePattern,
+					task.dumpOriginsFile
+				);
 			})
 			.then(results => {
 				return results.reduce((prev, curr) => {
@@ -81,11 +86,13 @@ export class IstanbulInstrumenter implements IInstrumenter {
 	 * @param collector - The collector to send the coverage information to.
 	 * @param taskElement - The task element to perform the instrumentation for.
 	 * @param sourcePattern - A pattern to restrict the instrumentation to only a fraction of the task element.
+	 * @param dumpOriginsFile
 	 */
 	async instrumentOne(
 		collector: CollectorSpecifier,
 		taskElement: TaskElement,
-		sourcePattern: OriginSourcePattern
+		sourcePattern: OriginSourcePattern,
+		dumpOriginsFile: string | undefined
 	): Promise<TaskResult> {
 		const inputFileSource = fs.readFileSync(taskElement.fromFile, 'utf8');
 
@@ -127,6 +134,9 @@ export class IstanbulInstrumenter implements IInstrumenter {
 				// and use the original code instead and write it to the target path.
 				//
 				const originSourceFiles = inputSourceMap?.sources ?? [];
+				if (dumpOriginsFile) {
+					this.dumpOrigins(dumpOriginsFile, originSourceFiles);
+				}
 				if (this.shouldExcludeFromInstrumentation(sourcePattern, taskElement.fromFile, originSourceFiles)) {
 					writeToFile(taskElement.toFile, inputFileSource);
 					return new TaskResult(0, 1, 0, 0, 0, 0, 0);
@@ -304,6 +314,16 @@ export class IstanbulInstrumenter implements IInstrumenter {
 		} else {
 			return sourceMapFromCodeComment(inputSourceCode, taskFile);
 		}
+	}
+
+	/** Dumps all origins from the source map into a given file. Overwrites the file if it already exists. */
+	private dumpOrigins(dumpOriginsFile: string, originSourceFiles: string[]) {
+		const jsonContent = JSON.stringify(originSourceFiles, null, 2);
+		fs.writeFile(dumpOriginsFile, jsonContent, error => {
+			if (error) {
+				this.logger.warn('Could not dump origins file');
+			}
+		});
 	}
 }
 

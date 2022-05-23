@@ -25,6 +25,8 @@ export type ConfigurationParameters = {
 	include_origin?: string[];
 	// eslint-disable-next-line camelcase
 	exclude_origin?: string[];
+	// eslint-disable-next-line camelcase
+	dump_origins?: string;
 };
 
 /**
@@ -58,6 +60,9 @@ export class TaskBuilder {
 
 	/** An exclude pattern. */
 	private originSourceExcludePatterns: string[] | undefined;
+
+	/** File path where all origins should be dumped in json format, or undefined if no origins will be dumped */
+	private dumpOriginsFile: string | undefined;
 
 	constructor() {
 		this.elements = [];
@@ -99,6 +104,7 @@ export class TaskBuilder {
 		const inPlace: boolean = config.in_place ?? true;
 		const target: string | undefined = config.to;
 		const sourceMap: string | undefined = config.source_map;
+		this.dumpOriginsFile = config.dump_origins;
 		this.setCollectorFromString(config.collector);
 		this.setOriginSourceIncludePatterns(config.include_origin);
 		this.setOriginSourceExcludePatterns(config.exclude_origin);
@@ -189,7 +195,12 @@ export class TaskBuilder {
 	 */
 	public build(): InstrumentationTask {
 		const pattern = new OriginSourcePattern(this.originSourceIncludePatterns, this.originSourceExcludePatterns);
-		return new InstrumentationTask(Contract.requireDefined(this.collector), this.elements, pattern);
+		return new InstrumentationTask(
+			Contract.requireDefined(this.collector),
+			this.elements,
+			pattern,
+			this.dumpOriginsFile
+		);
 	}
 }
 

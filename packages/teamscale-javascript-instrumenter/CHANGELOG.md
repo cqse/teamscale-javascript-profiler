@@ -2,7 +2,7 @@ We use [Semantic Versioning](https://semver.org/).
 
 # New Release
 
-- [fix] The main thread was delayed by looking up the code coverage range. Moved this to the Web worker.
+- [fix] The instrumentation added too much overhead to the code executed. Moved parts to a background process.
 
 # 0.0.1-beta.36
 

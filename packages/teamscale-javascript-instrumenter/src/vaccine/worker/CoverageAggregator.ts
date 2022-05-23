@@ -1,5 +1,6 @@
 import { CachingSocket } from './CachingSocket';
 import { ProtocolMessageTypes } from '../protocol';
+import { CodeRange } from '../types';
 
 /**
  * The number of cache elements after that the cache should be flushed.
@@ -65,7 +66,7 @@ export class CoverageAggregator {
 	/**
 	 * The actual cache with the coverage information by source file.
 	 */
-	private cachedCoveredPositions: Map<string, Set<string>>;
+	private cachedCoveredRanges: Map<string, Set<CodeRange>>;
 
 	/**
 	 * Counter with the number of entries added to the cache since the last flush.
@@ -84,31 +85,22 @@ export class CoverageAggregator {
 	 */
 	constructor(socket: CachingSocket) {
 		this.socket = socket;
-		this.cachedCoveredPositions = new Map();
+		this.cachedCoveredRanges = new Map();
 		this.numberOfCachedPositions = 0;
 		this.flushCountdown = new Countdown(FLUSH_AFTER_MILLIS, () => this.flush());
 	}
 
 	/**
 	 * Add coverage information.
-	 *
-	 * @param positionCoverageInfo - A string that encodes the coverage information.
-	 *      The string is supposed to be formatted as follows: `<fileId>:<startLine>:<startColumn>:<endLine>:<endColumn>`
 	 */
-	public add(positionCoverageInfo: string): void {
-		const parts = positionCoverageInfo.split(':');
-		if (parts.length !== 5) {
-			return;
-		}
-
-		const fileId = parts[0];
-		let coveredPositions: Set<string> | undefined = this.cachedCoveredPositions.get(fileId);
+	public addRange(fileId: string, range: CodeRange): void {
+		let coveredPositions: Set<CodeRange> | undefined = this.cachedCoveredRanges.get(fileId);
 		if (!coveredPositions) {
 			coveredPositions = new Set();
-			this.cachedCoveredPositions.set(fileId, coveredPositions);
+			this.cachedCoveredRanges.set(fileId, coveredPositions);
 		}
 
-		coveredPositions.add(`${parts[1]}:${parts[2]}:${parts[3]}:${parts[4]}`);
+		coveredPositions.add(range);
 
 		this.numberOfCachedPositions += 1;
 		this.flushCountdown.restartCountdown();
@@ -126,13 +118,16 @@ export class CoverageAggregator {
 		}
 
 		this.flushCountdown.stopCountdown();
-		this.cachedCoveredPositions.forEach((positionSet, fileId) => {
+		this.cachedCoveredRanges.forEach((rangeSet, fileId) => {
+			const rangeStrings = [...rangeSet].map(
+				range => `${range.start.line}:${range.start.column}:${range.end.line}:${range.end.column}`
+			);
 			this.socket.send(
-				`${ProtocolMessageTypes.MESSAGE_TYPE_COVERAGE} ${fileId} ${Array.from(positionSet).join(' ')}`
+				`${ProtocolMessageTypes.MESSAGE_TYPE_COVERAGE} ${fileId} ${Array.from(rangeStrings).join(' ')}`
 			);
 		});
 
-		this.cachedCoveredPositions = new Map();
+		this.cachedCoveredRanges = new Map();
 		this.numberOfCachedPositions = 0;
 	}
 }

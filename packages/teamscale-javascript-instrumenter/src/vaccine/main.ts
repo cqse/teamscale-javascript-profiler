@@ -1,10 +1,11 @@
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-// @ts-ignore: DataWorker import
+// @ts-ignore: DataWorker import is handled by Esbuild---see `esbuild.mjs` and `workers.d.ts`
 import DataWorker from './worker/vaccine.worker.ts';
-import { IstanbulCoverageStore, makeProxy } from './Interceptor';
+import { makeProxy } from './Interceptor';
 import * as unload from 'unload';
 import { getWindow, universe, hasWindow, universeAttribute } from './utils';
 import { ProtocolMessageTypes } from './protocol';
+import { IstanbulCoverageStore } from './types';
 
 // Prepare our global JavaScript object. This will hold
 // a reference to the WebWorker thread.
@@ -72,7 +73,10 @@ universe().makeCoverageInterceptor = function (coverage: IstanbulCoverageStore) 
 		})();
 	}
 
-	(function sendSourceMaps() {
+	(function sendSourceMapsAndCoverageObject() {
+		// Send the coverage object
+		getWorker().postMessage(`${ProtocolMessageTypes.ISTANBUL_COV_OBJECT} ${JSON.stringify(coverage)}`);
+
 		// Send the source maps
 		const sentMaps = universeAttribute('sentMaps', new Set());
 		if (coverage.inputSourceMap) {
@@ -105,5 +109,5 @@ universe().makeCoverageInterceptor = function (coverage: IstanbulCoverageStore) 
 		};
 	})();
 
-	return makeProxy(coverage, coverage, []);
+	return makeProxy(getWorker(), coverage, []);
 };

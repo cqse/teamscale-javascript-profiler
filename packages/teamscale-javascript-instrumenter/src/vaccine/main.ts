@@ -1,5 +1,5 @@
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-// @ts-ignore: DataWorker import
+// @ts-ignore: DataWorker import is handled by Esbuild---see `esbuild.mjs` and `workers.d.ts`
 import DataWorker from './worker/vaccine.worker.ts';
 import { makeProxy } from './Interceptor';
 import * as unload from 'unload';

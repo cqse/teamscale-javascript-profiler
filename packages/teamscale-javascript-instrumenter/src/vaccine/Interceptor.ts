@@ -1,6 +1,6 @@
 import { BRANCH_COVERAGE_ID, IstanbulCoverageStore, STATEMENT_COVERAGE_ID } from './types';
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-// @ts-ignore: DataWorker import
+// @ts-ignore: DataWorker import is handled by Esbuild---see `esbuild.mjs` and `workers.d.ts`
 import DataWorker from './worker/vaccine.worker.ts';
 import { ProtocolMessageTypes } from './protocol';
 

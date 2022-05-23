@@ -2,6 +2,8 @@ We use [Semantic Versioning](https://semver.org/).
 
 # New Release
 
+- [fix] The main thread was delayed by looking up the code coverage range. Moved this to the Web worker.
+
 # 0.0.1-beta.36
 
 - [feature] Allow for specifying a full URL where the collector process is reachable. For example, `wss://test.local:8043/`. 

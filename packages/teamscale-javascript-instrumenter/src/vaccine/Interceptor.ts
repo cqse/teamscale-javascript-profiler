@@ -34,19 +34,19 @@ class Interceptor implements ProxyHandler<IstanbulCoverageStore> {
 	public set(obj: never, prop: symbol | string, value: never): boolean {
 		const fullPath = [...this.path, prop];
 
-		if (fullPath[0] === STATEMENT_COVERAGE_ID) {
+		const coveredEntityType = fullPath[0];
+		if (coveredEntityType === STATEMENT_COVERAGE_ID) {
 			// Handle "Statement" coverage.
 			const statementId = fullPath[1] as string;
 			this.worker.postMessage(
 				`${ProtocolMessageTypes.UNRESOLVED_CODE_ENTITY} ${STATEMENT_COVERAGE_ID} ${statementId}`
 			);
-		} else if (fullPath[0] === BRANCH_COVERAGE_ID) {
+		} else if (coveredEntityType === BRANCH_COVERAGE_ID) {
 			// Handle "Branch" coverage.
 			// This is important because often statements of the original code
 			// are encoded into branch expressions as part of "Sequence Expressions".
 			const branchId = fullPath[1] as string;
-			const locationNo = Number.parseInt(fullPath[2] as string);
-
+			const locationNo = fullPath[2] as string;
 			this.worker.postMessage(
 				`${ProtocolMessageTypes.UNRESOLVED_CODE_ENTITY} ${BRANCH_COVERAGE_ID} ${branchId} ${locationNo}`
 			);

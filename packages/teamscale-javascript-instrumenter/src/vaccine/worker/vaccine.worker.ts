@@ -5,6 +5,7 @@
 import { CachingSocket } from './CachingSocket';
 import { CoverageAggregator } from './CoverageAggregator';
 import { ProtocolMessageTypes } from '../protocol';
+import { BRANCH_COVERAGE_ID, IstanbulCoverageStore, STATEMENT_COVERAGE_ID } from '../types';
 
 console.log('Starting coverage forwarding worker.');
 
@@ -13,17 +14,45 @@ console.log('Starting coverage forwarding worker.');
 // get replaced when injecting the code into the code to record coverage for.
 const socket = new CachingSocket('$REPORT_TO_URL/socket');
 const aggregator = new CoverageAggregator(socket);
+let coverage: IstanbulCoverageStore | null;
 
 // Handling of the messages the WebWorker receives
 onmessage = (event: MessageEvent) => {
-	const message = event.data;
+	const message: string = event.data;
 	if (message.startsWith(ProtocolMessageTypes.MESSAGE_TYPE_SOURCEMAP)) {
 		socket.send(message);
+	} else if (message.startsWith(ProtocolMessageTypes.ISTANBUL_COV_OBJECT)) {
+		coverage = JSON.parse(message.substring(2));
+	} else if (message.startsWith(ProtocolMessageTypes.UNRESOLVED_CODE_ENTITY)) {
+		handleUnresolvedCoveredEntity(message);
 	} else if (message === 'unload') {
 		// Send all information immediately
 		aggregator.flush();
 	} else {
-		// Coverage information
-		aggregator.add(message);
+		console.error(`No handler for message: ${message}`);
 	}
 };
+
+function handleUnresolvedCoveredEntity(message: string) {
+	const messageParts: string[] = message.split(' ');
+	if (messageParts.length < 3 || coverage === null) {
+		return;
+	}
+
+	const coveredEntityType = messageParts[1];
+
+	if (coveredEntityType === STATEMENT_COVERAGE_ID) {
+		// Handle "Statement" coverage.
+		const statementId = messageParts[2];
+		const codeRange = coverage.statementMap[statementId];
+		aggregator.addRange(coverage.hash, codeRange);
+	} else if (coveredEntityType === BRANCH_COVERAGE_ID) {
+		// Handle "Branch" coverage.
+		// This is important because often statements of the original code
+		// are encoded into branch expressions as part of "Sequence Expressions".
+		const branchId = messageParts[2];
+		const locationNo = Number.parseInt(messageParts[3]);
+		const codeRange = coverage.branchMap[branchId].locations[locationNo];
+		aggregator.addRange(coverage.hash, codeRange);
+	}
+}

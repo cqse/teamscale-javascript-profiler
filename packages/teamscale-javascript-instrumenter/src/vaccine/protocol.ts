@@ -7,5 +7,11 @@ export enum ProtocolMessageTypes {
 	MESSAGE_TYPE_SOURCEMAP = 's',
 
 	/** A message that provides coverage information */
-	MESSAGE_TYPE_COVERAGE = 'c'
+	MESSAGE_TYPE_COVERAGE = 'c',
+
+	/** A message containing an istanbul coverage object in JSON */
+	ISTANBUL_COV_OBJECT = 'i',
+
+	/** A message denoting an unresolved covered code entity */
+	UNRESOLVED_CODE_ENTITY = 'u'
 }

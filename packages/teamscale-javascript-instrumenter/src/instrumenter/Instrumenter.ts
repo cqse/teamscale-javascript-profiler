@@ -86,7 +86,7 @@ export class IstanbulInstrumenter implements IInstrumenter {
 	 * @param collector - The collector to send the coverage information to.
 	 * @param taskElement - The task element to perform the instrumentation for.
 	 * @param sourcePattern - A pattern to restrict the instrumentation to only a fraction of the task element.
-	 * @param dumpOriginsFile
+	 * @param dumpOriginsFile - A file path where all origins from the source map should be dumped in json format, or undefined if no origins should be dumped
 	 */
 	async instrumentOne(
 		collector: CollectorSpecifier,

@@ -61,7 +61,7 @@ export class TaskBuilder {
 	/** An exclude pattern. */
 	private originSourceExcludePatterns: string[] | undefined;
 
-	/** File path where all origins should be dumped in json format, or undefined if no origins will be dumped */
+	/** File path where all origins from the source map should be dumped in json format, or undefined if no origins should be dumped */
 	private dumpOriginsFile: string | undefined;
 
 	constructor() {

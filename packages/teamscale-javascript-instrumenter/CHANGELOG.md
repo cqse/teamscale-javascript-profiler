@@ -2,6 +2,8 @@ We use [Semantic Versioning](https://semver.org/).
 
 # New Release
 
+- [fix] The worker thread that aggregated the coverage in the browser ran out of memory for some apps.
+
 # 0.0.1-beta.37
 
 - [fix] The instrumentation added too much overhead to the code executed. Moved parts to a background process.

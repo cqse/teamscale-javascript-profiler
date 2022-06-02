@@ -43,6 +43,8 @@ export class CachingSocket {
 	 * Handle a (re-)established connection.
 	 */
 	private onopen() {
+		// eslint-disable-next-line no-console
+		console.log('Connection to Coverage Collector established.');
 		this.cachedMessages.forEach(message => this.socket.send(message));
 		this.cachedMessages = [];
 	}
@@ -57,6 +59,10 @@ export class CachingSocket {
 		} else {
 			// socket has not been opened yet for the first time
 			this.cachedMessages.push(message);
+			if (this.cachedMessages.length % 500 === 0) {
+				// eslint-disable-next-line no-console
+				console.log(`More than ${this.cachedMessages.length} messages are queued to be sent.`);
+			}
 		}
 	}
 }

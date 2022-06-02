@@ -122,12 +122,11 @@ export class CoverageAggregator {
 			const rangeStrings = [...rangeSet].map(
 				range => `${range.start.line}:${range.start.column}:${range.end.line}:${range.end.column}`
 			);
-			this.socket.send(
-				`${ProtocolMessageTypes.MESSAGE_TYPE_COVERAGE} ${fileId} ${Array.from(rangeStrings).join(' ')}`
-			);
+			this.socket.send(`${ProtocolMessageTypes.MESSAGE_TYPE_COVERAGE} ${fileId} ${rangeStrings.join(' ')}`);
+			rangeSet.clear();
 		});
 
-		this.cachedCoveredRanges = new Map();
+		this.cachedCoveredRanges.clear();
 		this.numberOfCachedPositions = 0;
 	}
 }

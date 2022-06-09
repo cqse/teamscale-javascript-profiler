@@ -12,7 +12,7 @@ class Interceptor implements ProxyHandler<IstanbulCoverageStore> {
 	 * Constructor.
 	 */
 	// eslint-disable-next-line no-useless-constructor
-	constructor(private worker: DataWorker, private path: (symbol | string)[]) {}
+	constructor(private worker: DataWorker, private fileHash: string, private path: (symbol | string)[]) {}
 
 	/**
 	 * Intercept reading an objects' property.
@@ -24,7 +24,7 @@ class Interceptor implements ProxyHandler<IstanbulCoverageStore> {
 			// Extract the primitive value
 			return value;
 		}
-		return makeProxy(this.worker, value, [...this.path, prop]);
+		return makeProxy(this.worker, this.fileHash, value, [...this.path, prop]);
 	}
 
 	/**
@@ -39,7 +39,7 @@ class Interceptor implements ProxyHandler<IstanbulCoverageStore> {
 			// Handle "Statement" coverage.
 			const statementId = fullPath[1] as string;
 			this.worker.postMessage(
-				`${ProtocolMessageTypes.UNRESOLVED_CODE_ENTITY} ${STATEMENT_COVERAGE_ID} ${statementId}`
+				`${ProtocolMessageTypes.UNRESOLVED_CODE_ENTITY} ${this.fileHash} ${STATEMENT_COVERAGE_ID} ${statementId}`
 			);
 		} else if (coveredEntityType === BRANCH_COVERAGE_ID) {
 			// Handle "Branch" coverage.
@@ -48,7 +48,7 @@ class Interceptor implements ProxyHandler<IstanbulCoverageStore> {
 			const branchId = fullPath[1] as string;
 			const locationNo = fullPath[2] as string;
 			this.worker.postMessage(
-				`${ProtocolMessageTypes.UNRESOLVED_CODE_ENTITY} ${BRANCH_COVERAGE_ID} ${branchId} ${locationNo}`
+				`${ProtocolMessageTypes.UNRESOLVED_CODE_ENTITY} ${this.fileHash} ${BRANCH_COVERAGE_ID} ${branchId} ${locationNo}`
 			);
 		}
 
@@ -60,13 +60,15 @@ class Interceptor implements ProxyHandler<IstanbulCoverageStore> {
  * Constructs the actual interceptor/proxy that forwards changed coverage information.
  *
  * @param worker - The Web worker object that receives all the coverage and forwards it.
+ * @param fileHash - The id of the file the coverage object belongs to.
  * @param target - A sub-object of the object `coverage` to actually create the proxy for.
  * @param path - Notes the path to the sub-object the proxy is created for.
  */
 export function makeProxy<T extends IstanbulCoverageStore>(
 	worker: DataWorker,
+	fileHash: string,
 	target: T,
 	path: (symbol | string)[]
 ): T {
-	return new Proxy(target, new Interceptor(worker, path));
+	return new Proxy(target, new Interceptor(worker, fileHash, path));
 }

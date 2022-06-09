@@ -135,7 +135,10 @@ export class IstanbulInstrumenter implements IInstrumenter {
 				// The main instrumentation (adding coverage statements) is performed now:
 				instrumentedSource = instrumenter
 					.instrumentSync(inputFileSource, taskElement.fromFile, inputSourceMap as any)
-					.replace(/return actualCoverage/g, 'return makeCoverageInterceptor(actualCoverage)')
+					.replace(
+						/actualCoverage\s*=\s*coverage\[path\]/g,
+						'actualCoverage=makeCoverageInterceptor(coverage[path])'
+					)
 					.replace(/new Function\("return this"\)\(\)/g, "typeof window === 'object' ? window : this");
 				this.logger.debug('Instrumentation source maps to:', instrumenter.lastSourceMap()?.sources);
 

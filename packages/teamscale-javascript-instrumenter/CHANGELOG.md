@@ -2,6 +2,8 @@ We use [Semantic Versioning](https://semver.org/).
 
 # New Release
 
+- [fix] The coverage interceptor was initialized too often leading to tab crashes.
+
 # 0.0.1-beta.38 
 
 - [fix] The worker thread that aggregated the coverage in the browser ran out of memory for some apps.

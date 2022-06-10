@@ -61,8 +61,10 @@ export class Session {
 	 * This method also conducts the mapping based on the source map.
 	 *
 	 * @param fileId - The identifier of the instrumented bundle (file).
-	 * @param line - The line number within the bundle.
-	 * @param column - The column within the bundle.
+	 * @param startLine - The line number within the bundle the range starts.
+	 * @param startColumn - The column in the given `startLine` on that the range starts (inclusive).
+	 * @param endLine - The line number within the bundle the range ends.
+	 * @param endColumn - The column in the given `startLine` on that the range ends (inclusive).
 	 */
 	public putCoverage(
 		fileId: string,

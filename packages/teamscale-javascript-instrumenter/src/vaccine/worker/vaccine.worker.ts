@@ -14,7 +14,7 @@ console.log('Starting coverage forwarding worker.');
 // get replaced when injecting the code into the code to record coverage for.
 const socket = new CachingSocket('$REPORT_TO_URL/socket');
 const aggregator = new CoverageAggregator(socket);
-let coverage: IstanbulCoverageStore | null;
+const coverage: Map<string, IstanbulCoverageStore> = new Map();
 
 // Handling of the messages the WebWorker receives
 onmessage = (event: MessageEvent) => {
@@ -24,7 +24,9 @@ onmessage = (event: MessageEvent) => {
 		socket.send(message);
 	} else if (message.startsWith(ProtocolMessageTypes.ISTANBUL_COV_OBJECT)) {
 		// Parse the Istanbul coverage object for usage in this Web worker
-		coverage = JSON.parse(message.substring(2));
+		const fileCoverage = JSON.parse(message.substring(2));
+		coverage.set(fileCoverage.hash, fileCoverage);
+		console.info(`Received coverage mapping information for "${fileCoverage.hash}".`);
 	} else if (message.startsWith(ProtocolMessageTypes.UNRESOLVED_CODE_ENTITY)) {
 		// Handle the coverage of a code entity. The code range is looked up
 		// using the Istanbul coverage object.
@@ -45,24 +47,34 @@ onmessage = (event: MessageEvent) => {
  */
 function handleUnresolvedCoveredEntity(message: string) {
 	const messageParts: string[] = message.split(' ');
-	if (messageParts.length < 3 || coverage === null) {
+	if (messageParts.length < 4 || coverage === null) {
 		return;
 	}
 
-	const coveredEntityType = messageParts[1];
+	const fileId = messageParts[1];
+	const coveredEntityType = messageParts[2];
+	const fileCoverageInfos = coverage.get(fileId);
+	if (!fileCoverageInfos) {
+		console.log(`No coverage mapping information for ${fileId} available!`);
+		return;
+	}
 
 	if (coveredEntityType === STATEMENT_COVERAGE_ID) {
 		// Handle "Statement" coverage.
-		const statementId = messageParts[2];
-		const codeRange = coverage.statementMap[statementId];
-		aggregator.addRange(coverage.hash, codeRange);
+		const statementId = messageParts[3];
+		const codeRange = fileCoverageInfos.statementMap[statementId];
+		if (codeRange) {
+			aggregator.addRange(fileId, codeRange);
+		}
 	} else if (coveredEntityType === BRANCH_COVERAGE_ID) {
 		// Handle "Branch" coverage.
 		// This is important because often statements of the original code
 		// are encoded into branch expressions as part of "Sequence Expressions".
-		const branchId = messageParts[2];
-		const locationNo = Number.parseInt(messageParts[3]);
-		const codeRange = coverage.branchMap[branchId].locations[locationNo];
-		aggregator.addRange(coverage.hash, codeRange);
+		const branchId = messageParts[3];
+		const locationNo = Number.parseInt(messageParts[4]);
+		const codeRange = fileCoverageInfos.branchMap[branchId]?.locations[locationNo];
+		if (codeRange) {
+			aggregator.addRange(fileId, codeRange);
+		}
 	}
 }

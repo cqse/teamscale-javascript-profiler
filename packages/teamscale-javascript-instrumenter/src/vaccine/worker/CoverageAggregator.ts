@@ -119,7 +119,7 @@ export class CoverageAggregator {
 
 		this.flushCountdown.stopCountdown();
 		this.cachedCoveredRanges.forEach((rangeSet, fileId) => {
-			const rangeStrings = [...rangeSet].map(
+			const rangeStrings = Array.from(rangeSet).map(
 				range => `${range.start.line}:${range.start.column}:${range.end.line}:${range.end.column}`
 			);
 			this.socket.send(`${ProtocolMessageTypes.MESSAGE_TYPE_COVERAGE} ${fileId} ${rangeStrings.join(' ')}`);

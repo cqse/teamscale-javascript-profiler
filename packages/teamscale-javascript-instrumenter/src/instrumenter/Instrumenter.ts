@@ -62,6 +62,8 @@ export class IstanbulInstrumenter implements IInstrumenter {
 	 * {@inheritDoc #IInstrumenter.instrument}
 	 */
 	async instrument(task: InstrumentationTask): Promise<TaskResult> {
+		this.clearDumpOriginsFileIfNeeded(task.dumpOriginsFile);
+
 		// We limit the number of instrumentations in parallel to one to
 		// not overuse memory (NodeJS has only limited mem to use).
 		return async
@@ -316,14 +318,25 @@ export class IstanbulInstrumenter implements IInstrumenter {
 		}
 	}
 
-	/** Dumps all origins from the source map into a given file. Overwrites the file if it already exists. */
+	/** Appends all origins from the source map to a given file. Creates the file if it does not exist yet. */
 	private dumpOrigins(dumpOriginsFile: string, originSourceFiles: string[]) {
 		const jsonContent = JSON.stringify(originSourceFiles, null, 2);
-		fs.writeFile(dumpOriginsFile, jsonContent, error => {
+		fs.writeFile(dumpOriginsFile, jsonContent + '\n', { flag: 'a' }, error => {
 			if (error) {
 				this.logger.warn('Could not dump origins file');
 			}
 		});
+	}
+
+	/** Clears the dump origins file if it exists, such that it is now ready to be appended for every instrumented file. */
+	private clearDumpOriginsFileIfNeeded(dumpOriginsFile: string | undefined) {
+		if (dumpOriginsFile && fs.existsSync(dumpOriginsFile)) {
+			try {
+				fs.unlinkSync(dumpOriginsFile);
+			} catch (err) {
+				this.logger.warn('Could not clear origins file: ' + err);
+			}
+		}
 	}
 }
 

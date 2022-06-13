@@ -26,7 +26,7 @@ export type ConfigurationParameters = {
 	// eslint-disable-next-line camelcase
 	exclude_origin?: string[];
 	// eslint-disable-next-line camelcase
-	dump_origins?: string;
+	dump_origins_to?: string;
 };
 
 /**
@@ -104,7 +104,7 @@ export class TaskBuilder {
 		const inPlace: boolean = config.in_place ?? true;
 		const target: string | undefined = config.to;
 		const sourceMap: string | undefined = config.source_map;
-		this.dumpOriginsFile = config.dump_origins;
+		this.dumpOriginsFile = config.dump_origins_to;
 		this.setCollectorFromString(config.collector);
 		this.setOriginSourceIncludePatterns(config.include_origin);
 		this.setOriginSourceExcludePatterns(config.exclude_origin);

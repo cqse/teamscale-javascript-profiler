@@ -1,0 +1,8 @@
+<component name="ProjectRunConfigurationManager">
+  <configuration default="false" name="Test All" type="CompoundRunConfigurationType">
+    <toRun name="commons test" type="js.build_tools.npm" />
+    <toRun name="coverage collector test" type="js.build_tools.npm" />
+    <toRun name="instrumenter test" type="js.build_tools.npm" />
+    <method v="2" />
+  </configuration>
+</component>

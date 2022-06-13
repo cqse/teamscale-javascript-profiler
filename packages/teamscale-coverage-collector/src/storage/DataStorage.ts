@@ -202,30 +202,33 @@ export class DataStorage implements IDataStorage {
 	 * {@inheritDoc IReadableStorage.writeToSimpleCoverageFile}
 	 */
 	public dumpToSimpleCoverageFile(filePath: string): number {
-		const toSimpleCoverage: () => [number, string] = () => {
-			const result: string[] = [];
-			Contract.require(this.getProjects().length < 2, 'Only one project supported to be handled in parallel.');
-
-			for (const project of this.getProjects()) {
-				const projectCoverage = this.getCoverageBySourceFile(project);
-				if (!projectCoverage) {
-					return [0, ''];
-				}
-
-				for (const entry of projectCoverage) {
-					result.push(this.normalizeSourceFileName(entry.sourceFile));
-					for (const lineNo of entry.coveredLines) {
-						result.push(String(lineNo));
-					}
-				}
-			}
-
-			return [result.length, result.join('\n')];
-		};
-
-		const [lines, content] = toSimpleCoverage();
+		const [lines, content] = this.toSimpleCoverage();
 		fs.writeFileSync(filePath.trim(), content, { flag: 'w', encoding: 'utf8' });
 		return lines;
+	}
+
+	/**
+	 * Generate simple coverage format for the collected coverage
+	 */
+	private toSimpleCoverage(): [number, string] {
+		const result: string[] = [];
+		Contract.require(this.getProjects().length < 2, 'Only one project supported to be handled in parallel.');
+
+		for (const project of this.getProjects()) {
+			const projectCoverage = this.getCoverageBySourceFile(project);
+			if (!projectCoverage) {
+				return [0, ''];
+			}
+
+			for (const entry of projectCoverage) {
+				result.push(this.normalizeSourceFileName(entry.sourceFile));
+				for (const lineNo of entry.coveredLines) {
+					result.push(String(lineNo));
+				}
+			}
+		}
+
+		return [result.length, result.join('\n')];
 	}
 
 	/**

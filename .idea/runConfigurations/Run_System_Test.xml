@@ -1,5 +1,15 @@
 <component name="ProjectRunConfigurationManager">
   <configuration default="false" name="Run System Test" type="NodeJSConfigurationType" node-parameters="--require ts-node/register --max-old-space-size=8192" path-to-js-file="test/systemtest.mjs" working-dir="$PROJECT_DIR$">
-    <method v="2" />
+    <method v="2">
+      <option name="NpmBeforeRunTask" enabled="true">
+        <package-json value="$PROJECT_DIR$/package.json" />
+        <command value="run" />
+        <scripts>
+          <script value="build" />
+        </scripts>
+        <node-interpreter value="project" />
+        <envs />
+      </option>
+    </method>
   </configuration>
 </component>

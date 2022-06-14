@@ -34,8 +34,10 @@ export interface IReadableStorage {
 	 *
 	 * @param baseFilePath - Full path of the file to write the coverage to.
 	 * @param date - Date to use for the appended timestamp
+	 *
+	 * @return The number of lines written
 	 */
-	dumpToSimpleCoverageFile(baseFilePath: string, date: Date): void;
+	dumpToSimpleCoverageFile(baseFilePath: string, date: Date): number;
 }
 
 /**
@@ -130,7 +132,7 @@ export class DataStorage implements IDataStorage {
 	/**
 	 * Coverage information by project.
 	 */
-	private readonly coverageByProject: Map<string, ProjectCoverage>;
+	private coverageByProject: Map<string, ProjectCoverage>;
 
 	/**
 	 * Logger to use.
@@ -214,7 +216,18 @@ export class DataStorage implements IDataStorage {
 
 		const finalFilePath = this.appendTimestampToFilePath(baseFilePath.trim(), date);
 		fs.writeFileSync(finalFilePath, content, { flag: 'w', encoding: 'utf8' });
+
+		this.resetCoverage();
+
 		return lines;
+	}
+
+	/**
+	 * Set the collected coverage to 0 for all projects
+	 * @private
+	 */
+	private resetCoverage() {
+		this.coverageByProject = new Map<string, ProjectCoverage>();
 	}
 
 	/**

@@ -69,6 +69,25 @@ test('Test that coverage file paths are trimmed', () => {
 	targetDir.removeCallback();
 });
 
+test('Coverage is reset after dump', () => {
+	const dataStorage = new DataStorage(createLogger());
+	const targetDir = tmp.dirSync({ unsafeCleanup: true });
+	const targetFileName = path.join(targetDir.name, 'coverage');
+	const firstDumpDate = new Date();
+	const project = 'test_project';
+	const coveredFile = 'test_file';
+	const coveredLines = [1, 2, 3];
+
+	dataStorage.putCoverage(project, coveredFile, coveredLines);
+	const firstWrittenLines = dataStorage.dumpToSimpleCoverageFile(targetFileName, firstDumpDate);
+
+	const secondDumpDate = new Date();
+	const secondWrittenLines = dataStorage.dumpToSimpleCoverageFile(targetFileName, secondDumpDate);
+
+	expect(firstWrittenLines).toBeGreaterThan(0);
+	expect(secondWrittenLines).toBe(0);
+});
+
 function createLogger() {
 	return Logger.createLogger({
 		name: 'Collector',

@@ -154,12 +154,12 @@ export class Main {
 				{ level: logLevel, stream: new PrettyFileLogger(fs.createWriteStream(logfilePath)), type: 'raw' }
 			]
 		});
-    
+
 		// If the given flag is set, we also log with a JSON-like format
 		if (config.json_log) {
 			logger.addStream({ level: logLevel, path: `${logfilePath}.json` });
 		}
-    
+
 		return logger;
 	}
 
@@ -231,7 +231,7 @@ export class Main {
 			const coverageFile = config.dump_to_file ?? tmp.tmpNameSync();
 			try {
 				// 1. Write coverage to a file
-				const lines = storage.dumpToSimpleCoverageFile(coverageFile);
+				const lines = storage.dumpToSimpleCoverageFile(coverageFile, new Date());
 				logger.info(`Dumped ${lines} lines of coverage to ${coverageFile}.`);
 
 				// 2. Upload to Teamscale if configured

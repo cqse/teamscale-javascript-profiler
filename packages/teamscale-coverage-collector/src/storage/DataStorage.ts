@@ -1,6 +1,8 @@
 import { Contract, removePrefix } from '@cqse/commons';
 import * as fs from 'fs';
 import Logger from 'bunyan';
+import path from 'path';
+import * as dat from 'date-and-time';
 
 /**
  * Lines covered for the specified file.
@@ -28,11 +30,12 @@ export interface IReadableStorage {
 	getCoverageBySourceFile(project: string): IterableIterator<FileCoverage> | undefined;
 
 	/**
-	 * Write the coverage to the specified file.
+	 * Write the coverage to the specified file. A timestamp will be appended to the provided file path.
 	 *
-	 * @param filePath - Full path of the file to write the coverage to.
+	 * @param baseFilePath - Full path of the file to write the coverage to.
+	 * @param date - Date to use for the appended timestamp
 	 */
-	dumpToSimpleCoverageFile(filePath: string): void;
+	dumpToSimpleCoverageFile(baseFilePath: string, date: Date): void;
 }
 
 /**
@@ -140,6 +143,11 @@ export class DataStorage implements IDataStorage {
 	private timesUnmappedCoverage: number;
 
 	/**
+	 * Date format for the timestamp appended to the coverage files
+	 */
+	public readonly DATE_FORMAT = 'YYYY-MM-DD-HH-mm-ss.SSS';
+
+	/**
 	 * Constructs the data storage.
 	 *
 	 * @param logger - The logger to use.
@@ -201,10 +209,33 @@ export class DataStorage implements IDataStorage {
 	/**
 	 * {@inheritDoc IReadableStorage.writeToSimpleCoverageFile}
 	 */
-	public dumpToSimpleCoverageFile(filePath: string): number {
+	public dumpToSimpleCoverageFile(baseFilePath: string, date: Date): number {
 		const [lines, content] = this.toSimpleCoverage();
-		fs.writeFileSync(filePath.trim(), content, { flag: 'w', encoding: 'utf8' });
+
+		const finalFilePath = this.appendTimestampToFilePath(baseFilePath.trim(), date);
+		fs.writeFileSync(finalFilePath, content, { flag: 'w', encoding: 'utf8' });
 		return lines;
+	}
+
+	/**
+	 * Appends the timestamp given with date to the baseFilePath (before the file ending if there is one)
+	 * @param baseFilePath Path to the coverage file
+	 * @param date Represents the timestamp to be appended with the format {@link DataStorage.DATE_FORMAT}
+	 * @private
+	 */
+	private appendTimestampToFilePath(baseFilePath: string, date: Date): string {
+		const baseName = path.basename(baseFilePath);
+		const dirName = path.dirname(baseFilePath);
+		const baseNameSegments = baseName.split('.');
+		const baseNameWithoutFileEnding = baseNameSegments.slice(0, baseNameSegments.length - 1).join('.');
+		const fileEnding = baseNameSegments[baseNameSegments.length - 1];
+		const formattedDate = dat.format(date, this.DATE_FORMAT);
+
+		if (baseNameSegments.length === 1) {
+			return path.join(dirName, `${baseName}-${formattedDate}`);
+		}
+
+		return path.join(dirName, `${baseNameWithoutFileEnding}-${formattedDate}.${fileEnding}`);
 	}
 
 	/**

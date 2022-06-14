@@ -229,18 +229,19 @@ export class Main {
 		try {
 			const deleteCoverageFileAfterUpload = !config.dump_to_file;
 			const coverageFile = config.dump_to_file ?? tmp.tmpNameSync();
+			let dumpOut: [string, number] = [coverageFile, 0];
 			try {
 				// 1. Write coverage to a file
-				const lines = storage.dumpToSimpleCoverageFile(coverageFile, new Date());
-				logger.info(`Dumped ${lines} lines of coverage to ${coverageFile}.`);
+				dumpOut = storage.dumpToSimpleCoverageFile(coverageFile, new Date());
+				logger.info(`Dumped ${dumpOut[1]} lines of coverage to ${dumpOut[0]}.`);
 
 				// 2. Upload to Teamscale if configured
 				if (config.teamscale_server_url) {
-					await this.uploadToTeamscale(config, logger, coverageFile, lines);
+					await this.uploadToTeamscale(config, logger, dumpOut[0], dumpOut[1]);
 				}
 			} finally {
 				if (deleteCoverageFileAfterUpload) {
-					fs.unlinkSync(coverageFile);
+					fs.unlinkSync(dumpOut[0]);
 				}
 			}
 		} catch (e) {

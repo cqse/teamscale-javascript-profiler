@@ -79,10 +79,10 @@ test('Coverage is reset after dump', () => {
 	const coveredLines = [1, 2, 3];
 
 	dataStorage.putCoverage(project, coveredFile, coveredLines);
-	const firstWrittenLines = dataStorage.dumpToSimpleCoverageFile(targetFileName, firstDumpDate);
+	const [, firstWrittenLines] = dataStorage.dumpToSimpleCoverageFile(targetFileName, firstDumpDate);
 
 	const secondDumpDate = new Date();
-	const secondWrittenLines = dataStorage.dumpToSimpleCoverageFile(targetFileName, secondDumpDate);
+	const [, secondWrittenLines] = dataStorage.dumpToSimpleCoverageFile(targetFileName, secondDumpDate);
 
 	expect(firstWrittenLines).toBeGreaterThan(0);
 	expect(secondWrittenLines).toBe(0);

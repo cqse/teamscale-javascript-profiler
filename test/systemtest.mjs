@@ -1,10 +1,9 @@
 import LocalWebServer from 'local-web-server';
 import cypress from 'cypress';
-import { execSync } from 'child_process';
+import { execSync, spawn } from 'child_process';
 import path from 'path';
 import * as fs from 'fs';
 import * as fsp from 'fs/promises';
-import { spawn } from 'child_process';
 import ServerMock from 'mock-http-server';
 
 /**
@@ -254,13 +253,16 @@ for (const study of caseStudies) {
 		});
 
 		try {
-			const coverageTargetFile = path.resolve(`${study.rootDir}/coverage.simple`);
+			const coverageTargetDir = path.resolve(path.join(study.rootDir, 'coverage'));
+			const coverageTargetFileName = 'coverage.simple';
+			const coverageTargetPath = path.join(coverageTargetDir, coverageTargetFileName);
 			const logTargetFile = path.resolve(`${study.rootDir}/coverage.log`);
 
 			// Delete existing files
-			if (fs.existsSync(coverageTargetFile)) {
-				await fsp.unlink(coverageTargetFile);
+			if (fs.existsSync(coverageTargetDir)) {
+				fs.rmdirSync(coverageTargetDir, { recursive: true });
 			}
+			fs.mkdirSync(coverageTargetDir);
 			if (fs.existsSync(logTargetFile)) {
 				await fsp.unlink(logTargetFile);
 			}
@@ -285,7 +287,7 @@ for (const study of caseStudies) {
 			// Start the new collector
 			console.log('## Starting the collector');
 			console.log(`Collector is logging to ${logTargetFile}`);
-			const collectProcess = startCollector(coverageTargetFile, logTargetFile, study.name);
+			const collectProcess = startCollector(coverageTargetPath, logTargetFile, study.name);
 
 			try {
 				console.log('## Running Cypress');
@@ -314,13 +316,18 @@ for (const study of caseStudies) {
 			if (!fs.existsSync(logTargetFile)) {
 				throw new Error('The coverage collector is supposed to write a log file!');
 			}
-			if (!fs.existsSync(coverageTargetFile)) {
+
+			const coverageFiles = fs.readdirSync(coverageTargetDir);
+			if (coverageFiles.length === 0) {
 				throw new Error('The coverage collector did not write a coverage file!');
+			} else if (coverageFiles.length > 1) {
+				throw new Error('More than one coverage file was written');
 			}
+			const coverageFile = path.join(coverageTargetDir, coverageFiles[0]);
 
 			// Analyze the coverage
-			console.log(`## Analysis of coverage in ${coverageTargetFile}`);
-			checkCoverage(coverageTargetFile, study);
+			console.log(`## Analysis of coverage in ${coverageFile}`);
+			checkCoverage(coverageFile, study);
 
 			// Check the calls to the Teamscale mock server
 			const mockedRequests = teamscaleServerMock.requests({ method: 'POST' }).length;

@@ -37,7 +37,7 @@ export interface IReadableStorage {
 	 *
 	 * @return The number of lines written
 	 */
-	dumpToSimpleCoverageFile(baseFilePath: string, date: Date): number;
+	dumpToSimpleCoverageFile(baseFilePath: string, date: Date): [string, number];
 }
 
 /**
@@ -211,7 +211,7 @@ export class DataStorage implements IDataStorage {
 	/**
 	 * {@inheritDoc IReadableStorage.writeToSimpleCoverageFile}
 	 */
-	public dumpToSimpleCoverageFile(baseFilePath: string, date: Date): number {
+	public dumpToSimpleCoverageFile(baseFilePath: string, date: Date): [string, number] {
 		const [lines, content] = this.toSimpleCoverage();
 
 		const finalFilePath = this.appendTimestampToFilePath(baseFilePath.trim(), date);
@@ -219,7 +219,7 @@ export class DataStorage implements IDataStorage {
 
 		this.resetCoverage();
 
-		return lines;
+		return [finalFilePath, lines];
 	}
 
 	/**

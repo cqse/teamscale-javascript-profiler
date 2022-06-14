@@ -1,6 +1,7 @@
 We use [Semantic Versioning](https://semver.org/).
 
 # New Release
+- [fix] Reset coverage after dump and add timestamps to coverage files
 
 # 0.0.1-beta.36
 

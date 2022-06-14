@@ -169,10 +169,10 @@ function identifyExpectedButAbsent(actual, expected) {
  * Start the collector process.
  * @returns {ChildProcessWithoutNullStreams}
  */
-function startCollector(coverageTargetFile, logTargetFile, projectId) {
+function startCollector(coverageFolder, logTargetFile, projectId) {
 	const collector = spawn(
 		'node',
-		[`${COLLECTOR_DIR}/dist/src/main.js`, `-f`, `${coverageTargetFile}`, `-l`, `${logTargetFile}`, `-e`, `info`],
+		[`${COLLECTOR_DIR}/dist/src/main.js`, `-f`, `${coverageFolder}`, `-l`, `${logTargetFile}`, `-e`, `info`],
 		{
 			env: {
 				...process.env,
@@ -253,16 +253,14 @@ for (const study of caseStudies) {
 		});
 
 		try {
-			const coverageTargetDir = path.resolve(path.join(study.rootDir, 'coverage'));
-			const coverageTargetFileName = 'coverage.simple';
-			const coverageTargetPath = path.join(coverageTargetDir, coverageTargetFileName);
+			const coverageFolder = path.resolve(path.join(study.rootDir, 'coverage'));
 			const logTargetFile = path.resolve(`${study.rootDir}/coverage.log`);
 
 			// Delete existing files
-			if (fs.existsSync(coverageTargetDir)) {
-				fs.rmdirSync(coverageTargetDir, { recursive: true });
+			if (fs.existsSync(coverageFolder)) {
+				fs.rmdirSync(coverageFolder, { recursive: true });
 			}
-			fs.mkdirSync(coverageTargetDir);
+			fs.mkdirSync(coverageFolder);
 			if (fs.existsSync(logTargetFile)) {
 				await fsp.unlink(logTargetFile);
 			}
@@ -279,7 +277,7 @@ for (const study of caseStudies) {
 				}
 			});
 
-			await new Promise((resolve, reject) => {
+			await new Promise(resolve => {
 				console.log('## Starting the Teamscale mock server');
 				teamscaleServerMock.start(resolve);
 			});
@@ -287,7 +285,7 @@ for (const study of caseStudies) {
 			// Start the new collector
 			console.log('## Starting the collector');
 			console.log(`Collector is logging to ${logTargetFile}`);
-			const collectProcess = startCollector(coverageTargetPath, logTargetFile, study.name);
+			const collectProcess = startCollector(coverageFolder, logTargetFile, study.name);
 
 			try {
 				console.log('## Running Cypress');
@@ -317,13 +315,13 @@ for (const study of caseStudies) {
 				throw new Error('The coverage collector is supposed to write a log file!');
 			}
 
-			const coverageFiles = fs.readdirSync(coverageTargetDir);
+			const coverageFiles = fs.readdirSync(coverageFolder);
 			if (coverageFiles.length === 0) {
 				throw new Error('The coverage collector did not write a coverage file!');
 			} else if (coverageFiles.length > 1) {
 				throw new Error('More than one coverage file was written');
 			}
-			const coverageFile = path.join(coverageTargetDir, coverageFiles[0]);
+			const coverageFile = path.join(coverageFolder, coverageFiles[0]);
 
 			// Analyze the coverage
 			console.log(`## Analysis of coverage in ${coverageFile}`);
@@ -337,7 +335,7 @@ for (const study of caseStudies) {
 				console.log(`Received ${mockedRequests} requests in the Teamscale mock server.`);
 			}
 
-			await new Promise((resolve, reject) => {
+			await new Promise(resolve => {
 				console.log('## Stopping the Teamscale mock server');
 				teamscaleServerMock.stop(resolve);
 			});

@@ -179,10 +179,18 @@ export class InstrumentationTask {
 	 */
 	public readonly originSourcePattern: OriginSourcePattern;
 
-	constructor(collector: CollectorSpecifier, elements: TaskElement[], originSourcePattern: OriginSourcePattern) {
+	public readonly dumpOriginsFile: string | undefined;
+
+	constructor(
+		collector: CollectorSpecifier,
+		elements: TaskElement[],
+		originSourcePattern: OriginSourcePattern,
+		dumpOriginsFile: string | undefined
+	) {
 		this.collector = Contract.requireDefined(collector);
 		this.originSourcePattern = Contract.requireDefined(originSourcePattern);
 		this._elements = Contract.requireDefined(elements).slice();
+		this.dumpOriginsFile = dumpOriginsFile;
 	}
 
 	/**

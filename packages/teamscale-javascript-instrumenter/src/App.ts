@@ -62,6 +62,9 @@ export class App {
 			nargs: '*',
 			help: 'Glob pattern(s) of files in the source origin to produce coverage for. Multiple patterns can be separated by space.'
 		});
+		parser.add_argument('-p', '--dump-origins-to', {
+			help: 'Optional location specifying where to dump possible origins from the source map as a json file'
+		});
 		parser.add_argument('inputs', { nargs: '+', help: 'The input file(s) to instrument.' });
 
 		return parser;

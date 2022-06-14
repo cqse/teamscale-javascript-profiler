@@ -24,8 +24,15 @@ import { PrettyFileLogger } from './utils/PrettyFileLogger';
  * the parameters that way---as in Python from which ArgParse stems.
  */
 type Parameters = {
+	/**
+	 * @deprecated since we create coverage files with timestamps now.
+	 * The user shall use dump_to_folder instead.
+	 * Migration for dump_to_file: Create a folder at the provided file path instead of a file.
+	 */
 	// eslint-disable-next-line camelcase
 	dump_to_file?: string;
+	// eslint-disable-next-line camelcase
+	dump_to_folder?: string;
 	// eslint-disable-next-line camelcase
 	log_to_file: string;
 	// eslint-disable-next-line camelcase
@@ -72,7 +79,10 @@ export class Main {
 
 		parser.add_argument('-v', '--version', { action: 'version', version });
 		parser.add_argument('-p', '--port', { help: 'The port to receive coverage information on.', default: 54678 });
-		parser.add_argument('-f', '--dump-to-file', { help: 'Target file to write coverage to.' });
+		parser.add_argument('--dump-to-file', {
+			help: 'DEPRECATED, PLEASE USE --dump-to-folder INSTEAD. A folder will be created instead a file at the provided location.'
+		});
+		parser.add_argument('-f', '--dump-to-folder', { help: 'Target folder for coverage files.' });
 		parser.add_argument('-l', '--log-to-file', { help: 'Log file', default: 'logs/collector-combined.log' });
 		parser.add_argument('-e', '--log-level', { help: 'Log level', default: 'info' });
 		parser.add_argument('-t', '--dump-after-mins', {
@@ -176,7 +186,7 @@ export class Main {
 		logger.info(`Logging "${config.log_level}" to "${config.log_to_file}".`);
 
 		// Check the command line arguments
-		if (!config.dump_to_file && !config.teamscale_server_url) {
+		if (!config.dump_to_file && !config.dump_to_folder && !config.teamscale_server_url) {
 			logger.error('The Collector must be configured to either dump to a file or upload to Teamscale.');
 			process.exit(1);
 		}
@@ -227,12 +237,12 @@ export class Main {
 
 	private static async dumpCoverage(config: Parameters, storage: DataStorage, logger: Logger): Promise<void> {
 		try {
-			const deleteCoverageFileAfterUpload = !config.dump_to_file;
-			const coverageFile = config.dump_to_file ?? tmp.tmpNameSync();
-			let dumpOut: [string, number] = [coverageFile, 0];
+			const deleteCoverageFileAfterUpload = !config.dump_to_file && !config.dump_to_folder;
+			const coverageFolder = config.dump_to_folder ?? config.dump_to_file ?? tmp.tmpNameSync();
+			let dumpOut: [string, number] = [coverageFolder, 0];
 			try {
 				// 1. Write coverage to a file
-				dumpOut = storage.dumpToSimpleCoverageFile(coverageFile, new Date());
+				dumpOut = storage.dumpToSimpleCoverageFile(coverageFolder, new Date());
 				logger.info(`Dumped ${dumpOut[1]} lines of coverage to ${dumpOut[0]}.`);
 
 				// 2. Upload to Teamscale if configured

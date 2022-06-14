@@ -32,12 +32,12 @@ export interface IReadableStorage {
 	/**
 	 * Write the coverage to the specified file. A timestamp will be appended to the provided file path.
 	 *
-	 * @param baseFilePath - Full path of the file to write the coverage to.
+	 * @param coverageFolder - Full path of the file to write the coverage to.
 	 * @param date - Date to use for the appended timestamp
 	 *
 	 * @return The number of lines written
 	 */
-	dumpToSimpleCoverageFile(baseFilePath: string, date: Date): [string, number];
+	dumpToSimpleCoverageFile(coverageFolder: string, date: Date): [string, number];
 }
 
 /**
@@ -168,7 +168,7 @@ export class DataStorage implements IDataStorage {
 	 * @param coveredOriginalLines - The lines covered in the file.
 	 */
 	public putCoverage(project: string, sourceFilePath: string, coveredOriginalLines: number[]): void {
-		const uniformPath = this.normalizeSourceFileName(sourceFilePath);
+		const uniformPath = DataStorage.normalizeSourceFileName(sourceFilePath);
 		let projectCoverage: ProjectCoverage | undefined = this.coverageByProject.get(project);
 		if (!projectCoverage) {
 			projectCoverage = new ProjectCoverage(project);
@@ -185,7 +185,7 @@ export class DataStorage implements IDataStorage {
 	 *
 	 * @param sourceFile - The file name to normalize, produced by the instrumenter.
 	 */
-	private normalizeSourceFileName(sourceFile: string): string {
+	private static normalizeSourceFileName(sourceFile: string): string {
 		return removePrefix('webpack:///', sourceFile.replace('\\', '/'));
 	}
 
@@ -209,12 +209,13 @@ export class DataStorage implements IDataStorage {
 	}
 
 	/**
-	 * {@inheritDoc IReadableStorage.writeToSimpleCoverageFile}
+	 * @inheritDoc
 	 */
-	public dumpToSimpleCoverageFile(baseFilePath: string, date: Date): [string, number] {
+	public dumpToSimpleCoverageFile(coverageFolder: string, date: Date): [string, number] {
 		const [lines, content] = this.toSimpleCoverage();
+		const coverageFolderTrimmed = coverageFolder.trim();
 
-		const finalFilePath = this.appendTimestampToFilePath(baseFilePath.trim(), date);
+		const finalFilePath = this.initCoverageFile(coverageFolderTrimmed, date);
 		fs.writeFileSync(finalFilePath, content, { flag: 'w', encoding: 'utf8' });
 
 		this.resetCoverage();
@@ -231,24 +232,18 @@ export class DataStorage implements IDataStorage {
 	}
 
 	/**
-	 * Appends the timestamp given with date to the baseFilePath (before the file ending if there is one)
-	 * @param baseFilePath Path to the coverage file
+	 * Appends the timestamp given with date to the coverageFolder (before the file ending if there is one)
+	 * @param coverageFolder Path to the coverage file
 	 * @param date Represents the timestamp to be appended with the format {@link DataStorage.DATE_FORMAT}
 	 * @private
 	 */
-	private appendTimestampToFilePath(baseFilePath: string, date: Date): string {
-		const baseName = path.basename(baseFilePath);
-		const dirName = path.dirname(baseFilePath);
-		const baseNameSegments = baseName.split('.');
-		const baseNameWithoutFileEnding = baseNameSegments.slice(0, baseNameSegments.length - 1).join('.');
-		const fileEnding = baseNameSegments[baseNameSegments.length - 1];
-		const formattedDate = dat.format(date, this.DATE_FORMAT);
-
-		if (baseNameSegments.length === 1) {
-			return path.join(dirName, `${baseName}-${formattedDate}`);
+	private initCoverageFile(coverageFolder: string, date: Date): string {
+		if (!fs.existsSync(coverageFolder)) {
+			fs.mkdirSync(coverageFolder);
 		}
 
-		return path.join(dirName, `${baseNameWithoutFileEnding}-${formattedDate}.${fileEnding}`);
+		const formattedDate = dat.format(date, this.DATE_FORMAT);
+		return path.join(coverageFolder, `coverage-${formattedDate}.simple`);
 	}
 
 	/**
@@ -265,7 +260,7 @@ export class DataStorage implements IDataStorage {
 			}
 
 			for (const entry of projectCoverage) {
-				result.push(this.normalizeSourceFileName(entry.sourceFile));
+				result.push(DataStorage.normalizeSourceFileName(entry.sourceFile));
 				for (const lineNo of entry.coveredLines) {
 					result.push(String(lineNo));
 				}

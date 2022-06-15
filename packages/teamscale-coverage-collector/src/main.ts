@@ -189,10 +189,8 @@ export class Main {
 		logger.info(`Starting collector in working directory "${process.cwd()}".`);
 		logger.info(`Logging "${config.log_level}" to "${config.log_to_file}".`);
 
-		// Check the command line arguments
-		if (!config.dump_to_file && !config.dump_to_folder && !config.teamscale_server_url) {
-			logger.error('The Collector must be configured to either dump to a file or upload to Teamscale.');
-			process.exit(1);
+		if (config.dump_to_file) {
+			logger.warn('--dump-to-file is deprecated, use --dump-to-folder instead. Check --help for details.');
 		}
 
 		// Prepare the storage and the server

@@ -31,7 +31,7 @@ type Parameters = {
 	// eslint-disable-next-line camelcase
 	dump_to_file?: string;
 	// eslint-disable-next-line camelcase
-	dump_to_folder?: string;
+	dump_to_folder: string;
 	// eslint-disable-next-line camelcase
 	log_to_file: string;
 	// eslint-disable-next-line camelcase
@@ -83,7 +83,10 @@ export class Main {
 		parser.add_argument('--dump-to-file', {
 			help: 'DEPRECATED, PLEASE USE --dump-to-folder INSTEAD. A folder will be created instead a file at the provided location.'
 		});
-		parser.add_argument('-f', '--dump-to-folder', { help: 'Target folder for coverage files.' });
+		parser.add_argument('-f', '--dump-to-folder', {
+			help: 'Target folder for coverage files.',
+			default: this.DEFAULT_COVERAGE_LOCATION
+		});
 		parser.add_argument('-l', '--log-to-file', { help: 'Log file', default: 'logs/collector-combined.log' });
 		parser.add_argument('-e', '--log-level', { help: 'Log level', default: 'info' });
 		parser.add_argument('-t', '--dump-after-mins', {
@@ -239,7 +242,7 @@ export class Main {
 	private static async dumpCoverage(config: Parameters, storage: DataStorage, logger: Logger): Promise<void> {
 		try {
 			const deleteCoverageFileAfterUpload = !config.dump_to_file && !config.dump_to_folder;
-			const coverageFolder = config.dump_to_folder ?? config.dump_to_file ?? this.DEFAULT_COVERAGE_LOCATION;
+			const coverageFolder = config.dump_to_file ?? config.dump_to_folder;
 			let dumpOut: [string, number] = [coverageFolder, 0];
 			try {
 				// 1. Write coverage to a file

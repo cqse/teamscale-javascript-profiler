@@ -11,7 +11,6 @@ import axios from 'axios';
 import FormData from 'form-data';
 import QueryParameters from './utils/QueryParameters';
 import { inspect } from 'util';
-import tmp from 'tmp';
 import mkdirp from 'mkdirp';
 import path from 'path';
 import { StdConsoleLogger } from './utils/StdConsoleLogger';
@@ -67,6 +66,8 @@ type Parameters = {
  * Used to start the collector for with a given configuration.
  */
 export class Main {
+	private static readonly DEFAULT_COVERAGE_LOCATION = 'coverage';
+
 	/**
 	 * Construct the object for parsing the command line arguments.
 	 */
@@ -238,7 +239,7 @@ export class Main {
 	private static async dumpCoverage(config: Parameters, storage: DataStorage, logger: Logger): Promise<void> {
 		try {
 			const deleteCoverageFileAfterUpload = !config.dump_to_file && !config.dump_to_folder;
-			const coverageFolder = config.dump_to_folder ?? config.dump_to_file ?? tmp.tmpNameSync();
+			const coverageFolder = config.dump_to_folder ?? config.dump_to_file ?? this.DEFAULT_COVERAGE_LOCATION;
 			let dumpOut: [string, number] = [coverageFolder, 0];
 			try {
 				// 1. Write coverage to a file

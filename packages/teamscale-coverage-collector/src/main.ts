@@ -62,6 +62,11 @@ type Parameters = {
 };
 
 /**
+ * Error that is thrown when the upload to Teamscale failed
+ */
+class TeamscaleUploadError extends Error {}
+
+/**
  * The main class of the Teamscale JavaScript Collector.
  * Used to start the collector for with a given configuration.
  */
@@ -237,24 +242,18 @@ export class Main {
 		}
 	}
 
-	private static async dumpCoverage(config: Parameters, storage: DataStorage, logger: Logger): Promise<void> {
+	public static async dumpCoverage(config: Parameters, storage: DataStorage, logger: Logger): Promise<void> {
 		try {
-			const deleteCoverageFileAfterUpload = !config.dump_to_file && !config.dump_to_folder;
 			const coverageFolder = config.dump_to_file ?? config.dump_to_folder;
-			let dumpOut: [string, number] = [coverageFolder, 0];
-			try {
-				// 1. Write coverage to a file
-				dumpOut = storage.dumpToSimpleCoverageFile(coverageFolder, new Date());
-				logger.info(`Dumped ${dumpOut[1]} lines of coverage to ${dumpOut[0]}.`);
+			// 1. Write coverage to a file
+			const [coverageFile, lines] = storage.dumpToSimpleCoverageFile(coverageFolder, new Date());
+			logger.info(`Dumped ${lines} lines of coverage to ${coverageFile}.`);
 
-				// 2. Upload to Teamscale if configured
-				if (config.teamscale_server_url) {
-					await this.uploadToTeamscale(config, logger, dumpOut[0], dumpOut[1]);
-				}
-			} finally {
-				if (deleteCoverageFileAfterUpload) {
-					fs.unlinkSync(dumpOut[0]);
-				}
+			// 2. Upload to Teamscale if configured
+			if (config.teamscale_server_url) {
+				await this.uploadToTeamscale(config, logger, coverageFile, lines);
+				// Delete coverage if upload was successful
+				fs.unlinkSync(coverageFile);
 			}
 		} catch (e) {
 			logger.error('Coverage dump failed.', e);
@@ -263,8 +262,7 @@ export class Main {
 
 	private static async uploadToTeamscale(config: Parameters, logger: Logger, coverageFile: string, lines: number) {
 		if (!(config.teamscale_access_token && config.teamscale_user && config.teamscale_server_url)) {
-			logger.error('Cannot upload to Teamscale: API key and user name must be configured!');
-			return;
+			throw new TeamscaleUploadError('Cannot upload to Teamscale: API key and user name must be configured!');
 		}
 
 		if (lines === 0) {
@@ -305,20 +303,25 @@ export class Main {
 				if (error.response) {
 					const response = error.response;
 					if (response.status >= 400) {
-						logger.error(`Upload failed with code ${response.status}: ${response.statusText}`);
-						logger.error(`Request failed with following response: ${response.data}`);
+						throw new TeamscaleUploadError(
+							`Upload failed with code ${response.status}: ${response.statusText}. Response Data: ${response.data}`
+						);
 					} else {
 						logger.info(`Upload with status code ${response.status} finished.`);
 					}
 				} else if (error.request) {
-					logger.error(`Upload request did not receive a response.`);
+					throw new TeamscaleUploadError(`Upload request did not receive a response.`);
 				}
 
 				if (error.message) {
-					logger.error(`Something went wrong when uploading data: ${error.message}`);
-					logger.debug(`Details of the error: ${inspect(error)}`);
+					logger.debug(
+						`Something went wrong when uploading data: ${error.message}. Details of the error: ${inspect(
+							error
+						)}`
+					);
+					throw new TeamscaleUploadError(`Something went wrong when uploading data: ${error.message}`);
 				} else {
-					logger.error(`Something went wrong when uploading data: ${inspect(error)}`);
+					throw new TeamscaleUploadError(`Something went wrong when uploading data: ${inspect(error)}`);
 				}
 			});
 	}

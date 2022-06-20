@@ -1,4 +1,4 @@
-import { ProjectCoverage } from '../src/storage/DataStorage';
+import { ProjectCoverage } from '../../src/storage/DataStorage';
 
 test('Test if coverage is aggregated in the storage', () => {
 	const storage = new ProjectCoverage('42');

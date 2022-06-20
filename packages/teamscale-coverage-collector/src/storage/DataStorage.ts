@@ -31,8 +31,9 @@ export interface IReadableStorage {
 	 * Write the coverage to the specified file.
 	 *
 	 * @param filePath - Full path of the file to write the coverage to.
+	 * @param clearAfterDump - Clear the coverage store after storing it.
 	 */
-	dumpToSimpleCoverageFile(filePath: string): void;
+	dumpToSimpleCoverageFile(filePath: string, clearAfterDump: boolean): void;
 }
 
 /**
@@ -55,6 +56,11 @@ export interface IWriteableStorage {
 	 * @param project - The project to add the information to.
 	 */
 	signalUnmappedCoverage(project: string): void;
+
+	/**
+	 * Discard the coverage information that has been collected up to this point.
+	 */
+	discardCollectedCoverage(): void;
 }
 
 /**
@@ -201,7 +207,7 @@ export class DataStorage implements IDataStorage {
 	/**
 	 * {@inheritDoc IReadableStorage.writeToSimpleCoverageFile}
 	 */
-	public dumpToSimpleCoverageFile(filePath: string): number {
+	public dumpToSimpleCoverageFile(filePath: string, clearAfterDump: boolean): number {
 		const toSimpleCoverage: () => [number, string] = () => {
 			const result: string[] = [];
 			Contract.require(this.getProjects().length < 2, 'Only one project supported to be handled in parallel.');
@@ -224,6 +230,9 @@ export class DataStorage implements IDataStorage {
 		};
 
 		const [lines, content] = toSimpleCoverage();
+		if (clearAfterDump) {
+			this.discardCollectedCoverage();
+		}
 		fs.writeFileSync(filePath.trim(), content, { flag: 'w', encoding: 'utf8' });
 		return lines;
 	}
@@ -233,5 +242,12 @@ export class DataStorage implements IDataStorage {
 	 */
 	getProjects(): string[] {
 		return Array.from(this.coverageByProject.keys());
+	}
+
+	/**
+	 * {@inheritDoc IWritableStorage.discardCollectedCoverage}
+	 */
+	discardCollectedCoverage(): void {
+		this.coverageByProject.clear();
 	}
 }

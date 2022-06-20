@@ -268,27 +268,27 @@ export class Main {
 
 		logger.info('Preparing upload to Teamscale');
 
-		const form = new FormData();
-		form.append('report', fs.createReadStream(coverageFile), 'coverage.simple');
+		const form = this.prepareFormData(coverageFile);
+		const queryParameters = this.prepareQueryParameters(config);
+		await this.performTeamscaleUpload(config, queryParameters, form, logger);
+	}
 
-		const parameters = new QueryParameters();
-		parameters.addIfDefined('format', 'SIMPLE');
-		parameters.addIfDefined('message', config.teamscale_message);
-		parameters.addIfDefined('repository', config.teamscale_repository);
-		parameters.addIfDefined('t', config.teamscale_commit);
-		parameters.addIfDefined('revision', config.teamscale_revision);
-		parameters.addIfDefined('partition', config.teamscale_partition);
-
+	private static async performTeamscaleUpload(
+		config: Parameters,
+		parameters: QueryParameters,
+		form: FormData,
+		logger: Logger
+	) {
 		await axios
 			.post(
-				`${config.teamscale_server_url.replace(/\/$/, '')}/api/projects/${
+				`${config.teamscale_server_url?.replace(/\/$/, '')}/api/projects/${
 					config.teamscale_project
 				}/external-analysis/session/auto-create/report?${parameters.toString()}`,
 				form,
 				{
 					auth: {
-						username: config.teamscale_user,
-						password: config.teamscale_access_token
+						username: config.teamscale_user ?? 'no username provided',
+						password: config.teamscale_access_token ?? 'no password provided'
 					},
 					headers: {
 						Accept: '*/*',
@@ -321,6 +321,23 @@ export class Main {
 					throw new TeamscaleUploadError(`Something went wrong when uploading data: ${inspect(error)}`);
 				}
 			});
+	}
+
+	private static prepareQueryParameters(config: Parameters) {
+		const parameters = new QueryParameters();
+		parameters.addIfDefined('format', 'SIMPLE');
+		parameters.addIfDefined('message', config.teamscale_message);
+		parameters.addIfDefined('repository', config.teamscale_repository);
+		parameters.addIfDefined('t', config.teamscale_commit);
+		parameters.addIfDefined('revision', config.teamscale_revision);
+		parameters.addIfDefined('partition', config.teamscale_partition);
+		return parameters;
+	}
+
+	private static prepareFormData(coverageFile: string) {
+		const form = new FormData();
+		form.append('report', fs.createReadStream(coverageFile), 'coverage.simple');
+		return form;
 	}
 }
 

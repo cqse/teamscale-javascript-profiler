@@ -46,9 +46,10 @@ Whenever there is a tested version that should be released, the following steps 
 performed on the branch `master` in a single commit:
 
 1. Increment the version of all packages in `./packages/` in their `package.json` file.
-2. Update the changelog of the affected packages and move all changes from the section `Next Release` to a new version, e.g., `21.3.0`.
-3. Commit and push your changes.
-4. Create a GitHub Release tag with the same version number and the text from the changelog.
+2. Update the changelog of the affected packages and move all changes from the section `Next Release` to a new version, e.g., `v0.0.1-beta.42`.
+3. Commit the changes: `git commit -a -m "New release v0.0.1-beta.42"`
+4. Create a git tag: `git tag "v0.0.1-beta.42" -m "New release version v0.0.1-beta.42"`
+5. Push the changes and the tags: `git push --tags`
    
 All tags are built automatically using [Github Actions](https://github.com/cqse/teamscale-jacoco-agent/actions) with the release binaries being uploaded to the GitHub Releases, NpmJs, and DockerHub.
 

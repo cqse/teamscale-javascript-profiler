@@ -199,7 +199,7 @@ function startCollector(coverageTargetFile, logTargetFile, projectId) {
 }
 
 /**
- * Sleep for the given milli seconds
+ * Sleep for the given milliseconds
  * @returns {Promise<unknown>}
  */
 function sleep(ms) {
@@ -243,7 +243,7 @@ for (const study of caseStudies) {
 		const excludeOriginsConcatenated = study.excludeOrigins.join(' ');
 		const includeOriginsConcatenated = study.includeOrigins.join(' ');
 		execSync(
-			`node ./dist/src/main.js --exclude-origin "node_modules/**/*.*" ${excludeOriginsConcatenated} --include-origin ${includeOriginsConcatenated} --in-place ${fullStudyDistPath}`,
+			`node ./dist/src/main.js --exclude-origin "node_modules/**/*.*" ${excludeOriginsConcatenated} --include-origin ${includeOriginsConcatenated} --in-place ${fullStudyDistPath} --collector ws://localhost:54678`,
 			{ cwd: INSTRUMENTER_DIR, stdio: 'inherit' }
 		);
 

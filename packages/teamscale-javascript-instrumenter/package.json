@@ -1,6 +1,6 @@
 {
   "name": "@teamscale/javascript-instrumenter",
-  "version": "0.0.1-beta.35",
+  "version": "0.0.1-beta.39",
   "description": "Istanbul-based coverage instrumenter with coverage forwarding via WebSockets",
   "main": "dist/src/main.js",
   "bin": "dist/src/main.js",
@@ -54,7 +54,7 @@
     "@cqse/commons": "^0.0.1-beta.1",
     "@types/micromatch": "^4.0.2",
     "argparse": "^2.0.1",
-    "async": "^3.2.3",
+    "async": "^3.2.4",
     "bunyan": "^1.8.15",
     "convert-source-map": "^1.7.0",
     "foreground-child": "^2.0.0",

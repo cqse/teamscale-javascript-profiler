@@ -62,11 +62,18 @@ export class IstanbulInstrumenter implements IInstrumenter {
 	 * {@inheritDoc #IInstrumenter.instrument}
 	 */
 	async instrument(task: InstrumentationTask): Promise<TaskResult> {
+		this.clearDumpOriginsFileIfNeeded(task.dumpOriginsFile);
+
 		// We limit the number of instrumentations in parallel to one to
 		// not overuse memory (NodeJS has only limited mem to use).
 		return async
 			.mapLimit(task.elements, 1, async (taskElement: TaskElement) => {
-				return await this.instrumentOne(task.collector, taskElement, task.originSourcePattern);
+				return await this.instrumentOne(
+					task.collector,
+					taskElement,
+					task.originSourcePattern,
+					task.dumpOriginsFile
+				);
 			})
 			.then(results => {
 				return results.reduce((prev, curr) => {
@@ -81,11 +88,13 @@ export class IstanbulInstrumenter implements IInstrumenter {
 	 * @param collector - The collector to send the coverage information to.
 	 * @param taskElement - The task element to perform the instrumentation for.
 	 * @param sourcePattern - A pattern to restrict the instrumentation to only a fraction of the task element.
+	 * @param dumpOriginsFile - A file path where all origins from the source map should be dumped in json format, or undefined if no origins should be dumped
 	 */
 	async instrumentOne(
 		collector: CollectorSpecifier,
 		taskElement: TaskElement,
-		sourcePattern: OriginSourcePattern
+		sourcePattern: OriginSourcePattern,
+		dumpOriginsFile: string | undefined
 	): Promise<TaskResult> {
 		const inputFileSource = fs.readFileSync(taskElement.fromFile, 'utf8');
 
@@ -127,6 +136,9 @@ export class IstanbulInstrumenter implements IInstrumenter {
 				// and use the original code instead and write it to the target path.
 				//
 				const originSourceFiles = inputSourceMap?.sources ?? [];
+				if (dumpOriginsFile) {
+					this.dumpOrigins(dumpOriginsFile, originSourceFiles);
+				}
 				if (this.shouldExcludeFromInstrumentation(sourcePattern, taskElement.fromFile, originSourceFiles)) {
 					writeToFile(taskElement.toFile, inputFileSource);
 					return new TaskResult(0, 1, 0, 0, 0, 0, 0);
@@ -135,7 +147,10 @@ export class IstanbulInstrumenter implements IInstrumenter {
 				// The main instrumentation (adding coverage statements) is performed now:
 				instrumentedSource = instrumenter
 					.instrumentSync(inputFileSource, taskElement.fromFile, inputSourceMap as any)
-					.replace(/return actualCoverage/g, 'return makeCoverageInterceptor(actualCoverage)')
+					.replace(
+						/actualCoverage\s*=\s*coverage\[path\]/g,
+						'actualCoverage=makeCoverageInterceptor(coverage[path])'
+					)
 					.replace(/new Function\("return this"\)\(\)/g, "typeof window === 'object' ? window : this");
 				this.logger.debug('Instrumentation source maps to:', instrumenter.lastSourceMap()?.sources);
 
@@ -238,10 +253,7 @@ export class IstanbulInstrumenter implements IInstrumenter {
 	private loadVaccine(collector: CollectorSpecifier) {
 		// We first replace parameters in the file with the
 		// actual values, for example, the collector to send the coverage information to.
-		return fs
-			.readFileSync(this.vaccineFilePath, 'utf8')
-			.replace(/\$REPORT_TO_HOST/g, collector.host)
-			.replace(/\$REPORT_TO_PORT/g, `${collector.port}`);
+		return fs.readFileSync(this.vaccineFilePath, 'utf8').replace(/\$REPORT_TO_URL/g, collector.url);
 	}
 
 	/**
@@ -306,6 +318,27 @@ export class IstanbulInstrumenter implements IInstrumenter {
 			return sourceMapFromMapFile(sourceMapOrigin.sourceMapFilePath);
 		} else {
 			return sourceMapFromCodeComment(inputSourceCode, taskFile);
+		}
+	}
+
+	/** Appends all origins from the source map to a given file. Creates the file if it does not exist yet. */
+	private dumpOrigins(dumpOriginsFile: string, originSourceFiles: string[]) {
+		const jsonContent = JSON.stringify(originSourceFiles, null, 2);
+		fs.writeFile(dumpOriginsFile, jsonContent + '\n', { flag: 'a' }, error => {
+			if (error) {
+				this.logger.warn('Could not dump origins file');
+			}
+		});
+	}
+
+	/** Clears the dump origins file if it exists, such that it is now ready to be appended for every instrumented file. */
+	private clearDumpOriginsFileIfNeeded(dumpOriginsFile: string | undefined) {
+		if (dumpOriginsFile && fs.existsSync(dumpOriginsFile)) {
+			try {
+				fs.unlinkSync(dumpOriginsFile);
+			} catch (err) {
+				this.logger.warn('Could not clear origins file: ' + err);
+			}
 		}
 	}
 }

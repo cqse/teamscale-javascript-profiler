@@ -2,6 +2,22 @@ We use [Semantic Versioning](https://semver.org/).
 
 # New Release
 
+# 0.0.1-beta.39
+
+- [fix] The coverage interceptor was initialized too often leading to tab crashes.
+
+# 0.0.1-beta.38 
+
+- [fix] The worker thread that aggregated the coverage in the browser ran out of memory for some apps.
+
+# 0.0.1-beta.37
+
+- [fix] The instrumentation added too much overhead to the code executed. Moved parts to a background process.
+
+# 0.0.1-beta.36
+
+- [feature] Allow for specifying a full URL where the collector process is reachable. For example, `wss://test.local:8043/`. 
+
 # 0.0.1-beta.35
 
 - [feature] Multiple include/exclude patterns can be specified. Separated by a blank.

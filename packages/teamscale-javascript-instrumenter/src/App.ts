@@ -51,8 +51,8 @@ export class App {
 			help: 'External location of source-map files to consider.'
 		});
 		parser.add_argument('-c', '--collector', {
-			help: 'The collector (host:port) to send coverage information to.',
-			default: 'localhost:54678'
+			help: 'The collector (`host:port` or `wss://host:port/` or `ws://host:port/`) to send coverage information to.',
+			default: 'ws://localhost:54678'
 		});
 		parser.add_argument('-x', '--exclude-origin', {
 			nargs: '*',
@@ -61,6 +61,9 @@ export class App {
 		parser.add_argument('-k', '--include-origin', {
 			nargs: '*',
 			help: 'Glob pattern(s) of files in the source origin to produce coverage for. Multiple patterns can be separated by space.'
+		});
+		parser.add_argument('-p', '--dump-origins-to', {
+			help: 'Optional location specifying where to dump possible origins from the source map as a json file'
 		});
 		parser.add_argument('inputs', { nargs: '+', help: 'The input file(s) to instrument.' });
 

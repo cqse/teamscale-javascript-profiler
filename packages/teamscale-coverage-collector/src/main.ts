@@ -59,7 +59,10 @@ type Parameters = {
 /**
  * Error that is thrown when the upload to Teamscale failed
  */
-class TeamscaleUploadError extends Error {}
+class TeamscaleUploadError extends Error {
+	// No special fields needed compared to Error.
+	// Sole use is to be able to distinguish Teamscale upload errors from other errors.
+}
 
 /**
  * The main class of the Teamscale JavaScript Collector.
@@ -235,7 +238,7 @@ export class Main {
 		}
 	}
 
-	public static async dumpCoverage(config: Parameters, storage: DataStorage, logger: Logger): Promise<void> {
+	private static async dumpCoverage(config: Parameters, storage: DataStorage, logger: Logger): Promise<void> {
 		try {
 			// 1. Write coverage to a file
 			const [coverageFile, lines] = storage.dumpToSimpleCoverageFile(config.dump_to_folder, new Date());

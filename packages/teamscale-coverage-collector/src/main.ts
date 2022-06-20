@@ -23,13 +23,6 @@ import { PrettyFileLogger } from './utils/PrettyFileLogger';
  * the parameters that way---as in Python from which ArgParse stems.
  */
 type Parameters = {
-	/**
-	 * @deprecated since we create coverage files with timestamps now.
-	 * The user shall use dump_to_folder instead.
-	 * Migration for dump_to_file: Create a folder at the provided file path instead of a file.
-	 */
-	// eslint-disable-next-line camelcase
-	dump_to_file?: string;
 	// eslint-disable-next-line camelcase
 	dump_to_folder: string;
 	// eslint-disable-next-line camelcase
@@ -87,9 +80,6 @@ export class Main {
 
 		parser.add_argument('-v', '--version', { action: 'version', version });
 		parser.add_argument('-p', '--port', { help: 'The port to receive coverage information on.', default: 54678 });
-		parser.add_argument('--dump-to-file', {
-			help: 'DEPRECATED, PLEASE USE --dump-to-folder INSTEAD. A folder will be created instead a file at the provided location.'
-		});
 		parser.add_argument('-f', '--dump-to-folder', {
 			help: 'Target folder for coverage files.',
 			default: this.DEFAULT_COVERAGE_LOCATION
@@ -201,10 +191,6 @@ export class Main {
 		logger.info(`Starting collector in working directory "${process.cwd()}".`);
 		logger.info(`Logging "${config.log_level}" to "${config.log_to_file}".`);
 
-		if (config.dump_to_file) {
-			logger.warn('--dump-to-file is deprecated, use --dump-to-folder instead. Check --help for details.');
-		}
-
 		// Prepare the storage and the server
 		const storage = new DataStorage(logger);
 		const server = new WebSocketCollectingServer(config.port, storage, logger);
@@ -251,9 +237,8 @@ export class Main {
 
 	public static async dumpCoverage(config: Parameters, storage: DataStorage, logger: Logger): Promise<void> {
 		try {
-			const coverageFolder = config.dump_to_file ?? config.dump_to_folder;
 			// 1. Write coverage to a file
-			const [coverageFile, lines] = storage.dumpToSimpleCoverageFile(coverageFolder, new Date());
+			const [coverageFile, lines] = storage.dumpToSimpleCoverageFile(config.dump_to_folder, new Date());
 			logger.info(`Dumped ${lines} lines of coverage to ${coverageFile}.`);
 
 			// 2. Upload to Teamscale if configured

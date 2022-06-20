@@ -35,6 +35,8 @@ type Parameters = {
 	// eslint-disable-next-line camelcase
 	log_to_file: string;
 	// eslint-disable-next-line camelcase
+	keep_coverage_files: boolean;
+	// eslint-disable-next-line camelcase
 	log_level: string;
 	// eslint-disable-next-line camelcase
 	dump_after_mins: number;
@@ -91,6 +93,11 @@ export class Main {
 		parser.add_argument('-f', '--dump-to-folder', {
 			help: 'Target folder for coverage files.',
 			default: this.DEFAULT_COVERAGE_LOCATION
+		});
+		parser.add_argument('-k', '--keep-coverage-files', {
+			help: 'Whether to keep the coverage files on disk after a successful upload to Teamsacle',
+			action: 'store_true',
+			default: false
 		});
 		parser.add_argument('-l', '--log-to-file', { help: 'Log file', default: 'logs/collector-combined.log' });
 		parser.add_argument('-e', '--log-level', { help: 'Log level', default: 'info' });
@@ -252,8 +259,10 @@ export class Main {
 			// 2. Upload to Teamscale if configured
 			if (config.teamscale_server_url) {
 				await this.uploadToTeamscale(config, logger, coverageFile, lines);
-				// Delete coverage if upload was successful
-				fs.unlinkSync(coverageFile);
+				// Delete coverage if upload was successful and keeping coverage files on disk was not configure by the user
+				if (!config.keep_coverage_files) {
+					fs.unlinkSync(coverageFile);
+				}
 			}
 		} catch (e) {
 			logger.error('Coverage dump failed.', e);

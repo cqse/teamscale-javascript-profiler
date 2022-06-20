@@ -172,7 +172,7 @@ function identifyExpectedButAbsent(actual, expected) {
 function startCollector(coverageFolder, logTargetFile, projectId) {
 	const collector = spawn(
 		'node',
-		[`${COLLECTOR_DIR}/dist/src/main.js`, `-f`, `${coverageFolder}`, `-l`, `${logTargetFile}`, `-e`, `info`],
+		[`${COLLECTOR_DIR}/dist/src/main.js`, `-f`, `${coverageFolder}`, `-l`, `${logTargetFile}`, `-k`, `-e`, `info`],
 		{
 			env: {
 				...process.env,

@@ -249,6 +249,8 @@ export class Main {
 			storage.discardCollectedCoverage();
 			logger.info(`Discarding collected coverage information as requested via the control API.`);
 		});
+
+		logger.info(`Control server enabled at port ${config.enable_control_port}`);
 	}
 }
 

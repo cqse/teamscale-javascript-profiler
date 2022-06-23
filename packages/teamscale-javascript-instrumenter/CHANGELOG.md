@@ -2,6 +2,10 @@ We use [Semantic Versioning](https://semver.org/).
 
 # New Release
 
+# 0.0.1-beta.40
+
+- [fix] Partial instrumentation of bundles did no longer work.
+
 # 0.0.1-beta.39
 
 - [fix] The coverage interceptor was initialized too often leading to tab crashes.

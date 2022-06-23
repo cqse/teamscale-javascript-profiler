@@ -253,13 +253,21 @@ export class Main {
 				}
 			}
 		} catch (e) {
-			logger.error('Coverage dump failed.', e);
+			if (e instanceof TeamscaleUploadError) {
+				logger.error(
+					`Teamscale upload failed. The coverage files on disk (inside the folder "${config.dump_to_folder}") were not deleted. 
+					You can still upload them manually.`,
+					e
+				);
+			} else {
+				logger.error('Coverage dump failed.', e);
+			}
 		}
 	}
 
 	private static async uploadToTeamscale(config: Parameters, logger: Logger, coverageFile: string, lines: number) {
 		if (!(config.teamscale_access_token && config.teamscale_user && config.teamscale_server_url)) {
-			throw new TeamscaleUploadError('Cannot upload to Teamscale: API key and user name must be configured!');
+			throw new TeamscaleUploadError('API key and user name must be configured!');
 		}
 
 		if (lines === 0) {

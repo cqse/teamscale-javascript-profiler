@@ -10,6 +10,10 @@ import {
 	UpdateExpression
 } from '@babel/types';
 
+function isUpdateExpressionPath(path: NodePath<any>): path is NodePath<UpdateExpression> {
+	return path.node.type === 'UpdateExpression';
+}
+
 /**
  * Remove IstanbulJs instrumentations based on the given
  * hook `makeCoverable`.
@@ -23,10 +27,12 @@ export function cleanSourceCode(
 ): string {
 	const ast = parse(code, { sourceType: esModules ? 'module' : 'script' });
 	traverse(ast, {
-		UpdateExpression(path) {
-			if (isCoverageIncrementNode(path)) {
-				if (path.node.loc && !makeCoverable(path.node.loc)) {
-					path.remove();
+		enter(path: NodePath) {
+			if (isUpdateExpressionPath(path)) {
+				if (isCoverageIncrementNode(path)) {
+					if (path.node.loc && !makeCoverable(path.node.loc)) {
+						path.remove();
+					}
 				}
 			}
 		}

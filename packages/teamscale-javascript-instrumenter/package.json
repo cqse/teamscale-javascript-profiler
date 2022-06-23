@@ -17,7 +17,7 @@
     "build": "tsc --project tsconfig.json && yarn buildVaccine",
     "buildVaccine": "node esbuild.mjs",
     "instrumenter": "node dist/src/main.js",
-    "test": "yarn build && NODE_OPTIONS='--experimental-vm-modules' jest --forceExit --coverage --silent=true --detectOpenHandles"
+    "test": "yarn build && NODE_OPTIONS='--experimental-vm-modules --max-old-space-size=8192' jest --forceExit --coverage --silent=true --detectOpenHandles"
   },
   "files": [
     "dist/**/*"

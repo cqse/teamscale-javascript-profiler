@@ -62,18 +62,6 @@ const caseStudies = [
 		},
 		excludeOrigins: ['src/app/heroes/*.ts', 'node_modules/**/*.*'],
 		includeOrigins: []
-	},
-	{
-		name: 'angular-hero-app-no-matching-includes',
-		rootDir: 'test/casestudies/angular-hero-app',
-		distDir: 'dist',
-		expectCoveredLines: {},
-		expectUncoveredLines: {
-			'src/app/hero-detail/hero-detail.component.ts': ['1-12', '34-42'],
-			'node_modules/@angular/core/fesm2015/core.mjs': ['1-50']
-		},
-		excludeOrigins: [],
-		includeOrigins: ['this/should/not/match']
 	}
 ];
 

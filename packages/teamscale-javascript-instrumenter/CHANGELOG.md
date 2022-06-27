@@ -2,6 +2,8 @@ We use [Semantic Versioning](https://semver.org/).
 
 # New Release
 
+- [fix] Partial instrumentation did consider the wrong source map.
+
 # 0.0.1-beta.40
 
 - [fix] Partial instrumentation of bundles did no longer work.

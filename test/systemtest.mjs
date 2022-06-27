@@ -39,13 +39,13 @@ const caseStudies = [
 		rootDir: 'test/casestudies/angular-hero-app',
 		distDir: 'dist',
 		expectCoveredLines: {
-			'src/app/heroes/heroes.component.ts': [14, 12, 17, 21, 22],
-			'src/app/hero-detail/hero-detail.component.ts': [17, 18, 19, 23, 27, 28, 29, 33]
+			'src/app/heroes/heroes.component.ts': [11, 12, 22, 35, 36],
+			'src/app/hero-detail/hero-detail.component.ts': [13, 17, 18, 19, 23, 27, 28, 29]
 		},
 		expectUncoveredLines: {
-			'node_modules/zone.js/fesm2015/zone.js': [17, 28, 20, 80],
+			'node_modules/zone.js/fesm2015/zone.js': ['1-30', '70-90', 28, 20, 80],
 			'src/app/heroes/heroes.component.ts': ['1-10', 15, 16, '18-20', '37-50'],
-			'src/app/hero-detail/hero-detail.component.ts': ['1-12', '34-42']
+			'src/app/hero-detail/hero-detail.component.ts': [33]
 		},
 		excludeOrigins: [],
 		includeOrigins: ['src/app/**/*.*']
@@ -55,14 +55,24 @@ const caseStudies = [
 		rootDir: 'test/casestudies/angular-hero-app',
 		distDir: 'dist',
 		expectCoveredLines: {
-			'src/app/hero-detail/hero-detail.component.ts': [17, 18, 19, 23, 27, 28, 29, 33]
+			'src/app/hero-detail/hero-detail.component.ts': [13, 17, 18, 19]
 		},
+		expectUncoveredLines: {
+			'src/app/heroes/heroes.component.ts': [11, 12, 22, 35, 36]
+		},
+		excludeOrigins: ['src/app/heroes/*.ts', 'node_modules/**/*.*'],
+		includeOrigins: []
+	},
+	{
+		name: 'angular-hero-app-no-matching-includes',
+		rootDir: 'test/casestudies/angular-hero-app',
+		distDir: 'dist',
 		expectUncoveredLines: {
 			'src/app/hero-detail/hero-detail.component.ts': ['1-12', '34-42'],
 			'node_modules/@angular/core/fesm2015/core.mjs': ['1-50']
 		},
-		excludeOrigins: ['src/app/heroes/*.ts'],
-		includeOrigins: []
+		excludeOrigins: [],
+		includeOrigins: ['this/should/not/match']
 	}
 ];
 
@@ -241,10 +251,15 @@ for (const study of caseStudies) {
 		const fullStudyDistPath = path.resolve(`${study.rootDir}/${study.distDir}`);
 		console.log(`Instrument the case study in ${fullStudyDistPath}`);
 
-		const excludeOriginsConcatenated = study.excludeOrigins.join(' ');
-		const includeOriginsConcatenated = study.includeOrigins.join(' ');
+		const excludeArgument =
+			study.excludeOrigins.length > 0 ? `--exclude-origin ${study.excludeOrigins.join(' ')}` : '';
+		const includeArgument =
+			study.includeOrigins.length > 0 ? `--include-origin ${study.includeOrigins.join(' ')}` : '';
+
+		console.log('Include/exclude arguments: ', includeArgument, excludeArgument);
+
 		execSync(
-			`node ./dist/src/main.js --exclude-origin "node_modules/**/*.*" ${excludeOriginsConcatenated} --include-origin ${includeOriginsConcatenated} --in-place ${fullStudyDistPath} --collector ws://localhost:54678`,
+			`node ./dist/src/main.js ${excludeArgument} ${includeArgument} --in-place ${fullStudyDistPath} --collector ws://localhost:54678`,
 			{ cwd: INSTRUMENTER_DIR, stdio: 'inherit' }
 		);
 

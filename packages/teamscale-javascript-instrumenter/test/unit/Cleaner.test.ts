@@ -1,4 +1,6 @@
-import { cleanSourceCode } from '../src/instrumenter/Cleaner';
+import { cleanSourceCode } from '../../src/instrumenter/Cleaner';
+import * as fs from 'fs';
+import path from 'path';
 
 test('Remove All Coverage Increments', () => {
 	const cleaned = cleanSourceCode(
@@ -112,4 +114,14 @@ test('Also handle coverage increments in sequence expressions.', () => {
 		loc => false
 	);
 	expect(cleaned).not.toContain('b[3][0]++');
+});
+
+test('Remove the coverage from an instrument Angular bundle.', () => {
+	const instrumentedJs: string = fs.readFileSync(path.join(__dirname, 'inputs', 'angular-main.instrumented.js'), {
+		encoding: 'utf8',
+		flag: 'r'
+	});
+	const cleaned = cleanSourceCode(instrumentedJs, false, loc => false);
+	expect(cleaned).toContain('cov_so9kzdjvn');
+	expect(cleaned).not.toContain('cov_so9kzdjvn().s[');
 });

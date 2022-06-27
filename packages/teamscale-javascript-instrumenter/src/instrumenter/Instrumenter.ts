@@ -8,7 +8,7 @@ import {
 	TaskResult
 } from './Task';
 import { Contract, IllegalArgumentException } from '@cqse/commons';
-import { RawSourceMap, SourceMapConsumer } from 'source-map';
+import { Position, RawSourceMap, SourceMapConsumer } from 'source-map';
 import * as istanbul from 'istanbul-lib-instrument';
 import * as fs from 'fs';
 import * as mkdirp from 'mkdirp';
@@ -125,7 +125,7 @@ export class IstanbulInstrumenter implements IInstrumenter {
 			let inputSourceMap: RawSourceMap | undefined;
 			try {
 				const instrumenter = istanbul.createInstrumenter(configurationAlternative);
-				inputSourceMap = this.loadInputSourceMap(
+				inputSourceMap = loadInputSourceMap(
 					inputFileSource,
 					taskElement.fromFile,
 					taskElement.externalSourceMapFile
@@ -139,29 +139,32 @@ export class IstanbulInstrumenter implements IInstrumenter {
 				if (dumpOriginsFile) {
 					this.dumpOrigins(dumpOriginsFile, originSourceFiles);
 				}
-				if (this.shouldExcludeFromInstrumentation(sourcePattern, taskElement.fromFile, originSourceFiles)) {
-					writeToFile(taskElement.toFile, inputFileSource);
-					return new TaskResult(0, 1, 0, 0, 0, 0, 0);
-				}
 
 				// The main instrumentation (adding coverage statements) is performed now:
-				instrumentedSource = instrumenter
-					.instrumentSync(inputFileSource, taskElement.fromFile, inputSourceMap as any)
+				instrumentedSource = instrumenter.instrumentSync(
+					inputFileSource,
+					taskElement.fromFile,
+					inputSourceMap as any
+				);
+				this.logger.debug('Instrumentation source maps to:', instrumenter.lastSourceMap()?.sources);
+
+				// In case of a bundle, the initial instrumentation step might have added
+				// too much and undesired instrumentations. Remove them now.
+				const instrumentedSourcemap = instrumenter.lastSourceMap();
+				let instrumentedAndCleanedSource = await this.removeUnwantedInstrumentation(
+					taskElement,
+					instrumentedSource,
+					configurationAlternative,
+					sourcePattern,
+					instrumentedSourcemap as any
+				);
+
+				instrumentedAndCleanedSource = instrumentedAndCleanedSource
 					.replace(
 						/actualCoverage\s*=\s*coverage\[path\]/g,
 						'actualCoverage=makeCoverageInterceptor(coverage[path])'
 					)
 					.replace(/new Function\("return this"\)\(\)/g, "typeof window === 'object' ? window : this");
-				this.logger.debug('Instrumentation source maps to:', instrumenter.lastSourceMap()?.sources);
-
-				// In case of a bundle, the initial instrumentation step might have added
-				// too much and undesired instrumentations. Remove them now.
-				instrumentedSource = await this.removeUnwantedInstrumentation(
-					taskElement,
-					instrumentedSource,
-					configurationAlternative,
-					sourcePattern
-				);
 
 				// The process also can result in a new source map that we will append in the result.
 				//
@@ -173,7 +176,7 @@ export class IstanbulInstrumenter implements IInstrumenter {
 
 				writeToFile(
 					taskElement.toFile,
-					`${IS_INSTRUMENTED_TOKEN} ${vaccineSource} ${instrumentedSource} \n${finalSourceMap}`
+					`${IS_INSTRUMENTED_TOKEN} ${vaccineSource} ${instrumentedAndCleanedSource} \n${finalSourceMap}`
 				);
 
 				return new TaskResult(1, 0, 0, 0, 0, 0, 0);
@@ -199,18 +202,19 @@ export class IstanbulInstrumenter implements IInstrumenter {
 		taskElement: TaskElement,
 		instrumentedSource: string,
 		configurationAlternative: Record<string, unknown>,
-		sourcePattern: OriginSourcePattern
-	) {
-		// Read the source map from the instrumented file
-		const instrumentedSourceMapConsumer: SourceMapConsumer | undefined = await this.loadSourceMap(
-			instrumentedSource,
-			taskElement.fromFile
+		sourcePattern: OriginSourcePattern,
+		instrumentedSourcemap: RawSourceMap
+	): Promise<string> {
+		const instrumentedSourceMapConsumer: SourceMapConsumer | undefined = await new SourceMapConsumer(
+			instrumentedSourcemap
 		);
 
 		// Without a source map, excludes/includes do not work.
 		if (!instrumentedSourceMapConsumer) {
 			return instrumentedSource;
 		}
+
+		const removedInstrumentationFor: Set<string> = new Set<string>();
 
 		// Remove the unwanted instrumentation
 		const cleaned = cleanSourceCode(instrumentedSource, configurationAlternative.esModules as boolean, location => {
@@ -219,30 +223,25 @@ export class IstanbulInstrumenter implements IInstrumenter {
 				column: location.start.column
 			});
 			if (!originalPosition.source) {
-				return true;
+				return false;
 			}
-			return sourcePattern.isAnyIncluded([originalPosition.source]);
+
+			const isToCover = sourcePattern.isAnyIncluded([originalPosition.source]);
+			if (!isToCover) {
+				removedInstrumentationFor.add(originalPosition.source);
+			}
+			return isToCover;
 		});
+
+		if (removedInstrumentationFor.size) {
+			this.logger.info(`Removed from ${taskElement.toFile} instrumentation for:`);
+			removedInstrumentationFor.forEach(entry => this.logger.info(entry));
+		}
 
 		// Explicitly free the source map to avoid memory leaks
 		instrumentedSourceMapConsumer.destroy();
 
 		return cleaned;
-	}
-
-	private async loadSourceMap(
-		instrumentedSource: string,
-		instrumentedSourceFileName: string
-	): Promise<SourceMapConsumer | undefined> {
-		const instrumentedSourceMap: RawSourceMap | undefined = this.loadInputSourceMap(
-			instrumentedSource,
-			instrumentedSourceFileName,
-			Optional.empty()
-		);
-		if (instrumentedSourceMap) {
-			return await new SourceMapConsumer(instrumentedSourceMap);
-		}
-		return undefined;
 	}
 
 	/**
@@ -254,22 +253,6 @@ export class IstanbulInstrumenter implements IInstrumenter {
 		// We first replace parameters in the file with the
 		// actual values, for example, the collector to send the coverage information to.
 		return fs.readFileSync(this.vaccineFilePath, 'utf8').replace(/\$REPORT_TO_URL/g, collector.url);
-	}
-
-	/**
-	 * Should the given file be excluded from the instrumentation,
-	 * based on the source files that have been transpiled into it?
-	 *
-	 * @param pattern - The pattern to match the origin source files.
-	 * @param sourceFile - The bundle file name.
-	 * @param originSourceFiles - The list of files that were transpiled into the bundle.
-	 */
-	private shouldExcludeFromInstrumentation(
-		pattern: OriginSourcePattern,
-		sourceFile: string,
-		originSourceFiles: string[]
-	): boolean {
-		return !pattern.isAnyIncluded(originSourceFiles);
 	}
 
 	/**
@@ -289,36 +272,13 @@ export class IstanbulInstrumenter implements IInstrumenter {
 
 		const baseConfig = {
 			coverageVariable: '__coverage__',
-			produceSourceMap: true
+			produceSourceMap: 'both'
 		};
 
 		return [
 			{ ...baseConfig, ...{ esModules: true } },
 			{ ...baseConfig, ...{ esModules: false } }
 		];
-	}
-
-	/**
-	 * Given a source code file, load the corresponding sourcemap.
-	 *
-	 * @param inputSource - The source code that might contain sourcemap comments.
-	 * @param taskFile - The name of the file the `inputSource` is from.
-	 * @param externalSourceMapFile - An external source map file to consider.
-	 */
-	private loadInputSourceMap(
-		inputSourceCode: string,
-		taskFile: string,
-		externalSourceMapFile: Optional<SourceMapReference>
-	): RawSourceMap | undefined {
-		if (externalSourceMapFile.isPresent()) {
-			const sourceMapOrigin = externalSourceMapFile.get();
-			if (!(sourceMapOrigin instanceof SourceMapFileReference)) {
-				throw new IllegalArgumentException('Type of source map not yet supported!');
-			}
-			return sourceMapFromMapFile(sourceMapOrigin.sourceMapFilePath);
-		} else {
-			return sourceMapFromCodeComment(inputSourceCode, taskFile);
-		}
 	}
 
 	/** Appends all origins from the source map to a given file. Creates the file if it does not exist yet. */
@@ -344,12 +304,56 @@ export class IstanbulInstrumenter implements IInstrumenter {
 }
 
 /**
+ * Extract the sourcemap from the given source code.
+ *
+ * @param instrumentedSource - The source code.
+ * @param instrumentedSourceFileName - The file name to assume for the file name.
+ */
+export async function loadSourceMap(
+	instrumentedSource: string,
+	instrumentedSourceFileName: string
+): Promise<SourceMapConsumer | undefined> {
+	const instrumentedSourceMap: RawSourceMap | undefined = loadInputSourceMap(
+		instrumentedSource,
+		instrumentedSourceFileName,
+		Optional.empty()
+	);
+	if (instrumentedSourceMap) {
+		return await new SourceMapConsumer(instrumentedSourceMap);
+	}
+	return undefined;
+}
+
+/**
+ * Given a source code file, load the corresponding sourcemap.
+ *
+ * @param inputSource - The source code that might contain sourcemap comments.
+ * @param taskFile - The name of the file the `inputSource` is from.
+ * @param externalSourceMapFile - An external source map file to consider.
+ */
+export function loadInputSourceMap(
+	inputSource: string,
+	taskFile: string,
+	externalSourceMapFile: Optional<SourceMapReference>
+): RawSourceMap | undefined {
+	if (externalSourceMapFile.isPresent()) {
+		const sourceMapOrigin = externalSourceMapFile.get();
+		if (!(sourceMapOrigin instanceof SourceMapFileReference)) {
+			throw new IllegalArgumentException('Type of source map not yet supported!');
+		}
+		return sourceMapFromMapFile(sourceMapOrigin.sourceMapFilePath);
+	} else {
+		return sourceMapFromCodeComment(inputSource, taskFile);
+	}
+}
+
+/**
  * Extract a sourcemap for a given code comment.
  *
  * @param sourcecode - The source code that is scanned for source map comments.
  * @param sourceFilePath - The file name the code was loaded from.
  */
-function sourceMapFromCodeComment(sourcecode: string, sourceFilePath: string): RawSourceMap | undefined {
+export function sourceMapFromCodeComment(sourcecode: string, sourceFilePath: string): RawSourceMap | undefined {
 	// Either `//# sourceMappingURL=vendor.5d7ba975.js.map`
 	// or `//# sourceMappingURL=data:application/json;base64,eyJ2ZXJ ...`
 	//
@@ -375,12 +379,12 @@ function sourceMapFromCodeComment(sourcecode: string, sourceFilePath: string): R
 				// One JS file can refer to several source map files in its comments.
 				failedLoading++;
 			}
-
-			if (result) {
-				return result;
-			}
 		}
 	} while (matched);
+
+	if (result) {
+		return result;
+	}
 
 	if (failedLoading > 0) {
 		throw new IllegalArgumentException('None of the referenced source map files loaded!');
@@ -394,7 +398,7 @@ function sourceMapFromCodeComment(sourcecode: string, sourceFilePath: string): R
  *
  * @param mapFilePath
  */
-function sourceMapFromMapFile(mapFilePath: string): RawSourceMap | undefined {
+export function sourceMapFromMapFile(mapFilePath: string): RawSourceMap | undefined {
 	const content: string = fs.readFileSync(mapFilePath, 'utf8');
 	return JSON.parse(content) as RawSourceMap;
 }

@@ -1,4 +1,4 @@
-import { OriginSourcePattern } from '../src/instrumenter/Task';
+import { OriginSourcePattern } from '../../src/instrumenter/Task';
 
 test('Include pattern without extension', () => {
 	const pattern = new OriginSourcePattern(['./src/app/**/*'], undefined);

@@ -1,5 +1,5 @@
 <component name="ProjectRunConfigurationManager">
-  <configuration default="false" name="Instrument casestudy/angular-hero-app Exclude" type="NodeJSConfigurationType" folderName="Case Study: Angular Hero App" application-parameters="test/casestudies/angular-hero-app/dist/ --in-place --exclude-origin &quot;node_modules/**/*.*&quot;" node-parameters="--require ts-node/register --max-old-space-size=8192" path-to-js-file="packages/teamscale-javascript-instrumenter/src/main.ts" working-dir="$PROJECT_DIR$">
+  <configuration default="false" name="Instrument casestudy/angular-hero-app Exclude" type="NodeJSConfigurationType" folderName="Case Study: Angular Hero App" application-parameters="test/casestudies/angular-hero-app/dist/ --in-place --exclude-origin &quot;node_modules/**/*.*&quot; &quot;src/app/heroes/*.ts&quot;" node-parameters="--require ts-node/register --max-old-space-size=8192" path-to-js-file="packages/teamscale-javascript-instrumenter/src/main.ts" working-dir="$PROJECT_DIR$">
     <method v="2" />
   </configuration>
 </component>

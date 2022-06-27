@@ -67,6 +67,7 @@ const caseStudies = [
 		name: 'angular-hero-app-no-matching-includes',
 		rootDir: 'test/casestudies/angular-hero-app',
 		distDir: 'dist',
+		expectCoveredLines: {},
 		expectUncoveredLines: {
 			'src/app/hero-detail/hero-detail.component.ts': ['1-12', '34-42'],
 			'node_modules/@angular/core/fesm2015/core.mjs': ['1-50']
@@ -340,7 +341,7 @@ for (const study of caseStudies) {
 
 			// Check the calls to the Teamscale mock server
 			const mockedRequests = teamscaleServerMock.requests({ method: 'POST' }).length;
-			if (mockedRequests === 0) {
+			if (mockedRequests === 0 && Object.keys(study.expectCoveredLines).length > 0) {
 				throw new Error('No coverage information was sent to the Teamscale mock server!');
 			} else {
 				console.log(`Received ${mockedRequests} requests in the Teamscale mock server.`);

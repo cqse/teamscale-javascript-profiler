@@ -1,6 +1,8 @@
 import { Contract, removePrefix } from '@cqse/commons';
 import * as fs from 'fs';
 import Logger from 'bunyan';
+import path from 'path';
+import * as dat from 'date-and-time';
 
 /**
  * Lines covered for the specified file.
@@ -28,11 +30,14 @@ export interface IReadableStorage {
 	getCoverageBySourceFile(project: string): IterableIterator<FileCoverage> | undefined;
 
 	/**
-	 * Write the coverage to the specified file.
+	 * Write the coverage to the specified file. A timestamp will be appended to the provided file path.
 	 *
-	 * @param filePath - Full path of the file to write the coverage to.
+	 * @param coverageFolder - Full path of the file to write the coverage to.
+	 * @param date - Date to use for the appended timestamp
+	 *
+	 * @return The number of lines written
 	 */
-	dumpToSimpleCoverageFile(filePath: string): void;
+	dumpToSimpleCoverageFile(coverageFolder: string, date: Date): [string, number];
 }
 
 /**
@@ -127,7 +132,7 @@ export class DataStorage implements IDataStorage {
 	/**
 	 * Coverage information by project.
 	 */
-	private readonly coverageByProject: Map<string, ProjectCoverage>;
+	private coverageByProject: Map<string, ProjectCoverage>;
 
 	/**
 	 * Logger to use.
@@ -138,6 +143,11 @@ export class DataStorage implements IDataStorage {
 	 * Times unmapped coverage received.
 	 */
 	private timesUnmappedCoverage: number;
+
+	/**
+	 * Date format for the timestamp appended to the coverage files
+	 */
+	public readonly DATE_FORMAT = 'YYYY-MM-DD-HH-mm-ss.SSS';
 
 	/**
 	 * Constructs the data storage.
@@ -158,7 +168,7 @@ export class DataStorage implements IDataStorage {
 	 * @param coveredOriginalLines - The lines covered in the file.
 	 */
 	public putCoverage(project: string, sourceFilePath: string, coveredOriginalLines: number[]): void {
-		const uniformPath = this.normalizeSourceFileName(sourceFilePath);
+		const uniformPath = DataStorage.normalizeSourceFileName(sourceFilePath);
 		let projectCoverage: ProjectCoverage | undefined = this.coverageByProject.get(project);
 		if (!projectCoverage) {
 			projectCoverage = new ProjectCoverage(project);
@@ -175,7 +185,7 @@ export class DataStorage implements IDataStorage {
 	 *
 	 * @param sourceFile - The file name to normalize, produced by the instrumenter.
 	 */
-	private normalizeSourceFileName(sourceFile: string): string {
+	private static normalizeSourceFileName(sourceFile: string): string {
 		return removePrefix('webpack:///', sourceFile.replace('\\', '/'));
 	}
 
@@ -199,33 +209,65 @@ export class DataStorage implements IDataStorage {
 	}
 
 	/**
-	 * {@inheritDoc IReadableStorage.writeToSimpleCoverageFile}
+	 * @inheritDoc
 	 */
-	public dumpToSimpleCoverageFile(filePath: string): number {
-		const toSimpleCoverage: () => [number, string] = () => {
-			const result: string[] = [];
-			Contract.require(this.getProjects().length < 2, 'Only one project supported to be handled in parallel.');
+	public dumpToSimpleCoverageFile(coverageFolder: string, date: Date): [string, number] {
+		const [lines, content] = this.toSimpleCoverage();
+		const coverageFolderTrimmed = coverageFolder.trim();
 
-			for (const project of this.getProjects()) {
-				const projectCoverage = this.getCoverageBySourceFile(project);
-				if (!projectCoverage) {
-					return [0, ''];
-				}
+		const finalFilePath = this.initCoverageFile(coverageFolderTrimmed, date);
+		fs.writeFileSync(finalFilePath, content, { flag: 'w', encoding: 'utf8' });
 
-				for (const entry of projectCoverage) {
-					result.push(this.normalizeSourceFileName(entry.sourceFile));
-					for (const lineNo of entry.coveredLines) {
-						result.push(String(lineNo));
-					}
-				}
+		this.resetCoverage();
+
+		return [finalFilePath, lines];
+	}
+
+	/**
+	 * Set the collected coverage to 0 for all projects
+	 * @private
+	 */
+	private resetCoverage() {
+		this.coverageByProject = new Map<string, ProjectCoverage>();
+	}
+
+	/**
+	 * Appends the timestamp given with date to the coverageFolder (before the file ending if there is one)
+	 * @param coverageFolder Path to the coverage file
+	 * @param date Represents the timestamp to be appended with the format {@link DataStorage.DATE_FORMAT}
+	 * @private
+	 */
+	private initCoverageFile(coverageFolder: string, date: Date): string {
+		if (!fs.existsSync(coverageFolder)) {
+			fs.mkdirSync(coverageFolder);
+		}
+
+		const formattedDate = dat.format(date, this.DATE_FORMAT);
+		return path.join(coverageFolder, `coverage-${formattedDate}.simple`);
+	}
+
+	/**
+	 * Generate simple coverage format for the collected coverage
+	 */
+	private toSimpleCoverage(): [number, string] {
+		const result: string[] = [];
+		Contract.require(this.getProjects().length < 2, 'Only one project supported to be handled in parallel.');
+
+		for (const project of this.getProjects()) {
+			const projectCoverage = this.getCoverageBySourceFile(project);
+			if (!projectCoverage) {
+				return [0, ''];
 			}
 
-			return [result.length, result.join('\n')];
-		};
+			for (const entry of projectCoverage) {
+				result.push(DataStorage.normalizeSourceFileName(entry.sourceFile));
+				for (const lineNo of entry.coveredLines) {
+					result.push(String(lineNo));
+				}
+			}
+		}
 
-		const [lines, content] = toSimpleCoverage();
-		fs.writeFileSync(filePath.trim(), content, { flag: 'w', encoding: 'utf8' });
-		return lines;
+		return [result.length, result.join('\n')];
 	}
 
 	/**

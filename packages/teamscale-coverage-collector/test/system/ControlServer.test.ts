@@ -20,6 +20,8 @@ describe('Test the control server that is integrated in the collector', () => {
 
 	it('Foo', () => {
 		App.runWithConfig({
+			dump_to_folder: 'coverage',
+			keep_coverage_files: true,
 			dump_after_mins: 1,
 			json_log: false,
 			log_level: 'INFO',

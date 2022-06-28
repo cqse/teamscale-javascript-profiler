@@ -9,9 +9,11 @@ import { version } from '../package.json';
  */
 export type Parameters = {
 	// eslint-disable-next-line camelcase
-	dump_to_file?: string;
+	dump_to_folder: string;
 	// eslint-disable-next-line camelcase
 	log_to_file: string;
+	// eslint-disable-next-line camelcase
+	keep_coverage_files: boolean;
 	// eslint-disable-next-line camelcase
 	log_level: string;
 	// eslint-disable-next-line camelcase
@@ -44,7 +46,7 @@ export type Parameters = {
 /**
  * Construct the object for parsing the command line arguments.
  */
-export function buildParser(): ArgumentParser {
+export function buildParameterParser(): ArgumentParser {
 	const parser = new ArgumentParser({
 		description:
 			'Collector of the Teamscale JavaScript Profiler. Collects coverage information from a' +
@@ -53,7 +55,15 @@ export function buildParser(): ArgumentParser {
 
 	parser.add_argument('-v', '--version', { action: 'version', version });
 	parser.add_argument('-p', '--port', { help: 'The port to receive coverage information on.', default: 54678 });
-	parser.add_argument('-f', '--dump-to-file', { help: 'Target file to write coverage to.' });
+	parser.add_argument('-f', '--dump-to-folder', {
+		help: 'Target folder for coverage files.',
+		default: 'coverage'
+	});
+	parser.add_argument('-k', '--keep-coverage-files', {
+		help: 'Whether to keep the coverage files on disk after a successful upload to Teamsacle',
+		action: 'store_true',
+		default: false
+	});
 	parser.add_argument('-l', '--log-to-file', { help: 'Log file', default: 'logs/collector-combined.log' });
 	parser.add_argument('-e', '--log-level', { help: 'Log level', default: 'info' });
 	parser.add_argument('-c', '--enable-control-port', {

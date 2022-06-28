@@ -2,7 +2,9 @@ We use [Semantic Versioning](https://semver.org/).
 
 # New Release
 
-- [fix] Partial instrumentation did consider the wrong source map.
+# 0.0.1-beta.41
+
+- [fix] Partial instrumentation did consider the wrong source map for identifying code origins.
 
 # 0.0.1-beta.40
 

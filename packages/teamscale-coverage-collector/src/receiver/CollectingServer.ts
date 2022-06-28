@@ -59,7 +59,7 @@ export class WebSocketCollectingServer {
 	/**
 	 * Start the server socket, handle sessions and dispatch messages.
 	 */
-	public start(): void {
+	public start(): { stop: () => void } {
 		this.logger.info(`Starting server on port ${this.server.options.port}.`);
 
 		// Handle new connections from clients
@@ -89,6 +89,14 @@ export class WebSocketCollectingServer {
 				this.logger.error('Error on server socket triggered.', e);
 			});
 		});
+
+		return {
+			stop: () => {
+				this.server.off('close', () => {
+					console.log('Stopping');
+				});
+			}
+		};
 	}
 
 	/**

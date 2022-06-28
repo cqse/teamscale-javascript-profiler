@@ -8,7 +8,7 @@ import * as fs from 'fs';
 import axios from 'axios';
 import FormData from 'form-data';
 import QueryParameters from './utils/QueryParameters';
-import {buildParameterParser, Parameters} from './Parameters';
+import { buildParameterParser, ConfigParameters } from './utils/ConfigParameters';
 import { inspect } from 'util';
 import mkdirp from 'mkdirp';
 import path from 'path';
@@ -29,11 +29,10 @@ class TeamscaleUploadError extends Error {
  * Used to start the collector for with a given configuration.
  */
 export class App {
-
 	/**
 	 * Parse the given command line arguments into a corresponding options object.
 	 */
-	private static parseArguments(): Parameters {
+	private static parseArguments(): ConfigParameters {
 		const parser: ArgumentParser = buildParameterParser();
 		return parser.parse_args();
 	}
@@ -41,7 +40,7 @@ export class App {
 	/**
 	 * Construct the logger.
 	 */
-	private static buildLogger(config: Parameters): Logger {
+	private static buildLogger(config: ConfigParameters): Logger {
 		const logfilePath = config.log_to_file.trim();
 		mkdirp.sync(path.dirname(logfilePath));
 
@@ -79,7 +78,7 @@ export class App {
 	 *
 	 * @param config - The configuration options to run the collector with.
 	 */
-	public static runWithConfig(config: Parameters): void {
+	public static runWithConfig(config: ConfigParameters): { stop: () => void } {
 		// Build the logger
 		const logger = this.buildLogger(config);
 		logger.info(`Starting collector in working directory "${process.cwd()}".`);
@@ -90,14 +89,14 @@ export class App {
 		const server = new WebSocketCollectingServer(config.port, storage, logger);
 
 		// Enable the remote control API if configured
-		this.startControlServer(config, storage, logger);
+		const controlServerState = this.startControlServer(config, storage, logger);
 
 		// Start the server socket.
 		// ATTENTION: The server is executed asynchronously
-		server.start();
+		const serverState = server.start();
 
 		// Optionally, start a timer that dumps the coverage after a N seconds
-		this.maybeStartDumpTimer(config, storage, logger);
+		const timerState = this.maybeStartDumpTimer(config, storage, logger);
 
 		// Say bye bye on CTRL+C and exit the process
 		process.on('SIGINT', async () => {
@@ -107,6 +106,15 @@ export class App {
 			logger.info('Bye bye.');
 			process.exit();
 		});
+
+		return {
+			stop() {
+				logger.info('Stopping the collector.');
+				timerState.stop();
+				controlServerState.stop();
+				serverState.stop();
+			}
+		};
 	}
 
 	/**
@@ -116,7 +124,11 @@ export class App {
 	 * @param storage - The storage with the information to dump.
 	 * @param logger - The logger to use.
 	 */
-	private static maybeStartDumpTimer(config: Parameters, storage: DataStorage, logger: Logger): void {
+	private static maybeStartDumpTimer(
+		config: ConfigParameters,
+		storage: DataStorage,
+		logger: Logger
+	): { stop: () => void } {
 		if (config.dump_after_mins > 0) {
 			logger.info(`Will dump coverage information every ${config.dump_after_mins} minute(s).`);
 			const timer = setInterval(() => {
@@ -129,10 +141,17 @@ export class App {
 					clearInterval(timer);
 				}
 			});
+
+			return {
+				stop: () => clearInterval(timer)
+			};
 		}
+
+		// eslint-disable-next-line @typescript-eslint/no-empty-function
+		return { stop() {} };
 	}
 
-	private static async dumpCoverage(config: Parameters, storage: DataStorage, logger: Logger): Promise<void> {
+	private static async dumpCoverage(config: ConfigParameters, storage: DataStorage, logger: Logger): Promise<void> {
 		try {
 			// 1. Write coverage to a file
 			const [coverageFile, lines] = storage.dumpToSimpleCoverageFile(config.dump_to_folder, new Date());
@@ -159,7 +178,12 @@ export class App {
 		}
 	}
 
-	private static async uploadToTeamscale(config: Parameters, logger: Logger, coverageFile: string, lines: number) {
+	private static async uploadToTeamscale(
+		config: ConfigParameters,
+		logger: Logger,
+		coverageFile: string,
+		lines: number
+	) {
 		if (!(config.teamscale_access_token && config.teamscale_user && config.teamscale_server_url)) {
 			throw new TeamscaleUploadError('API key and user name must be configured!');
 		}
@@ -176,7 +200,7 @@ export class App {
 	}
 
 	private static async performTeamscaleUpload(
-		config: Parameters,
+		config: ConfigParameters,
 		parameters: QueryParameters,
 		form: FormData,
 		logger: Logger
@@ -225,7 +249,7 @@ export class App {
 			});
 	}
 
-	private static prepareQueryParameters(config: Parameters) {
+	private static prepareQueryParameters(config: ConfigParameters) {
 		const parameters = new QueryParameters();
 		parameters.addIfDefined('format', 'SIMPLE');
 		parameters.addIfDefined('message', config.teamscale_message);
@@ -242,50 +266,75 @@ export class App {
 		return form;
 	}
 
-	private static startControlServer(config: Parameters, storage: DataStorage, logger: Logger) {
+	private static startControlServer(
+		config: ConfigParameters,
+		storage: DataStorage,
+		logger: Logger
+	): { stop: () => void } {
 		if (!config.enable_control_port) {
-			return;
+			return {
+				// eslint-disable-next-line @typescript-eslint/no-empty-function
+				stop() {}
+			};
 		}
 
 		const controlServer = express();
 		controlServer.use(express.text({}));
-		controlServer.listen(config.enable_control_port);
+		const serverSocket = controlServer.listen(config.enable_control_port);
 
-		controlServer.put('/partition', (request: express.Request<string>) => {
+		controlServer.put('/partition', (request: express.Request<string>, response) => {
 			const targetPartition = (request.body as string).trim();
 			config.teamscale_partition = targetPartition;
 			logger.info(`Switched the target partition to '${targetPartition}' via the control API.`);
+			response.sendStatus(200);
 		});
 
-		controlServer.post('/dump', async () => {
+		controlServer.post('/dump', async (request, response) => {
 			logger.info('Dumping coverage requested via the control API.');
 			await this.dumpCoverage(config, storage, logger);
+			response.sendStatus(200);
 		});
 
-		controlServer.post('/revision', async (request: express.Request<string>) => {
+		controlServer.post('/project', async (request: express.Request<string>, response) => {
+			const targetProject = (request.body as string).trim();
+			config.teamscale_project = targetProject;
+			logger.info(`Switching the target project to '${targetProject}' via the control API.`);
+			response.sendStatus(200);
+		});
+
+		controlServer.post('/revision', async (request: express.Request<string>, response) => {
 			const targetRevision = (request.body as string).trim();
 			config.teamscale_commit = targetRevision;
 			logger.info(`Switching the target revision to '${targetRevision}' via the control API.`);
+			response.sendStatus(200);
 		});
 
-		controlServer.post('/commit', async (request: express.Request<string>) => {
+		controlServer.post('/commit', async (request: express.Request<string>, response) => {
 			const targetCommit = (request.body as string).trim();
 			config.teamscale_revision = targetCommit;
 			logger.info(`Switching the target commit to '${targetCommit}' via the control API.`);
+			response.sendStatus(200);
 		});
 
-		controlServer.post('/message', async (request: express.Request<string>) => {
+		controlServer.post('/message', async (request: express.Request<string>, response) => {
 			const uploadMessage = (request.body as string).trim();
 			config.teamscale_message = uploadMessage;
 			logger.info(`Switching the upload message to '${uploadMessage}' via the control API.`);
+			response.sendStatus(200);
 		});
 
-		controlServer.post('/discard', async () => {
+		controlServer.post('/discard', async (request, response) => {
 			storage.discardCollectedCoverage();
 			logger.info(`Discarding collected coverage information as requested via the control API.`);
+			response.sendStatus(200);
 		});
 
 		logger.info(`Control server enabled at port ${config.enable_control_port}`);
+
+		return {
+			stop() {
+				serverSocket.close();
+			}
+		};
 	}
 }
-

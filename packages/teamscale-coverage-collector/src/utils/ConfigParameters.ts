@@ -1,5 +1,5 @@
 import { ArgumentParser } from 'argparse';
-import { version } from '../package.json';
+import { version } from '../../package.json';
 
 /**
  * The command line parameters the profiler can be configured with.
@@ -7,7 +7,7 @@ import { version } from '../package.json';
  * ATTENTION: We use snake_case here because ArgParse creates
  * the parameters that way---as in Python from which ArgParse stems.
  */
-export type Parameters = {
+export type ConfigParameters = {
 	// eslint-disable-next-line camelcase
 	dump_to_folder: string;
 	// eslint-disable-next-line camelcase

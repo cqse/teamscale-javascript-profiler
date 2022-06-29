@@ -1,6 +1,7 @@
 import WebSocket from 'ws';
 import { ProtocolMessageTypes } from '../src/receiver/CollectingServer';
 import axios from 'axios';
+import { file } from 'tmp';
 
 export async function postCoverage(
 	collectorUrl: string,
@@ -16,6 +17,16 @@ export async function postCoverage(
 
 	ws.on('open', function open() {
 		ws.send(`${ProtocolMessageTypes.TYPE_COVERAGE} ${fileId} ${startLine} ${startColumn} ${endLine} ${endColumn}`);
+	});
+}
+
+export async function postSourceMap(collectorUrl: string, fileId: string, sourceMap: any) {
+	const ws = new WebSocket(`${collectorUrl}/socket`, {
+		perMessageDeflate: false
+	});
+
+	ws.on('open', function open() {
+		ws.send(`${ProtocolMessageTypes.TYPE_SOURCEMAP} ${fileId}:${JSON.stringify(sourceMap)}`);
 	});
 }
 

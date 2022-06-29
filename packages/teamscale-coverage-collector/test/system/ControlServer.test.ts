@@ -1,7 +1,7 @@
 import { App } from '../../src/App';
-import { getLocal } from 'mockttp';
+import { getLocal, MockedEndpoint } from 'mockttp';
 import DoneCallback = jest.DoneCallback;
-import { postCoverage, requestCoverageDump, requestProjectSwitch } from '../CollectorClient';
+import { postCoverage, postSourceMap, requestCoverageDump, requestProjectSwitch } from '../CollectorClient';
 
 const TEAMSCALE_MOCK_PORT = 11234;
 
@@ -11,7 +11,7 @@ describe('Test the control server that is integrated in the collector', () => {
 	const teamscaleServerMock = getLocal({});
 	let collectorState: { stop: () => void };
 
-	beforeEach(function (done: DoneCallback) {
+	beforeEach((done: DoneCallback) => {
 		// Start the Teamscale mock serer
 		teamscaleServerMock.start(TEAMSCALE_MOCK_PORT);
 
@@ -33,7 +33,7 @@ describe('Test the control server that is integrated in the collector', () => {
 		done();
 	});
 
-	afterEach(function (done: DoneCallback) {
+	afterEach((done: DoneCallback) => {
 		// Stop the mock server
 		teamscaleServerMock.stop();
 
@@ -43,14 +43,30 @@ describe('Test the control server that is integrated in the collector', () => {
 		done();
 	});
 
-	it('Request dumping project coverage to a Teamscale server', async () => {
+	it('Request dumping project coverage to a Teamscale server', (done: DoneCallback) => {
 		const projectId = 'dummyProjectId';
-		await requestProjectSwitch(CONTROL_URL, projectId);
-		const mockedEndpoint = await teamscaleServerMock
-			.forPost(`api/projects/${projectId}/external-analysis/session/auto-create/report`)
-			.thenReply(200, 'Mocked response');
-		await postCoverage('ws://localhost:1234', 'dummyFileId', 1, 2, 3, 4);
-		await requestCoverageDump(CONTROL_URL);
-		expect(await mockedEndpoint.getSeenRequests()).toHaveLength(1);
+		const sourceMap = {
+			version: 3,
+			file: 'main.js',
+			sourceRoot: '',
+			sources: ['../src/main.ts'],
+			names: [],
+			mappings:
+				';AAKA;IAIE,qBAAY,IAAY,EAAE,EAAU;QAClC,IAAI,CAAC,IAAI,GAAG,IAAI,CAAC;QACjB,IAAI,CAAC,EAAE,GAAG,EAAE,CAAC;IACf,CAAC;IACH,kBAAC;AAAD,CAAC,AARD,IAQC;AAED,IAAM,IAAI,GAAS,IAAI,WAAW,CAAC,QAAQ,EAAE,CAAC,CAAC,CAAC'
+		};
+		let mockedEndpoint: MockedEndpoint;
+		setImmediate(async () => {
+			mockedEndpoint = await teamscaleServerMock
+				.forPost(`api/projects/${projectId}/external-analysis/session/auto-create/report`)
+				.thenReply(200, 'Mocked response');
+			await requestProjectSwitch(CONTROL_URL, projectId);
+			await postSourceMap('ws://localhost:1234', 'dummyFileId', sourceMap);
+			await postCoverage('ws://localhost:1234', 'dummyFileId', 3, 2, 3, 15);
+			await requestCoverageDump(CONTROL_URL);
+			setTimeout(async () => {
+				expect(await mockedEndpoint.getSeenRequests()).toHaveLength(1);
+				done();
+			}, 1000);
+		});
 	});
 });

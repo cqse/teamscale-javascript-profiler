@@ -6,6 +6,7 @@ import * as unload from 'unload';
 import { getWindow, universe, hasWindow, universeAttribute } from './utils';
 import { ProtocolMessageTypes } from './protocol';
 import { IstanbulCoverageStore } from './types';
+import { FlushingBuffer } from './FlushingBuffer';
 
 // Prepare our global JavaScript object. This will hold
 // a reference to the WebWorker thread.
@@ -24,6 +25,20 @@ function getWorker(): DataWorker {
 function setWorker(worker: DataWorker): DataWorker {
 	globalAgentObject._$BcWorker = worker;
 	return worker;
+}
+
+/**
+ * Get the buffer of coverage information to be sent.
+ */
+function getCoverageMessageBuffer(): FlushingBuffer {
+	return globalAgentObject._$CoverageMsgBuffer as FlushingBuffer;
+}
+
+/**
+ * Get the buffer of coverage information to be sent.
+ */
+function setCoverageMessageBuffer(buffer: FlushingBuffer): void {
+	globalAgentObject._$CoverageMsgBuffer = buffer;
 }
 
 const interceptedStores: Set<string> = new Set<string>();
@@ -45,11 +60,29 @@ universe().makeCoverageInterceptor = function (coverage: IstanbulCoverageStore) 
 		interceptedStores.add(fileId);
 	}
 
-	if (!getWorker()) {
+	// Create the worker or get a reference to it
+	let worker: DataWorker = getWorker();
+	const isFirstTimeInit = !worker;
+	if (isFirstTimeInit) {
 		// Create the worker with the worker code
 		// (we use the tool 'rollup' to produce this object---see rollup.config.js)
-		const worker = setWorker(new DataWorker());
+		worker = setWorker(new DataWorker());
+	} else {
+		worker = getWorker();
+	}
 
+	// Create the window-side buffer for coverage messages
+	let coverageMessageBuffer: FlushingBuffer = getCoverageMessageBuffer();
+	if (!coverageMessageBuffer) {
+		coverageMessageBuffer = new FlushingBuffer((buffer: string[]) => {
+			worker.postMessage(buffer.join('\n'));
+		});
+		setCoverageMessageBuffer(coverageMessageBuffer);
+	}
+
+	if (isFirstTimeInit) {
+		// Register to page unload events to make sure that coverage
+		// is sent before the page closes.
 		(function handleUnloading() {
 			const protectWindowEvent = function (name: 'onunload' | 'onbeforeunload') {
 				// Save the existing handler, wrap it in our handler
@@ -57,7 +90,7 @@ universe().makeCoverageInterceptor = function (coverage: IstanbulCoverageStore) 
 
 				getWindow()[name] = function (...args) {
 					// Ask the worker to send all remaining coverage infos
-					worker.postMessage('unload'); // The string "unload" is by accident the same as the window event
+					worker.postMessage(ProtocolMessageTypes.FLUSH_REQUEST);
 					if (wrappedHandler) {
 						return wrappedHandler.apply(this, args);
 					}
@@ -79,7 +112,8 @@ universe().makeCoverageInterceptor = function (coverage: IstanbulCoverageStore) 
 			protectWindowEvent('onunload');
 			protectWindowEvent('onbeforeunload');
 
-			unload.add(() => worker.postMessage('unload'));
+			unload.add(() => coverageMessageBuffer.flushAndStop);
+			unload.add(() => worker.postMessage(ProtocolMessageTypes.FLUSH_REQUEST));
 		})();
 	}
 
@@ -101,23 +135,13 @@ universe().makeCoverageInterceptor = function (coverage: IstanbulCoverageStore) 
 		}
 	})();
 
-	(function registerCoverageReporter() {
-		const reported = new Set<string>();
-		universe()._$Bc = (
-			fileId: string,
-			startLine: number,
-			startColumn: number,
-			endLine: number,
-			endColumn: number
-		) => {
-			// Do not send lines that have already been sent to reduce the network load
-			const coverageMessage = `${fileId}:${startLine}:${startColumn}:${endLine}:${endColumn}`;
-			if (!reported.has(coverageMessage)) {
-				getWorker().postMessage(coverageMessage);
-				reported.add(coverageMessage);
-			}
-		};
-	})();
-
-	return makeProxy(getWorker(), coverage.hash, coverage, []);
+	return makeProxy(
+		getWorker(),
+		message => {
+			coverageMessageBuffer.pushMessage(message);
+		},
+		coverage.hash,
+		coverage,
+		[]
+	);
 };

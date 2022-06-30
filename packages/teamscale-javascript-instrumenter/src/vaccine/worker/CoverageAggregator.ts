@@ -5,12 +5,12 @@ import { CodeRange } from '../types';
 /**
  * The number of cache elements after that the cache should be flushed.
  */
-const FLUSH_AFTER_ELEMENTS = 20;
+const FLUSH_AFTER_ELEMENTS = 500;
 
 /**
  * Number of milliseconds after that the cash should be flushed.
  */
-const FLUSH_AFTER_MILLIS = 1000;
+const FLUSH_AFTER_MILLIS = 5000;
 
 /**
  * Countdown that can be reset to start counting from 0.
@@ -87,7 +87,9 @@ export class CoverageAggregator {
 		this.socket = socket;
 		this.cachedCoveredRanges = new Map();
 		this.numberOfCachedPositions = 0;
-		this.flushCountdown = new Countdown(FLUSH_AFTER_MILLIS, () => this.flush());
+		this.flushCountdown = new Countdown(FLUSH_AFTER_MILLIS, () => {
+			this.flush();
+		});
 	}
 
 	/**

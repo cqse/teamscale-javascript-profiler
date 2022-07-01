@@ -84,35 +84,42 @@ universe().makeCoverageInterceptor = function (coverage: IstanbulCoverageStore) 
 		// Register to page unload events to make sure that coverage
 		// is sent before the page closes.
 		(function handleUnloading() {
-			const protectWindowEvent = function (name: 'onunload' | 'onbeforeunload') {
-				// Save the existing handler, wrap it in our handler
-				let wrappedHandler = (getWindow() as Window)[name];
+			const protectWindowEvent = function (eventName: 'onunload' | 'onbeforeunload') {
+				const win = getWindow() as Window | null;
+				if (!win) {
+					return;
+				}
 
-				getWindow()[name] = function (...args) {
-					// Ask the worker to send all remaining coverage infos
+				// Save the existing handler, wrap it in our handler
+				let wrappedHandler = win[eventName];
+
+				win[eventName] = function (...args) {
+					// Collect and send all buffered coverage infos
 					worker.postMessage(ProtocolMessageTypes.FLUSH_REQUEST);
+					coverageMessageBuffer.flushAndStop();
+
+					// Call the previous event handler
 					if (wrappedHandler) {
 						return wrappedHandler.apply(this, args);
 					}
 				};
 
 				// Define a proxy that prevents overwriting
-				if (hasWindow()) {
-					Object.defineProperty(getWindow(), name, {
-						get: function () {
-							return wrappedHandler;
-						},
-						set: function (newHandler: never) {
-							wrappedHandler = newHandler;
-						}
-					});
-				}
+				Object.defineProperty(win, eventName, {
+					get: function () {
+						return wrappedHandler;
+					},
+					set: function (newHandler: never) {
+						wrappedHandler = newHandler;
+					}
+				});
 			};
 
 			protectWindowEvent('onunload');
 			protectWindowEvent('onbeforeunload');
 
-			unload.add(() => coverageMessageBuffer.flushAndStop);
+			// Cross JS platform unload handling (uses https://www.npmjs.com/package/unload)
+			unload.add(() => coverageMessageBuffer.flushAndStop());
 			unload.add(() => worker.postMessage(ProtocolMessageTypes.FLUSH_REQUEST));
 		})();
 	}

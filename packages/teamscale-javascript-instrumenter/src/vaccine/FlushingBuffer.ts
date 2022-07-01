@@ -1,4 +1,20 @@
 /**
+ * Do not resent coverage info that was already sent recently.
+ * After `KNOWN_MESSAGE_RESET_AFTER_COUNT` the set of known message is reset.
+ */
+const KNOWN_MESSAGE_RESET_AFTER_COUNT = 1000;
+
+/**
+ * Flush the coverage info buffer after it grew to N messages.
+ */
+const BUFFER_FLUSH_AFTER_COUNT = 30;
+
+/**
+ * Flush the buffer after N milliseconds.
+ */
+const FLUSH_BUFFER_AFTER_MILLIS = 2000;
+
+/**
  * Buffer of messages to be sent.
  *
  * Aims at not overwhelming the receiver with too many messages.
@@ -12,10 +28,10 @@ export class FlushingBuffer {
 		this.alreadyPushed = new Set<string>();
 		this.buffer = [];
 
-		// Flush after 2s
+		// Flush after `FLUSH_BUFFER_AFTER_MILLIS` ms
 		this.flushTimer = setInterval(() => {
 			this.flush();
-		}, 2000);
+		}, FLUSH_BUFFER_AFTER_MILLIS);
 	}
 
 	/**
@@ -34,7 +50,7 @@ export class FlushingBuffer {
 	public pushMessage(message: string): void {
 		// `alreadyPushed` should approximate the behaviour of a ring buffer
 		// of coverage messages already sent.
-		if (this.alreadyPushed.size > 1000) {
+		if (this.alreadyPushed.size > KNOWN_MESSAGE_RESET_AFTER_COUNT) {
 			this.alreadyPushed.clear();
 		}
 		if (!this.alreadyPushed.has(message)) {
@@ -43,8 +59,8 @@ export class FlushingBuffer {
 			this.alreadyPushed.add(message);
 		}
 
-		// Flush if we already have 500 elements in the buffer
-		if (this.buffer.length > 500) {
+		// Flush if we already have `BUFFER_FLUSH_AFTER_COUNT` elements in the buffer
+		if (this.buffer.length > BUFFER_FLUSH_AFTER_COUNT) {
 			this.flush();
 		}
 	}

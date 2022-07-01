@@ -309,9 +309,9 @@ for (const study of caseStudies) {
 				});
 			} finally {
 				console.log('## Stopping the collector');
-				await sleep(1000);
+				await sleep(7000);
 				collectProcess.kill('SIGINT');
-				await sleep(10000);
+				await sleep(5000);
 			}
 
 			// Check if the coverage collector has written the files

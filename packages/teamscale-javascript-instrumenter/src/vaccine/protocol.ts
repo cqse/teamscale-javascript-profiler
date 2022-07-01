@@ -13,5 +13,8 @@ export enum ProtocolMessageTypes {
 	ISTANBUL_COV_OBJECT = 'i',
 
 	/** A message denoting an unresolved covered code entity */
-	UNRESOLVED_CODE_ENTITY = 'u'
+	UNRESOLVED_CODE_ENTITY = 'u',
+
+	/** A message requesting a flush of the aggregated coverage to the collector. */
+	FLUSH_REQUEST = 'f'
 }

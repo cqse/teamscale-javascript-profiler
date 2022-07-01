@@ -5,7 +5,7 @@
 import { CachingSocket } from './CachingSocket';
 import { CoverageAggregator } from './CoverageAggregator';
 import { ProtocolMessageTypes } from '../protocol';
-import { BRANCH_COVERAGE_ID, IstanbulCoverageStore, STATEMENT_COVERAGE_ID } from '../types';
+import { BRANCH_COVERAGE_ID, CodeRange, IstanbulCoverageStore, STATEMENT_COVERAGE_ID } from '../types';
 
 console.log('Starting coverage forwarding worker.');
 
@@ -30,8 +30,8 @@ onmessage = (event: MessageEvent) => {
 	} else if (message.startsWith(ProtocolMessageTypes.UNRESOLVED_CODE_ENTITY)) {
 		// Handle the coverage of a code entity. The code range is looked up
 		// using the Istanbul coverage object.
-		handleUnresolvedCoveredEntity(message);
-	} else if (message === 'unload') {
+		message.split('\n').forEach(handleUnresolvedCoveredEntity);
+	} else if (message === ProtocolMessageTypes.FLUSH_REQUEST) {
 		// Send all information immediately
 		aggregator.flush();
 	} else {
@@ -47,9 +47,11 @@ onmessage = (event: MessageEvent) => {
  */
 function handleUnresolvedCoveredEntity(message: string) {
 	const messageParts: string[] = message.split(' ');
-	if (messageParts.length < 4 || coverage === null) {
+	if (messageParts.length < 4) {
 		return;
 	}
+
+	console.log('Unresolved', message);
 
 	const fileId = messageParts[1];
 	const coveredEntityType = messageParts[2];
@@ -59,22 +61,22 @@ function handleUnresolvedCoveredEntity(message: string) {
 		return;
 	}
 
+	let codeRange: CodeRange | null = null;
 	if (coveredEntityType === STATEMENT_COVERAGE_ID) {
 		// Handle "Statement" coverage.
 		const statementId = messageParts[3];
-		const codeRange = fileCoverageInfos.statementMap[statementId];
-		if (codeRange) {
-			aggregator.addRange(fileId, codeRange);
-		}
+		codeRange = fileCoverageInfos.statementMap[statementId];
 	} else if (coveredEntityType === BRANCH_COVERAGE_ID) {
 		// Handle "Branch" coverage.
 		// This is important because often statements of the original code
 		// are encoded into branch expressions as part of "Sequence Expressions".
 		const branchId = messageParts[3];
 		const locationNo = Number.parseInt(messageParts[4]);
-		const codeRange = fileCoverageInfos.branchMap[branchId]?.locations[locationNo];
-		if (codeRange) {
-			aggregator.addRange(fileId, codeRange);
-		}
+		codeRange = fileCoverageInfos.branchMap[branchId]?.locations[locationNo];
+	}
+
+	if (codeRange !== null) {
+		console.log('Resolved', codeRange);
+		aggregator.addRange(fileId, codeRange);
 	}
 }

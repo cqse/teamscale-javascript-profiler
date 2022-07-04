@@ -78,9 +78,9 @@ export class WebSocketCollectingServer {
 			});
 
 			// Handle incoming messages
-			webSocket.on('message', (message: WebSocket.Data) => {
+			webSocket.on('message', async (message: WebSocket.Data) => {
 				if (session && typeof message === 'string') {
-					this.handleMessage(session, message);
+					await this.handleMessage(session, message);
 				}
 			});
 
@@ -105,12 +105,12 @@ export class WebSocketCollectingServer {
 	 * @param session - The session that has been started for the client.
 	 * @param message - The message to handle.
 	 */
-	private handleMessage(session: Session, message: string) {
+	private async handleMessage(session: Session, message: string) {
 		try {
 			if (message.startsWith(ProtocolMessageTypes.TYPE_SOURCEMAP)) {
-				this.handleSourcemapMessage(session, message.substring(1));
+				await this.handleSourcemapMessage(session, message.substring(1));
 			} else if (message.startsWith(ProtocolMessageTypes.TYPE_COVERAGE)) {
-				this.handleCoverageMessage(session, message.substring(1));
+				await this.handleCoverageMessage(session, message.substring(1));
 			}
 		} catch (e) {
 			this.logger.error(
@@ -126,13 +126,13 @@ export class WebSocketCollectingServer {
 	 * @param session - The session to handle the message for.
 	 * @param body - The body of the message (to be parsed).
 	 */
-	private handleSourcemapMessage(session: Session, body: string) {
+	private async handleSourcemapMessage(session: Session, body: string) {
 		const fileIdSeparatorPosition = body.indexOf(INSTRUMENTATION_SUBJECT_SEPARATOR);
 		if (fileIdSeparatorPosition > -1) {
 			const fileId = body.substring(0, fileIdSeparatorPosition).trim();
 			this.logger.debug(`Received source map information for ${fileId}`);
 			const sourcemap = body.substring(fileIdSeparatorPosition + 1);
-			session.putSourcemap(fileId, sourcemap);
+			await session.putSourcemap(fileId, sourcemap);
 		}
 	}
 
@@ -142,7 +142,7 @@ export class WebSocketCollectingServer {
 	 * @param session - The session to handle the message for.
 	 * @param body - The body of the message (to be parsed).
 	 */
-	private handleCoverageMessage(session: Session, body: string) {
+	private async handleCoverageMessage(session: Session, body: string) {
 		const bodyPattern = /(?<fileId>\S+) (?<positions>((\d+:\d+(:\d+:\d+)?\s+)*(\d+:\d+(:\d+:\d+)?)))/;
 		const matches = bodyPattern.exec(body);
 		if (matches?.groups) {

@@ -142,15 +142,14 @@ export class Session {
 	 * @param fileId - The identifier of the file bundle.
 	 * @param sourceMapText - The actual source map.
 	 */
-	public putSourcemap(fileId: string, sourceMapText: string): void {
+	public async putSourcemap(fileId: string, sourceMapText: string): Promise<void> {
 		const rawSourceMap = JSON.parse(sourceMapText);
-		new sourceMap.SourceMapConsumer(rawSourceMap)
-			.then(consumer => {
-				this.sourceMaps.set(fileId, consumer);
-			})
-			.catch(e => {
-				this.logger.error(`Consuming source map failed! ${e}`);
-			});
+		try {
+			const sourceMapConsumer = await new sourceMap.SourceMapConsumer(rawSourceMap);
+			this.sourceMaps.set(fileId, sourceMapConsumer);
+		} catch (e) {
+			this.logger.error(`Consuming source map failed! ${e}`);
+		}
 	}
 
 	/**

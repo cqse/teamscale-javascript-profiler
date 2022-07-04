@@ -222,6 +222,9 @@ export class App {
 					}
 				}
 			)
+			.then(response => {
+				logger.info(`Upload finished with code ${response.status}.`);
+			})
 			.catch(function (error) {
 				if (error.response) {
 					const response = error.response;

@@ -149,7 +149,7 @@ describe('Test the control server that is integrated in the collector', () => {
 				} finally {
 					done();
 				}
-			}, 1500);
+			}, 2000);
 		});
 	}, 20000);
 });

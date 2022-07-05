@@ -14,7 +14,7 @@ import * as fs from 'fs';
 import * as mkdirp from 'mkdirp';
 import * as path from 'path';
 import * as convertSourceMap from 'convert-source-map';
-import { cleanSourceCode } from './Cleaner';
+import { cleanSourceCode } from './Postprocessor';
 import { Optional } from 'typescript-optional';
 import Logger from 'bunyan';
 import async from 'async';

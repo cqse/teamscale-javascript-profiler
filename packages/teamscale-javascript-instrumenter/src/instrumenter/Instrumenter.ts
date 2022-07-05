@@ -162,7 +162,7 @@ export class IstanbulInstrumenter implements IInstrumenter {
 				instrumentedAndCleanedSource = instrumentedAndCleanedSource
 					.replace(
 						/actualCoverage\s*=\s*coverage\[path\]/g,
-						'actualCoverage=makeCoverageInterceptor(coverage[path])'
+						'actualCoverage=_$registerCoverageObject(coverage[path])'
 					)
 					.replace(/new Function\("return this"\)\(\)/g, "typeof window === 'object' ? window : this");
 

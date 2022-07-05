@@ -154,9 +154,10 @@ test('Also handle coverage increments in sequence expressions.', () => {
 	}
 	`,
 		false,
-		loc => false
+		loc => true
 	);
 	expect(cleaned).not.toContain('b[3][0]++');
+	expect(cleaned).toContain('_$brCov(_$fid0, 3, 0)');
 });
 
 test('Remove the coverage from an instrument Angular bundle.', () => {

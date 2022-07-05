@@ -30,18 +30,18 @@ const interceptedStores: Set<string> = new Set<string>();
 /**
  * Signal the coverage of a particular statement.
  */
-universe()._$stmtCov = function (coverage: IstanbulCoverageStore, statementId: number): void {
+universe()._$stmtCov = function (fileId: string, statementId: number): void {
 	getWorker().postMessage(
-		`${ProtocolMessageTypes.UNRESOLVED_CODE_ENTITY} ${coverage.hash} ${STATEMENT_COVERAGE_ID} ${statementId}`
+		`${ProtocolMessageTypes.UNRESOLVED_CODE_ENTITY} ${fileId} ${STATEMENT_COVERAGE_ID} ${statementId}`
 	);
 };
 
 /**
  * Signal the coverage of a particular statement.
  */
-universe()._$brCov = function (coverage: IstanbulCoverageStore, branchId: number, locationId: number): void {
+universe()._$brCov = function (fileId: string, branchId: number, locationId: number): void {
 	getWorker().postMessage(
-		`${ProtocolMessageTypes.UNRESOLVED_CODE_ENTITY} ${this.fileHash} ${BRANCH_COVERAGE_ID} ${branchId} ${locationId}`
+		`${ProtocolMessageTypes.UNRESOLVED_CODE_ENTITY} ${fileId} ${BRANCH_COVERAGE_ID} ${branchId} ${locationId}`
 	);
 };
 

@@ -2,6 +2,7 @@ import { parse } from '@babel/parser';
 import generate from '@babel/generator';
 import traverse, { NodePath } from '@babel/traverse';
 import {
+	Node,
 	CallExpression,
 	Identifier,
 	isCallExpression,
@@ -15,7 +16,9 @@ import {
 	VariableDeclaration,
 	VariableDeclarator,
 	isFunctionDeclaration,
-	ExpressionStatement
+	ExpressionStatement,
+	isSequenceExpression,
+	SequenceExpression
 } from '@babel/types';
 import { IllegalStateException } from '@cqse/commons';
 
@@ -73,6 +76,7 @@ export function cleanSourceCode(
 						if (declaration.declarations.length === 1) {
 							const declarator = declaration.declarations[0] as VariableDeclarator;
 							if ((declarator.id as Identifier).name === 'hash') {
+								// We take note of the hash that is stored within the `cov_*' function.
 								const fileIdVarName = `_$fid${fileIdSeq++}`;
 								const fileId = (declarator.init as StringLiteral).value;
 								fileIdMap.set(functionName, fileIdVarName);
@@ -89,6 +93,9 @@ export function cleanSourceCode(
 					const wantCoverageIncrement =
 						path.node.loc && makeCoverable(path.node.loc) && increment.type !== 'function';
 
+					const insertAsExpression = isSequenceExpression(path.parent);
+
+					// Add a new coverage instrument if desired
 					if (wantCoverageIncrement) {
 						const fileIdVarName: string | undefined = fileIdMap.get(increment.coverageObjectId);
 						if (!fileIdVarName) {
@@ -96,8 +103,11 @@ export function cleanSourceCode(
 								`File ID variable for coverage object with ID ${increment.coverageObjectId} not found!`
 							);
 						}
-						path.insertBefore([newCoverageIncrementNode(fileIdVarName, increment) as any]);
+
+						insertNodeBefore(path, newCoverageIncrementNode(fileIdVarName, increment, insertAsExpression));
 					}
+
+					// Remove the existing coverage increment node
 					path.remove();
 				}
 			}
@@ -106,6 +116,23 @@ export function cleanSourceCode(
 	return generate(ast, {}, code).code;
 }
 
+/**
+ * We cannot just run `path.insertBefore` to add a new element to an AST.
+ * See https://github.com/jamiebuilds/babel-handbook/blob/master/translations/en/plugin-handbook.md#toc-inserting-a-sibling-node .
+ *
+ * Special handling for some container nodes is needed.
+ */
+function insertNodeBefore(path: NodePath<Node>, toInsert: Node): void {
+	if (isSequenceExpression(path.parent)) {
+		(path.parentPath as NodePath<SequenceExpression>).unshiftContainer('expressions', [toInsert]);
+	} else {
+		path.insertBefore(toInsert);
+	}
+}
+
+/**
+ * Creates a new string constant AST node.
+ */
 function newStringConstDeclarationNode(name: string, value: string): VariableDeclaration {
 	return {
 		type: 'VariableDeclaration',
@@ -126,48 +153,61 @@ function newStringConstDeclarationNode(name: string, value: string): VariableDec
 	} as VariableDeclaration;
 }
 
-function newCoverageIncrementNode(fileIdVarName: string, increment: CoverageIncrement): ExpressionStatement {
+/**
+ * Creates a new coverage increment statement.
+ */
+function newCoverageIncrementNode(fileIdVarName: string, increment: CoverageIncrement, asExpression: boolean): Node {
+	let expression: CallExpression;
 	if (increment.type === 'branch') {
-		return newBranchCoverageIncrementNode(fileIdVarName, increment as BranchCoverageIncrement);
+		expression = newBranchCoverageIncrementExpression(fileIdVarName, increment as BranchCoverageIncrement);
 	} else if (increment.type === 'statement') {
-		return newStatementCoverageIncrementNode(fileIdVarName, increment as StatementCoverageIncrement);
+		expression = newStatementCoverageIncrementExpression(fileIdVarName, increment as StatementCoverageIncrement);
 	} else {
 		throw new Error(`Unexpected coverage increment type: ${increment.type}`);
 	}
-}
 
-function newBranchCoverageIncrementNode(
-	fileIdVarName: string,
-	increment: BranchCoverageIncrement
-): ExpressionStatement {
+	if (asExpression) {
+		return expression;
+	}
+
 	return {
 		type: 'ExpressionStatement',
-		expression: {
-			type: 'CallExpression',
-			callee: { type: 'Identifier', name: '_$brCov' } as Identifier,
-			arguments: [
-				{ type: 'Identifier', name: fileIdVarName } as Identifier,
-				{ type: 'NumericLiteral', value: increment.branchId } as NumericLiteral,
-				{ type: 'NumericLiteral', value: increment.locationId } as NumericLiteral
-			]
-		}
+		expression
+	} as ExpressionStatement;
+}
+
+/**
+ * Create a branch coverage increment node.
+ */
+function newBranchCoverageIncrementExpression(
+	fileIdVarName: string,
+	increment: BranchCoverageIncrement
+): CallExpression {
+	return {
+		type: 'CallExpression',
+		callee: { type: 'Identifier', name: '_$brCov' } as Identifier,
+		arguments: [
+			{ type: 'Identifier', name: fileIdVarName } as Identifier,
+			{ type: 'NumericLiteral', value: increment.branchId } as NumericLiteral,
+			{ type: 'NumericLiteral', value: increment.locationId } as NumericLiteral
+		]
 	};
 }
 
-function newStatementCoverageIncrementNode(
+/**
+ * Create a statement coverage increment node.
+ */
+function newStatementCoverageIncrementExpression(
 	fileIdVarName: string,
 	increment: StatementCoverageIncrement
-): ExpressionStatement {
+): CallExpression {
 	return {
-		type: 'ExpressionStatement',
-		expression: {
-			type: 'CallExpression',
-			callee: { type: 'Identifier', name: '_$stmtCov' } as Identifier,
-			arguments: [
-				{ type: 'Identifier', name: fileIdVarName } as Identifier,
-				{ type: 'NumericLiteral', value: increment.statementId } as NumericLiteral
-			]
-		}
+		type: 'CallExpression',
+		callee: { type: 'Identifier', name: '_$stmtCov' } as Identifier,
+		arguments: [
+			{ type: 'Identifier', name: fileIdVarName } as Identifier,
+			{ type: 'NumericLiteral', value: increment.statementId } as NumericLiteral
+		]
 	};
 }
 

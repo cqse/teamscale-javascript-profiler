@@ -18,15 +18,12 @@ import {
 	isFunctionDeclaration,
 	ExpressionStatement,
 	isSequenceExpression,
-	SequenceExpression
+	SequenceExpression,
+	isUpdateExpression
 } from '@babel/types';
 import { IllegalStateException } from '@cqse/commons';
 
 const COVERAGE_OBJ_FUNCTION_NAME_PREFIX = 'cov_';
-
-function isUpdateExpressionPath(path: NodePath<any>): path is NodePath<UpdateExpression> {
-	return path.node.type === 'UpdateExpression';
-}
 
 type CoverageIncrement = {
 	type: 'statement' | 'branch' | 'function';
@@ -49,6 +46,116 @@ type FunctionCoverageIncrement = CoverageIncrement & {
 	functionId: number;
 };
 
+function isIstanbulCoverageFunctionDeclaration(node: Node | undefined): string | undefined {
+	if (!isFunctionDeclaration(node)) {
+		return undefined;
+	}
+
+	const functionName = (node.id as Identifier).name;
+	if (functionName?.startsWith(COVERAGE_OBJ_FUNCTION_NAME_PREFIX)) {
+		return functionName;
+	} else {
+		return undefined;
+	}
+}
+
+/**
+ * Adds constants with the file id to the header of the file to process
+ * which are then used in the coverage broadcast functions as arguments.
+ *
+ * For example, `_$fid0` is introduced as `const _$fid0 = "6822844a804c1e9986ac4bd4a45b85893bde8b33";`
+ * based on
+ * ```
+ * function cov_oqh6rsgrd() {
+ *   var path = '/home/user/test/casestudies/plain-ts/dist/main.js';
+ *   var hash = '6822844a804c1e9986ac4bd4a45b85893bde8b33';
+ *   ....
+ * }
+ * ```
+ *
+ * And then used in the code, for example,
+ *```
+ * function s(e, r) {
+ *   _$stmtCov(_$fid0, 6)
+ *   ...
+ *   _$stmtCov(_$fid0, 18)
+ *   ...
+ * }
+ * ```.
+ */
+const fileIdMappingHandler = (() => {
+	const fileIdMap: Map<string, string> = new Map<string, string>();
+	let fileIdSeq = 0;
+
+	return {
+		enterPath(path: NodePath): void {
+			if (!isVariableDeclaration(path.node)) {
+				return;
+			}
+
+			const grandParentPath = path.parentPath?.parentPath;
+			const coverageFunctionName = isIstanbulCoverageFunctionDeclaration(grandParentPath?.node);
+			if (grandParentPath && coverageFunctionName) {
+				const declaration = path.node as VariableDeclaration;
+				if (declaration.declarations.length === 1) {
+					const declarator = declaration.declarations[0] as VariableDeclarator;
+					if ((declarator.id as Identifier).name === 'hash') {
+						// We take note of the hash that is stored within the `cov_*' function.
+						const fileIdVarName = `_$fid${fileIdSeq++}`;
+						const fileId = (declarator.init as StringLiteral).value;
+						fileIdMap.set(coverageFunctionName, fileIdVarName);
+						grandParentPath.insertBefore(newStringConstDeclarationNode(fileIdVarName, fileId) as any);
+					}
+				}
+			}
+		},
+		getFileHashForCoverageObjectId(coverageObjectId: string): string | undefined {
+			return fileIdMap.get(coverageObjectId);
+		}
+	};
+})();
+
+/**
+ * Replace the existing IstanbulJS-Coverage statements by our own
+ * coverage statements. Some original statements are removed completely
+ * if the fraction of the code is not to be instrumented.
+ */
+const partialInstrumentationHandler = (() => {
+	return {
+		enterPath(path: NodePath, makeCoverable: (location: SourceLocation) => boolean): void {
+			if (!isUpdateExpression(path.node)) {
+				return;
+			}
+
+			const increment = extractCoverageIncrement(path.node);
+			if (!increment) {
+				return;
+			}
+
+			const wantCoverageIncrement =
+				path.node.loc && makeCoverable(path.node.loc) && increment.type !== 'function';
+
+			// Add a new coverage instrument if desired
+			if (wantCoverageIncrement) {
+				const fileIdVarName: string | undefined = fileIdMappingHandler.getFileHashForCoverageObjectId(
+					increment.coverageObjectId
+				);
+				if (!fileIdVarName) {
+					throw new IllegalStateException(
+						`File ID variable for coverage object with ID ${increment.coverageObjectId} not found!`
+					);
+				}
+
+				const insertAsExpression = isSequenceExpression(path.parent);
+				insertNodeBefore(path, newCoverageIncrementNode(fileIdVarName, increment, insertAsExpression));
+			}
+
+			// Remove the existing coverage increment node
+			path.remove();
+		}
+	};
+})();
+
 /**
  * Remove IstanbulJs instrumentations based on the given
  * hook `makeCoverable`.
@@ -62,57 +169,13 @@ export function cleanSourceCode(
 ): string {
 	const ast = parse(code, { sourceType: esModules ? 'module' : 'script' });
 
-	const fileIdMap: Map<string, string> = new Map<string, string>();
-	let fileIdSeq = 0;
-
 	traverse(ast, {
 		enter(path: NodePath) {
-			const grandParentPath = path.parentPath?.parentPath;
-			if (isFunctionDeclaration(grandParentPath?.node)) {
-				const functionName = (grandParentPath?.node.id as Identifier).name;
-				if (functionName?.startsWith(COVERAGE_OBJ_FUNCTION_NAME_PREFIX)) {
-					if (isVariableDeclaration(path.node)) {
-						const declaration = path.node as VariableDeclaration;
-						if (declaration.declarations.length === 1) {
-							const declarator = declaration.declarations[0] as VariableDeclarator;
-							if ((declarator.id as Identifier).name === 'hash') {
-								// We take note of the hash that is stored within the `cov_*' function.
-								const fileIdVarName = `_$fid${fileIdSeq++}`;
-								const fileId = (declarator.init as StringLiteral).value;
-								fileIdMap.set(functionName, fileIdVarName);
-								grandParentPath?.insertBefore(
-									newStringConstDeclarationNode(fileIdVarName, fileId) as any
-								);
-							}
-						}
-					}
-				}
-			} else if (isUpdateExpressionPath(path)) {
-				const increment = extractCoverageIncrement(path.node);
-				if (increment) {
-					const wantCoverageIncrement =
-						path.node.loc && makeCoverable(path.node.loc) && increment.type !== 'function';
-
-					const insertAsExpression = isSequenceExpression(path.parent);
-
-					// Add a new coverage instrument if desired
-					if (wantCoverageIncrement) {
-						const fileIdVarName: string | undefined = fileIdMap.get(increment.coverageObjectId);
-						if (!fileIdVarName) {
-							throw new IllegalStateException(
-								`File ID variable for coverage object with ID ${increment.coverageObjectId} not found!`
-							);
-						}
-
-						insertNodeBefore(path, newCoverageIncrementNode(fileIdVarName, increment, insertAsExpression));
-					}
-
-					// Remove the existing coverage increment node
-					path.remove();
-				}
-			}
+			fileIdMappingHandler.enterPath(path);
+			partialInstrumentationHandler.enterPath(path, makeCoverable);
 		}
 	});
+
 	return generate(ast, {}, code).code;
 }
 

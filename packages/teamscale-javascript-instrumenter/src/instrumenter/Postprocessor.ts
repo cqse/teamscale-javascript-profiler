@@ -46,12 +46,12 @@ type FunctionCoverageIncrement = CoverageIncrement & {
 	functionId: number;
 };
 
-function isIstanbulCoverageFunctionDeclaration(node: Node | undefined): string | undefined {
+function getIstanbulCoverageFunctionDeclarationName(node: Node | undefined): string | undefined {
 	if (!isFunctionDeclaration(node)) {
 		return undefined;
 	}
 
-	const functionName = (node.id as Identifier).name;
+	const functionName = node.id?.name;
 	if (functionName?.startsWith(COVERAGE_OBJ_FUNCTION_NAME_PREFIX)) {
 		return functionName;
 	} else {
@@ -73,15 +73,8 @@ function isIstanbulCoverageFunctionDeclaration(node: Node | undefined): string |
  * }
  * ```
  *
- * And then used in the code, for example,
- *```
- * function s(e, r) {
- *   _$stmtCov(_$fid0, 6)
- *   ...
- *   _$stmtCov(_$fid0, 18)
- *   ...
- * }
- * ```.
+ * And then used in the code, for example, for translating from
+ * `cov_oqh6rsgrd().s[6]++;` to `_$stmtCov(_$fid0, 6);`.
  */
 const fileIdMappingHandler = (() => {
 	const fileIdMap: Map<string, string> = new Map<string, string>();
@@ -94,12 +87,12 @@ const fileIdMappingHandler = (() => {
 			}
 
 			const grandParentPath = path.parentPath?.parentPath;
-			const coverageFunctionName = isIstanbulCoverageFunctionDeclaration(grandParentPath?.node);
+			const coverageFunctionName = getIstanbulCoverageFunctionDeclarationName(grandParentPath?.node);
 			if (grandParentPath && coverageFunctionName) {
-				const declaration = path.node as VariableDeclaration;
+				const declaration = path.node;
 				if (declaration.declarations.length === 1) {
-					const declarator = declaration.declarations[0] as VariableDeclarator;
-					if ((declarator.id as Identifier).name === 'hash') {
+					const declarator = declaration.declarations[0];
+					if (isIdentifier(declarator.id) && declarator.id.name === 'hash') {
 						// We take note of the hash that is stored within the `cov_*' function.
 						const fileIdVarName = `_$fid${fileIdSeq++}`;
 						const fileId = (declarator.init as StringLiteral).value;
@@ -213,7 +206,7 @@ function newStringConstDeclarationNode(name: string, value: string): VariableDec
 				}
 			}
 		]
-	} as VariableDeclaration;
+	};
 }
 
 /**
@@ -236,7 +229,7 @@ function newCoverageIncrementNode(fileIdVarName: string, increment: CoverageIncr
 	return {
 		type: 'ExpressionStatement',
 		expression
-	} as ExpressionStatement;
+	};
 }
 
 /**

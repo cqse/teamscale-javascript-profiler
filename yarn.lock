@@ -1993,7 +1993,7 @@ __metadata:
     esbuild-plugin-inline-worker: ^0.1.1
     foreground-child: ^2.0.0
     glob: ^7.1.7
-    istanbul-lib-instrument: ^5.2.0
+    istanbul-lib-instrument: ^4.0.3
     jest: ^27.2.0
     micromatch: 4.0.4
     mkdirp: ^1.0.4
@@ -6288,7 +6288,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"istanbul-lib-instrument@npm:^4.0.0":
+"istanbul-lib-instrument@npm:^4.0.0, istanbul-lib-instrument@npm:^4.0.3":
   version: 4.0.3
   resolution: "istanbul-lib-instrument@npm:4.0.3"
   dependencies:
@@ -6300,7 +6300,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"istanbul-lib-instrument@npm:^5.0.4, istanbul-lib-instrument@npm:^5.1.0, istanbul-lib-instrument@npm:^5.2.0":
+"istanbul-lib-instrument@npm:^5.0.4, istanbul-lib-instrument@npm:^5.1.0":
   version: 5.2.0
   resolution: "istanbul-lib-instrument@npm:5.2.0"
   dependencies:

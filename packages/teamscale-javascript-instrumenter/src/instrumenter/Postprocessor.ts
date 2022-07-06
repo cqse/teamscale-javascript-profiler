@@ -76,7 +76,11 @@ function getIstanbulCoverageFunctionDeclarationName(node: Node | undefined): str
  * And then used in the code, for example, for translating from
  * `cov_oqh6rsgrd().s[6]++;` to `_$stmtCov(_$fid0, 6);`.
  */
-const fileIdMappingHandler = (() => {
+type FileIdMappingHandler = {
+	enterPath: (path: NodePath) => void;
+	getFileHashForCoverageObjectId: (coverageObjectId: string) => string | undefined;
+};
+function createFileIdMappingHandler(): FileIdMappingHandler {
 	const fileIdMap: Map<string, string> = new Map<string, string>();
 	let fileIdSeq = 0;
 
@@ -106,14 +110,19 @@ const fileIdMappingHandler = (() => {
 			return fileIdMap.get(coverageObjectId);
 		}
 	};
-})();
+}
 
 /**
  * Replace the existing IstanbulJS-Coverage statements by our own
  * coverage statements. Some original statements are removed completely
  * if the fraction of the code is not to be instrumented.
  */
-const partialInstrumentationHandler = (() => {
+type PartialInstrumentationHandler = {
+	enterPath: (path: NodePath, makeCoverable: (location: SourceLocation) => boolean) => void;
+};
+function createPartialInstrumentationHandler(
+	fileIdMappingHandler: FileIdMappingHandler
+): PartialInstrumentationHandler {
 	return {
 		enterPath(path: NodePath, makeCoverable: (location: SourceLocation) => boolean): void {
 			if (!isUpdateExpression(path.node)) {
@@ -147,7 +156,7 @@ const partialInstrumentationHandler = (() => {
 			path.remove();
 		}
 	};
-})();
+}
 
 /**
  * Remove IstanbulJs instrumentations based on the given
@@ -161,6 +170,8 @@ export function cleanSourceCode(
 	makeCoverable: (location: SourceLocation) => boolean
 ): string {
 	const ast = parse(code, { sourceType: esModules ? 'module' : 'script' });
+	const fileIdMappingHandler = createFileIdMappingHandler();
+	const partialInstrumentationHandler = createPartialInstrumentationHandler(fileIdMappingHandler);
 
 	traverse(ast, {
 		enter(path: NodePath) {

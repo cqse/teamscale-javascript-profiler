@@ -63,7 +63,7 @@ const caseStudies = [
 			'src/app/heroes/heroes.component.ts': [11, 12, 22, 35, 36],
 			'node_modules/zone.js/fesm2015/zone.js': [17, 90, 28, 1054]
 		},
-		excludeOrigins: ['src/app/heroes/*.ts', 'node_modules/**/*.*', 'webpack/**/*'],
+		excludeOrigins: ['src/app/heroes/*.*', 'src/app/heroes/*.*.*', 'node_modules/**/*.*'],
 		includeOrigins: []
 	}
 ];

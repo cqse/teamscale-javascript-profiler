@@ -1,7 +1,7 @@
 {
   "name": "@teamscale/javascript-instrumenter",
   "version": "0.0.1-beta.41",
-  "description": "Istanbul-based coverage instrumenter with coverage forwarding via WebSockets",
+  "description": "JavaScript coverage instrumenter with coverage forwarding to a collector process",
   "main": "dist/src/main.js",
   "bin": "dist/src/main.js",
   "types": "dist/src/main.d.ts",
@@ -49,7 +49,7 @@
   "dependencies": {
     "@babel/generator": "^7.18.2",
     "@babel/parser": "^7.18.5",
-    "@babel/traverse": "^7.18.5",
+    "@babel/traverse": "^7.18.6",
     "@babel/types": "^7.18.4",
     "@cqse/commons": "^0.0.1-beta.1",
     "@types/micromatch": "^4.0.2",
@@ -62,7 +62,6 @@
     "istanbul-lib-instrument": "^5.2.0",
     "micromatch": "4.0.4",
     "mkdirp": "^1.0.4",
-    "nyc": "^15.1.0",
     "source-map": "0.7.3",
     "typescript-optional": "^2.0.1",
     "unload": "^2.2.0",

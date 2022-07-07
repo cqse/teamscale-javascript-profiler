@@ -1,11 +1,10 @@
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-ignore: DataWorker import is handled by Esbuild---see `esbuild.mjs` and `workers.d.ts`
 import DataWorker from './worker/vaccine.worker.ts';
-import { makeProxy } from './Interceptor';
 import * as unload from 'unload';
 import { getWindow, universe, hasWindow, universeAttribute } from './utils';
 import { ProtocolMessageTypes } from './protocol';
-import { IstanbulCoverageStore } from './types';
+import { BRANCH_COVERAGE_ID, IstanbulCoverageStore, STATEMENT_COVERAGE_ID } from './types';
 
 // Prepare our global JavaScript object. This will hold
 // a reference to the WebWorker thread.
@@ -29,10 +28,28 @@ function setWorker(worker: DataWorker): DataWorker {
 const interceptedStores: Set<string> = new Set<string>();
 
 /**
+ * Signal the coverage of a particular statement.
+ */
+universe()._$stmtCov = function (fileId: string, statementId: number): void {
+	getWorker().postMessage(
+		`${ProtocolMessageTypes.UNRESOLVED_CODE_ENTITY} ${fileId} ${STATEMENT_COVERAGE_ID} ${statementId}`
+	);
+};
+
+/**
+ * Signal the coverage of a particular statement.
+ */
+universe()._$brCov = function (fileId: string, branchId: number, locationId: number): void {
+	getWorker().postMessage(
+		`${ProtocolMessageTypes.UNRESOLVED_CODE_ENTITY} ${fileId} ${BRANCH_COVERAGE_ID} ${branchId} ${locationId}`
+	);
+};
+
+/**
  * The function that intercepts changes to the Istanbul code coverage.
  * Also, the Web worker to forward the coverage information is started.
  */
-universe().makeCoverageInterceptor = function (coverage: IstanbulCoverageStore) {
+universe()._$registerCoverageObject = function (coverage: IstanbulCoverageStore): void {
 	// The `fileId` is used to map coverage and source maps. Note that
 	// a browser window (tab) can run multiple JavaScript files, with different source maps, ... .
 	const fileId = coverage.hash;
@@ -100,24 +117,4 @@ universe().makeCoverageInterceptor = function (coverage: IstanbulCoverageStore) 
 			}
 		}
 	})();
-
-	(function registerCoverageReporter() {
-		const reported = new Set<string>();
-		universe()._$Bc = (
-			fileId: string,
-			startLine: number,
-			startColumn: number,
-			endLine: number,
-			endColumn: number
-		) => {
-			// Do not send lines that have already been sent to reduce the network load
-			const coverageMessage = `${fileId}:${startLine}:${startColumn}:${endLine}:${endColumn}`;
-			if (!reported.has(coverageMessage)) {
-				getWorker().postMessage(coverageMessage);
-				reported.add(coverageMessage);
-			}
-		};
-	})();
-
-	return makeProxy(getWorker(), coverage.hash, coverage, []);
 };

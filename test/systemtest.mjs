@@ -20,7 +20,7 @@ const caseStudies = [
 		},
 		expectUncoveredLines: {},
 		excludeOrigins: [],
-		includeOrigins: ['../../src/**/*.*']
+		includeOrigins: [`'../../src/**/*.*'`]
 	},
 	{
 		name: 'vite-react-app',
@@ -31,7 +31,7 @@ const caseStudies = [
 		},
 		expectUncoveredLines: {},
 		excludeOrigins: [],
-		includeOrigins: ['../../src/**/*.*']
+		includeOrigins: [`'../../src/**/*.*'`]
 	},
 	{
 		name: 'angular-hero-app',
@@ -47,26 +47,22 @@ const caseStudies = [
 			'src/app/hero-detail/hero-detail.component.ts': [33]
 		},
 		excludeOrigins: [],
-		includeOrigins: ['src/app/**/*.*']
+		includeOrigins: [`'src/app/**/*.*'`]
+	},
+	{
+		name: 'angular-hero-app-with-excludes',
+		rootDir: 'test/casestudies/angular-hero-app',
+		distDir: 'dist',
+		expectCoveredLines: {
+			'src/app/hero-detail/hero-detail.component.ts': [13, 17, 18, 19]
+		},
+		expectUncoveredLines: {
+			'src/app/heroes/heroes.component.ts': [11, 12, 22, 35, 36],
+			'node_modules/zone.js/fesm2015/zone.js': [17, 90, 28, 1054]
+		},
+		excludeOrigins: [`'src/app/heroes/*.*'`, `'node_modules/**/*.*'`, `'webpack/**/*'`],
+		includeOrigins: []
 	}
-	// {
-	// 	// The following system test does not work.
-	// 	// Ticket `TS-30734` should address this.
-	// 	//
-	//
-	// 	name: 'angular-hero-app-with-excludes',
-	// 	rootDir: 'test/casestudies/angular-hero-app',
-	// 	distDir: 'dist',
-	// 	expectCoveredLines: {
-	// 		'src/app/hero-detail/hero-detail.component.ts': [13, 17, 18, 19]
-	// 	},
-	// 	expectUncoveredLines: {
-	// 		'src/app/heroes/heroes.component.ts': [11, 12, 22, 35, 36],
-	// 		'node_modules/zone.js/fesm2015/zone.js': [17, 90, 28, 1054]
-	// 	},
-	// 	excludeOrigins: ['src/app/heroes/*.*', 'src/app/heroes/*.*.*', 'node_modules/**/*.*'],
-	// 	includeOrigins: []
-	// }
 ];
 
 const INSTRUMENTER_DIR = 'packages/teamscale-javascript-instrumenter';
@@ -251,6 +247,10 @@ for (const study of caseStudies) {
 
 		console.log('Include/exclude arguments: ', includeArgument, excludeArgument);
 
+		/**
+		 * Attention: This does wildcard expansion!!
+		 * 		See https://stackoverflow.com/questions/11717281/wildcards-in-child-process-spawn
+		 */
 		execSync(
 			`node ./dist/src/main.js ${excludeArgument} ${includeArgument} --in-place ${fullStudyDistPath} --collector ws://localhost:54678`,
 			{ cwd: INSTRUMENTER_DIR, stdio: 'inherit' }
@@ -259,7 +259,8 @@ for (const study of caseStudies) {
 		console.log('## Starting the Web server');
 		const ws = await LocalWebServer.create({
 			port: SERVER_PORT,
-			directory: `${study.rootDir}/${study.distDir}`
+			directory: `${study.rootDir}/${study.distDir}`,
+			staticMaxage: 0
 		});
 
 		try {

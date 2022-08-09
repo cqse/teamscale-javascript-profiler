@@ -20,7 +20,7 @@ const caseStudies = [
 		},
 		expectUncoveredLines: {},
 		excludeOrigins: [],
-		includeOrigins: ['../../src/**/*.*']
+		includeOrigins: [`'../../src/**/*.*'`]
 	},
 	{
 		name: 'vite-react-app',
@@ -31,7 +31,7 @@ const caseStudies = [
 		},
 		expectUncoveredLines: {},
 		excludeOrigins: [],
-		includeOrigins: ['../../src/**/*.*']
+		includeOrigins: [`'../../src/**/*.*'`]
 	},
 	{
 		name: 'angular-hero-app',
@@ -39,7 +39,7 @@ const caseStudies = [
 		distDir: 'dist',
 		expectCoveredLines: {
 			'src/app/heroes/heroes.component.ts': [11, 12, 22, 35, 36],
-			'src/app/hero-detail/hero-detail.component.ts': [13, 17, 18, 19, 23, 27, 28, 29]
+			'src/app/hero-detail/hero-detail.component.ts': [23, 27, 28, 29]
 		},
 		expectUncoveredLines: {
 			'node_modules/zone.js/fesm2015/zone.js': ['1-30', '70-90', 28, 20, 80],
@@ -47,7 +47,7 @@ const caseStudies = [
 			'src/app/hero-detail/hero-detail.component.ts': [33]
 		},
 		excludeOrigins: [],
-		includeOrigins: ['src/app/**/*.*']
+		includeOrigins: [`'src/app/**/*.*'`]
 	},
 	{
 		name: 'angular-hero-app-with-excludes',
@@ -57,9 +57,10 @@ const caseStudies = [
 			'src/app/hero-detail/hero-detail.component.ts': [13, 17, 18, 19]
 		},
 		expectUncoveredLines: {
-			'src/app/heroes/heroes.component.ts': [11, 12, 22, 35, 36]
+			'src/app/heroes/heroes.component.ts': [11, 12, 22, 35, 36],
+			'node_modules/zone.js/fesm2015/zone.js': [17, 90, 28, 1054]
 		},
-		excludeOrigins: ['src/app/heroes/*.ts', 'node_modules/**/*.*'],
+		excludeOrigins: [`'src/app/heroes/*.*'`, `'node_modules/**/*.*'`, `'webpack/**/*'`],
 		includeOrigins: []
 	}
 ];
@@ -218,12 +219,12 @@ function checkCoverage(coverageTargetFile, study) {
 	const coveredButNotExpected = identifyUnexpectedButPresent(actualCoverage, expectUncovered);
 
 	if (Object.entries(notCoveredButExpected).length > 0) {
-		console.error('Covered lines are missing', study.name, notCoveredButExpected);
+		console.error('Covered lines are missing!', study.name, notCoveredButExpected);
 		process.exit(4);
 	}
 
 	if (Object.entries(coveredButNotExpected).length > 0) {
-		console.error('Lines covered but were expected to not being so.', study.name, coveredButNotExpected);
+		console.error('Lines covered but were expected to not being so!', study.name, coveredButNotExpected);
 		process.exit(5);
 	}
 }
@@ -246,6 +247,10 @@ for (const study of caseStudies) {
 
 		console.log('Include/exclude arguments: ', includeArgument, excludeArgument);
 
+		/**
+		 * Attention: This does wildcard expansion!!
+		 * 		See https://stackoverflow.com/questions/11717281/wildcards-in-child-process-spawn
+		 */
 		execSync(
 			`node ./dist/src/main.js ${excludeArgument} ${includeArgument} --in-place ${fullStudyDistPath} --collector ws://localhost:54678`,
 			{ cwd: INSTRUMENTER_DIR, stdio: 'inherit' }
@@ -254,7 +259,8 @@ for (const study of caseStudies) {
 		console.log('## Starting the Web server');
 		const ws = await LocalWebServer.create({
 			port: SERVER_PORT,
-			directory: `${study.rootDir}/${study.distDir}`
+			directory: `${study.rootDir}/${study.distDir}`,
+			staticMaxage: 0
 		});
 
 		try {
@@ -311,7 +317,7 @@ for (const study of caseStudies) {
 				console.log('## Stopping the collector');
 				await sleep(1000);
 				collectProcess.kill('SIGINT');
-				await sleep(10000);
+				await sleep(7000);
 			}
 
 			// Check if the coverage collector has written the files

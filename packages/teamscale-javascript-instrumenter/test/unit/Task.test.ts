@@ -44,6 +44,18 @@ test('Exclude and include pattern', () => {
 	).toBeFalsy();
 });
 
+test('Exclude patterns only', () => {
+	const pattern = new OriginSourcePattern([], ['src/foo/messages/*.ts']);
+	expect(
+		pattern.isAnyIncluded(['./src/bar/app.components.ts', './src/foo/messages/messages.component.ts'])
+	).toBeTruthy();
+	expect(pattern.isAnyIncluded(['./src/foo/messages/messages.component.ts'])).toBeFalsy();
+	expect(pattern.isAnyIncluded(['src/foo/messages/messages.component.ts'])).toBeFalsy();
+	expect(pattern.isAnyIncluded(['webpack:///src/foo/messages/messages.component.ts'])).toBeFalsy();
+	expect(pattern.isAnyIncluded(['./src/bar/messages/messages.component.ts'])).toBeTruthy();
+	expect(pattern.isAnyIncluded(['./test/bar/unittest.test.ts', './build/main.ts', 'main.ts'])).toBeTruthy();
+});
+
 test('Exclude and include pattern on file extensions', () => {
 	const pattern = new OriginSourcePattern(['**/*.java', '**/*.md'], ['**/*.cc', '**/*.cpp', '**/*.h', '**/*.hpp']);
 	expect(pattern.isAnyIncluded(['./ServerConnector.java', './Server.h'])).toBeTruthy();

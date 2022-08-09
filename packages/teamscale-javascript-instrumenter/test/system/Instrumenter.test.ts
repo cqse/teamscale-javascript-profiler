@@ -48,3 +48,16 @@ test('Instrumentation: Angular App', () => {
 		})
 	).resolves.toHaveProperty('translated', 1);
 });
+
+test('Instrumentation: Polyfill', () => {
+	const outputDir = path.join(__dirname, '..', '..', 'outputs');
+	return expect(
+		App.runForConfigArguments({
+			inputs: [path.join(__dirname, 'inputs', 'polyfills.js')],
+			exclude_origin: ['node_modules/**/*.*'],
+			in_place: false,
+			collector: 'localhost:54321',
+			to: outputDir
+		})
+	).resolves.toHaveProperty('translated', 1);
+});

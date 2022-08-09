@@ -9,7 +9,7 @@ import {
 } from './Task';
 import { Contract, IllegalArgumentException } from '@cqse/commons';
 import { Position, RawSourceMap, SourceMapConsumer } from 'source-map';
-import * as istanbul from 'istanbul-lib-instrument';
+import * as swc from '@swc/core';
 import * as fs from 'fs';
 import * as mkdirp from 'mkdirp';
 import * as path from 'path';
@@ -124,7 +124,6 @@ export class IstanbulInstrumenter implements IInstrumenter {
 			const configurationAlternative = configurationAlternatives[i];
 			let inputSourceMap: RawSourceMap | undefined;
 			try {
-				const instrumenter = istanbul.createInstrumenter(configurationAlternative);
 				inputSourceMap = loadInputSourceMap(
 					inputFileSource,
 					taskElement.fromFile,
@@ -141,20 +140,23 @@ export class IstanbulInstrumenter implements IInstrumenter {
 				}
 
 				// The main instrumentation (adding coverage statements) is performed now:
-				instrumentedSource = instrumenter.instrumentSync(
-					inputFileSource,
+				const instrumentedSource: swc.Output = instrumentWithSwc(
 					taskElement.fromFile,
-					inputSourceMap as any
+					inputFileSource,
+					inputSourceMap
 				);
-				this.logger.debug('Instrumentation source maps to:', instrumenter.lastSourceMap()?.sources);
+
+				console.log(instrumentedSource);
+				// FIXME: swc.this.logger.debug('Instrumentation source maps to:', instrumenter.lastSourceMap()?.sources);
 
 				// In case of a bundle, the initial instrumentation step might have added
 				// too much and undesired instrumentations. Remove them now.
-				const instrumentedSourcemap = instrumenter.lastSourceMap();
+				// FIXME: const instrumentedSourcemap = instrumenter.lastSourceMap();
+				const instrumentedSourcemap = undefined;
 
 				let instrumentedAndCleanedSource = await this.removeUnwantedInstrumentation(
 					taskElement,
-					instrumentedSource,
+					instrumentedSource.code,
 					configurationAlternative,
 					sourcePattern,
 					instrumentedSourcemap as any
@@ -170,7 +172,7 @@ export class IstanbulInstrumenter implements IInstrumenter {
 				// The process also can result in a new source map that we will append in the result.
 				//
 				// `lastSourceMap` === Sourcemap for the last file that was instrumented.
-				finalSourceMap = convertSourceMap.fromObject(instrumenter.lastSourceMap()).toComment();
+				finalSourceMap = convertSourceMap.fromObject(instrumentedSourcemap).toComment();
 
 				// We now can glue together the final version of the instrumented file.
 				const vaccineSource = this.loadVaccine(collector);
@@ -407,4 +409,27 @@ export function sourceMapFromMapFile(mapFilePath: string): RawSourceMap | undefi
 function writeToFile(filePath: string, fileContent: string) {
 	mkdirp.sync(path.dirname(filePath));
 	fs.writeFileSync(filePath, fileContent);
+}
+
+export function instrumentWithSwc(
+	sourceFilename: string,
+	sourceContent: string,
+	sourceMap: RawSourceMap | undefined
+): swc.Output {
+	const pluginOptions = {
+		inputSourceMap: sourceMap
+	};
+
+	return swc.transformSync(sourceContent, {
+		filename: sourceFilename,
+		sourceMaps: true,
+		inlineSourcesContent: false,
+		minify: false,
+		isModule: true,
+		jsc: {
+			experimental: {
+				plugins: [['swc-plugin-coverage-instrument', pluginOptions]]
+			}
+		}
+	});
 }

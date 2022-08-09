@@ -7,7 +7,10 @@
       <sourceFolder url="file://$MODULE_DIR$/packages/teamscale-coverage-collector/test" isTestSource="true" />
       <sourceFolder url="file://$MODULE_DIR$/packages/teamscale-javascript-instrumenter/src" isTestSource="false" />
       <sourceFolder url="file://$MODULE_DIR$/packages/teamscale-javascript-instrumenter/test" isTestSource="true" />
+      <sourceFolder url="file://$MODULE_DIR$/packages/teamscale-istanbul-postprocessor-swc-plugin/src" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/packages/teamscale-istanbul-postprocessor-swc-plugin/tests" isTestSource="true" />
       <excludeFolder url="file://$MODULE_DIR$/test/casestudies" />
+      <excludeFolder url="file://$MODULE_DIR$/packages/teamscale-istanbul-postprocessor-swc-plugin/target" />
     </content>
     <orderEntry type="inheritedJdk" />
     <orderEntry type="sourceFolder" forTests="false" />

@@ -91,7 +91,7 @@ function createFileIdMappingHandler(): FileIdMappingHandler {
 			}
 
 			const grandParentPath = path.parentPath?.parentPath;
-			const coverageFunctionName = getIstanbulCoverageFunctionDeclarationName(grandParentPath?.node);
+			const coverageFunctionName = getIstanbulCoverageFunctionDeclarationName(grandParentPath?.node as any);
 			if (grandParentPath && coverageFunctionName) {
 				const declaration = path.node;
 				if (declaration.declarations.length === 1) {
@@ -149,7 +149,7 @@ function createPartialInstrumentationHandler(
 				}
 
 				const insertAsExpression = isSequenceExpression(path.parent);
-				insertNodeBefore(path, newCoverageIncrementNode(fileIdVarName, increment, insertAsExpression));
+				insertNodeBefore(path as any, newCoverageIncrementNode(fileIdVarName, increment, insertAsExpression));
 			}
 
 			// Remove the existing coverage increment node
@@ -173,14 +173,14 @@ export function cleanSourceCode(
 	const fileIdMappingHandler = createFileIdMappingHandler();
 	const partialInstrumentationHandler = createPartialInstrumentationHandler(fileIdMappingHandler);
 
-	traverse(ast, {
+	traverse(ast as any, {
 		enter(path: NodePath) {
 			fileIdMappingHandler.enterPath(path);
 			partialInstrumentationHandler.enterPath(path, makeCoverable);
 		}
 	});
 
-	return generate(ast, {}, code).code;
+	return generate(ast as any, {}, code).code;
 }
 
 /**
@@ -191,9 +191,9 @@ export function cleanSourceCode(
  */
 function insertNodeBefore(path: NodePath<Node>, toInsert: Node): void {
 	if (isSequenceExpression(path.parent)) {
-		(path.parentPath as NodePath<SequenceExpression>).unshiftContainer('expressions', [toInsert]);
+		(path.parentPath as NodePath<SequenceExpression>).unshiftContainer('expressions', [toInsert as any]);
 	} else {
-		path.insertBefore(toInsert);
+		path.insertBefore(toInsert as any);
 	}
 }
 

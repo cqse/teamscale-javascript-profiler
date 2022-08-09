@@ -1,6 +1,5 @@
 import { App } from '../../src/App';
 import { getLocal, MockedEndpoint } from 'mockttp';
-import DoneCallback = jest.DoneCallback;
 import { openSocket, postCoverage, postSourceMap, requestCoverageDump, requestProjectSwitch } from '../CollectorClient';
 
 const TEAMSCALE_MOCK_PORT = 11234;
@@ -88,13 +87,16 @@ const SOURCE_MAP = {
 		'mDAAU,SAAkBA,EAAa,IAAKC,EAAqB,uBAEtDA,GAAsB,IAAIC,SAAS,IAAK,0BAE1CC,SACGC,EAAU,IAAIC,IAAIL,EAAYM,UAC9BC,EAAWC,QACTC,gBAAgBD,EAAOE,OACpBC,eAENV,GAAuBW,GAAQ,IAAIC,SAAQ,CAACC,EAASC,WAChDC,EAAS,IAAIX,IAAIO,EAAKR,MAExBa,KAAKhB,GAAoBiB,UAAUF,UAC5BF,EAAQG,KAAKhB,GAAoBiB,UAAUF,UAEhDG,EAAa,IAAIC,KAAK,CACxB,uBAAuBJ,MACvB,GAAGf,gBAAiCe,UACrC,CAAEK,KAAM,oBACLb,EAASc,OAAOC,OAAOC,SAASC,cAAc,UAAW,CAC3DJ,KAAM,SACNX,IAAKL,IAAIqB,gBAAgBP,GACzBQ,YACW,IAAIC,MAAM,qBAAqBhB,QAC9BJ,IAEZmB,WACYV,KAAKhB,GAAoBiB,UAAUF,MACnCR,eAGPqB,KAAKC,YAAYtB,WAEzBP,GAAoBiB,UAAY,IAEvBa,CAAE,YCnCjB,MAAMC,EAAMC,MACNC,EAAOC,OCkBpB,WAAkBC,EAAWC,UACvBD,EAAI,EACCC,EAAI,EACFD,EAAI,GAAW,MAANC,EACXA,EAAI,EAEJA,EAAI,EAWf,mBACSC,EAAOC,GAAYC,WAAS,GAE7BC,EATKC,EASQJ,EATK,EADGD,EAUDC,GARfI,EAAS,EAAGL,GAxBzB,SAAkBD,EAAWC,UACvBD,EAAI,GAAKC,EAAI,EACR,EAGLD,EAAI,GACCC,EAAI,EAEJA,EAAI,EAiBFM,CAAS,EAAG,GAHzB,IAA6BN,EA1BPO,SAAAA,EAqCP,2BApCLC,IAAID,YAuCLE,UAAU,2BACLA,UAAU,gCACXpC,IC9CE,4BD8CSoC,UAAU,WAAWC,IAAI,6EAG/BC,QAAS,IAAMT,MAAoBD,EAAQ,2BACtCA,gBAAkBG,iIAQ7BK,UAAU,WACVG,KAAK,sBACLC,OAAO,SACPC,IAAI,+CAIL,aAECL,UAAU,WACVG,KAAK,yCACLC,OAAO,SACPC,IAAI,qDEjEhBC,EAASC,SACNC,EAAMC,uBACJC,QAEHhC,SAASiC,eAAe'
 };
 
+function timeout(ms: number): Promise<void>  {
+	return new Promise(resolve => setTimeout(resolve, ms));
+}
+
 describe('Test the control server that is integrated in the collector', () => {
 	const teamscaleServerMock = getLocal({ debug: true });
-	let collectorState: { stop: () => void } | null;
+	let collectorState: { stop: () => void };
 
-	beforeEach((done: DoneCallback) => {
-    // this test takes longer than the Jest default timeout on GitHub actions
-    jest.setTimeout(60000);
+	beforeEach(() => {
+		jest.useFakeTimers()
 
 		// Start the Teamscale mock serer
 		teamscaleServerMock.start(TEAMSCALE_MOCK_PORT);
@@ -113,22 +115,17 @@ describe('Test the control server that is integrated in the collector', () => {
 			port: 1234,
 			teamscale_server_url: `http://localhost:${TEAMSCALE_MOCK_PORT}`
 		});
-
-		done();
 	});
 
-	afterEach((done: DoneCallback) => {
+	afterEach(() => {
 		// Stop the mock server
 		teamscaleServerMock.stop();
 
 		// Stop the collector
-		collectorState?.stop();
-		collectorState = null;
-
-		done();
+		collectorState.stop();
 	});
 
-	it('Request dumping project coverage to a Teamscale server', (done: DoneCallback) => {
+	it('Request dumping project coverage to a Teamscale server', async () => {
 		const projectId = 'dummyProjectId';
 		const dummyFileId = 'dummyFileId';
 		let mockedEndpoint: MockedEndpoint;
@@ -140,20 +137,13 @@ describe('Test the control server that is integrated in the collector', () => {
 			await requestProjectSwitch(CONTROL_URL, projectId);
 			const socket = await openSocket('ws://localhost:1234');
 			await postSourceMap(socket, dummyFileId, SOURCE_MAP);
-			setTimeout(async () => {
-				await postCoverage(socket, dummyFileId, 1, 700, 1, 1255);
-			}, 500);
-			setTimeout(async () => {
-				await requestCoverageDump(CONTROL_URL);
-			}, 1000);
-			setTimeout(async () => {
-				try {
-					const requests = await mockedEndpoint.getSeenRequests();
-					expect(requests).toHaveLength(1);
-				} finally {
-					done();
-				}
-			}, 2000);
+			await timeout(500);
+			await postCoverage(socket, dummyFileId, 1, 700, 1, 1255);
+			await timeout(1000);
+			await requestCoverageDump(CONTROL_URL);
+			await timeout(2000);
+			const requests = await mockedEndpoint.getSeenRequests();
+			expect(requests).toHaveLength(1);
 		});
-	}, 20000);
+	}, 60000);
 });

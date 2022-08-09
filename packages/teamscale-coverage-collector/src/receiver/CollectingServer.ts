@@ -30,7 +30,7 @@ export class WebSocketCollectingServer {
 	/**
 	 * The WebSocket server component.
 	 */
-	private readonly server: WebSocket.Server;
+	private server: WebSocket.Server | null;
 
 	/**
 	 * The storage to put the received coverage information to for aggregation and further processing.
@@ -60,10 +60,10 @@ export class WebSocketCollectingServer {
 	 * Start the server socket, handle sessions and dispatch messages.
 	 */
 	public start(): { stop: () => void } {
-		this.logger.info(`Starting server on port ${this.server.options.port}.`);
+		this.logger.info(`Starting server on port ${this.server?.options.port}.`);
 
 		// Handle new connections from clients
-		this.server.on('connection', (webSocket: WebSocket, req: IncomingMessage) => {
+		this.server?.on('connection', (webSocket: WebSocket, req: IncomingMessage) => {
 			let session: Session | null = new Session(req.socket, this.storage, this.logger);
 			this.logger.debug(`Connection from: ${req.socket.remoteAddress}`);
 
@@ -92,7 +92,8 @@ export class WebSocketCollectingServer {
 
 		return {
 			stop: () => {
-				this.server.close();
+				this.server?.close();
+				this.server = null;
 			}
 		};
 	}

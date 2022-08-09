@@ -1,4 +1,3 @@
-import { version } from '../package.json';
 import { ArgumentParser } from 'argparse';
 import Logger, { LogLevel } from 'bunyan';
 import { DataStorage } from './storage/DataStorage';
@@ -286,9 +285,9 @@ export class App {
 			};
 		}
 
-		let controlServer : Express | null = express();
+		let controlServer = express();
 		controlServer.use(express.text({}));
-		let serverSocket : Server | null = controlServer.listen(config.enable_control_port);
+		let serverSocket = controlServer.listen(config.enable_control_port);
 
 		controlServer.put('/partition', (request: express.Request<string>, response) => {
 			const targetPartition = (request.body as string).trim();
@@ -341,9 +340,8 @@ export class App {
 
 		return {
 			stop() {
-				serverSocket?.close();
-				serverSocket = null
-				controlServer = null
+				console.log("close socket")
+				serverSocket.close();
 			}
 		};
 	}

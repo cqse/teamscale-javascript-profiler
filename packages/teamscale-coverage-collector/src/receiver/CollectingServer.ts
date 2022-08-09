@@ -92,9 +92,7 @@ export class WebSocketCollectingServer {
 
 		return {
 			stop: () => {
-				this.server.off('close', () => {
-					console.log('Stopping');
-				});
+				this.server.close();
 			}
 		};
 	}

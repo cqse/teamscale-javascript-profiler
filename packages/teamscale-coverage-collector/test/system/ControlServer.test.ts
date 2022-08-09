@@ -90,7 +90,7 @@ const sourceMap = {
 
 describe('Test the control server that is integrated in the collector', () => {
 	const teamscaleServerMock = getLocal({ debug: true });
-	let collectorState: { stop: () => void };
+	let collectorState: { stop: () => void } | null;
 
 	beforeEach((done: DoneCallback) => {
 		// Start the Teamscale mock serer
@@ -119,7 +119,8 @@ describe('Test the control server that is integrated in the collector', () => {
 		teamscaleServerMock.stop();
 
 		// Stop the collector
-		collectorState.stop();
+		collectorState?.stop();
+		collectorState = null;
 
 		done();
 	});

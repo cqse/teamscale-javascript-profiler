@@ -14,7 +14,8 @@ import mkdirp from 'mkdirp';
 import path from 'path';
 import { StdConsoleLogger } from './utils/StdConsoleLogger';
 import { PrettyFileLogger } from './utils/PrettyFileLogger';
-import express from 'express';
+import express, {Express} from 'express';
+import { Server } from 'http';
 
 /**
  * Error that is thrown when the upload to Teamscale failed
@@ -281,9 +282,9 @@ export class App {
 			};
 		}
 
-		const controlServer = express();
+		let controlServer : Express | null = express();
 		controlServer.use(express.text({}));
-		const serverSocket = controlServer.listen(config.enable_control_port);
+		let serverSocket : Server | null = controlServer.listen(config.enable_control_port);
 
 		controlServer.put('/partition', (request: express.Request<string>, response) => {
 			const targetPartition = (request.body as string).trim();
@@ -336,7 +337,9 @@ export class App {
 
 		return {
 			stop() {
-				serverSocket.close();
+				serverSocket?.close();
+				serverSocket = null
+				controlServer = null
 			}
 		};
 	}

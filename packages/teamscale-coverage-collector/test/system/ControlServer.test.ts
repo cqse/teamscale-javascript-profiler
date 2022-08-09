@@ -93,6 +93,9 @@ describe('Test the control server that is integrated in the collector', () => {
 	let collectorState: { stop: () => void } | null;
 
 	beforeEach((done: DoneCallback) => {
+    // this test takes longer than the Jest default timeout on GitHub actions
+    jest.setTimeout(60000);
+
 		// Start the Teamscale mock serer
 		teamscaleServerMock.start(TEAMSCALE_MOCK_PORT);
 

@@ -7,7 +7,7 @@ const TEAMSCALE_MOCK_PORT = 11234;
 
 const CONTROL_URL = 'http://localhost:7777';
 
-const sourceMap = {
+const SOURCE_MAP = {
 	version: 3,
 	file: 'index.02ace207.js',
 	sources: [
@@ -136,7 +136,7 @@ describe('Test the control server that is integrated in the collector', () => {
 				.thenReply(200, 'Mocked response');
 			await requestProjectSwitch(CONTROL_URL, projectId);
 			const socket = await openSocket('ws://localhost:1234');
-			await postSourceMap(socket, dummyFileId, sourceMap);
+			await postSourceMap(socket, dummyFileId, SOURCE_MAP);
 			setTimeout(async () => {
 				await postCoverage(socket, dummyFileId, 1, 700, 1, 1255);
 			}, 500);

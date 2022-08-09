@@ -148,8 +148,11 @@ export class App {
 			};
 		}
 
-		// eslint-disable-next-line @typescript-eslint/no-empty-function
-		return { stop() {} };
+		return {
+			stop() {
+				// no timer to stop yet
+			}
+		};
 	}
 
 	private static async dumpCoverage(config: ConfigParameters, storage: DataStorage, logger: Logger): Promise<void> {
@@ -277,8 +280,9 @@ export class App {
 	): { stop: () => void } {
 		if (!config.enable_control_port) {
 			return {
-				// eslint-disable-next-line @typescript-eslint/no-empty-function
-				stop() {}
+				stop() {
+					// nothing to stop in this case
+				}
 			};
 		}
 

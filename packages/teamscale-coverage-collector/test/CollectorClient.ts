@@ -1,8 +1,8 @@
 import WebSocket from 'ws';
 import { ProtocolMessageTypes } from '../src/receiver/CollectingServer';
 import axios from 'axios';
-import { file } from 'tmp';
 
+/** Sends a the given coverage to the collector via the given websocket. */
 export async function postCoverage(
 	socket: WebSocket,
 	fileId: string,
@@ -14,6 +14,7 @@ export async function postCoverage(
 	socket.send(`${ProtocolMessageTypes.TYPE_COVERAGE} ${fileId} ${startLine}:${startColumn}:${endLine}:${endColumn}`);
 }
 
+/** Opens a websocket to the collector. */
 export function openSocket(collectorUrl: string): Promise<WebSocket> {
 	const socket = new WebSocket(`${collectorUrl}/socket`, {
 		perMessageDeflate: false
@@ -29,10 +30,12 @@ export function openSocket(collectorUrl: string): Promise<WebSocket> {
 	});
 }
 
+/** Sends the given source map of the file with the given ID to the given websocket. */
 export async function postSourceMap(socket: WebSocket, fileId: string, sourceMap: any) {
 	socket.send(`${ProtocolMessageTypes.TYPE_SOURCEMAP} ${fileId}:${JSON.stringify(sourceMap)}`);
 }
 
+/** Sends a request to the collector to change the project ID used for the Teamscale upload. */
 export async function requestProjectSwitch(controlServerUrl: string, targetProjectId: string) {
 	await axios.post(`${controlServerUrl}/project`, targetProjectId, {
 		headers: {
@@ -43,6 +46,7 @@ export async function requestProjectSwitch(controlServerUrl: string, targetProje
 	});
 }
 
+/** Sends a request to the collector to perform a coverage dump. */
 export async function requestCoverageDump(controlServerUrl: string) {
 	const result = await axios.post(`${controlServerUrl}/dump`);
 	if (result.status !== 200) {

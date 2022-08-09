@@ -340,7 +340,6 @@ export class App {
 
 		return {
 			stop() {
-				console.log("close socket")
 				serverSocket.close();
 			}
 		};

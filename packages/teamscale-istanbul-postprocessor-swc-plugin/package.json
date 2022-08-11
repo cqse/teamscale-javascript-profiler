@@ -4,7 +4,9 @@
     "description": "",
     "author": "",
     "license": "Apache 2.0",
-    "keywords": ["swc-plugin"],
+    "keywords": [
+        "swc-plugin"
+    ],
     "main": "target/wasm32-wasi/release/teamscale-istanbul-postprocessor-swc-plugin.wasm",
     "scripts": {
         "prepublishOnly": "cargo build --release"

@@ -2,7 +2,10 @@
 <project version="4">
   <component name="ProjectModuleManager">
     <modules>
-      <module fileurl="file://$PROJECT_DIR$/.idea/teamscale-javascript-profiler.iml" filepath="$PROJECT_DIR$/.idea/teamscale-javascript-profiler.iml" />
+      <module fileurl="file://$PROJECT_DIR$/packages/cqse-commons/cqse-commons.iml" filepath="$PROJECT_DIR$/packages/cqse-commons/cqse-commons.iml" />
+      <module fileurl="file://$PROJECT_DIR$/packages/teamscale-coverage-collector/teamscale-coverage-collector.iml" filepath="$PROJECT_DIR$/packages/teamscale-coverage-collector/teamscale-coverage-collector.iml" />
+      <module fileurl="file://$PROJECT_DIR$/packages/teamscale-istanbul-postprocessor-swc-plugin/teamscale-istanbul-postprocessor-swc-plugin.iml" filepath="$PROJECT_DIR$/packages/teamscale-istanbul-postprocessor-swc-plugin/teamscale-istanbul-postprocessor-swc-plugin.iml" />
+      <module fileurl="file://$PROJECT_DIR$/packages/teamscale-javascript-instrumenter/teamscale-javascript-instrumenter.iml" filepath="$PROJECT_DIR$/packages/teamscale-javascript-instrumenter/teamscale-javascript-instrumenter.iml" />
     </modules>
   </component>
 </project>

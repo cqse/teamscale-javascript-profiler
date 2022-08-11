@@ -1920,6 +1920,147 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@swc/core-android-arm-eabi@npm:1.2.185":
+  version: 1.2.185
+  resolution: "@swc/core-android-arm-eabi@npm:1.2.185"
+  conditions: os=android & cpu=arm
+  languageName: node
+  linkType: hard
+
+"@swc/core-android-arm64@npm:1.2.185":
+  version: 1.2.185
+  resolution: "@swc/core-android-arm64@npm:1.2.185"
+  conditions: os=android & cpu=arm64
+  languageName: node
+  linkType: hard
+
+"@swc/core-darwin-arm64@npm:1.2.185":
+  version: 1.2.185
+  resolution: "@swc/core-darwin-arm64@npm:1.2.185"
+  conditions: os=darwin & cpu=arm64
+  languageName: node
+  linkType: hard
+
+"@swc/core-darwin-x64@npm:1.2.185":
+  version: 1.2.185
+  resolution: "@swc/core-darwin-x64@npm:1.2.185"
+  conditions: os=darwin & cpu=x64
+  languageName: node
+  linkType: hard
+
+"@swc/core-freebsd-x64@npm:1.2.185":
+  version: 1.2.185
+  resolution: "@swc/core-freebsd-x64@npm:1.2.185"
+  conditions: os=freebsd & cpu=x64
+  languageName: node
+  linkType: hard
+
+"@swc/core-linux-arm-gnueabihf@npm:1.2.185":
+  version: 1.2.185
+  resolution: "@swc/core-linux-arm-gnueabihf@npm:1.2.185"
+  conditions: os=linux & cpu=arm
+  languageName: node
+  linkType: hard
+
+"@swc/core-linux-arm64-gnu@npm:1.2.185":
+  version: 1.2.185
+  resolution: "@swc/core-linux-arm64-gnu@npm:1.2.185"
+  conditions: os=linux & cpu=arm64 & libc=glibc
+  languageName: node
+  linkType: hard
+
+"@swc/core-linux-arm64-musl@npm:1.2.185":
+  version: 1.2.185
+  resolution: "@swc/core-linux-arm64-musl@npm:1.2.185"
+  conditions: os=linux & cpu=arm64 & libc=musl
+  languageName: node
+  linkType: hard
+
+"@swc/core-linux-x64-gnu@npm:1.2.185":
+  version: 1.2.185
+  resolution: "@swc/core-linux-x64-gnu@npm:1.2.185"
+  conditions: os=linux & cpu=x64 & libc=glibc
+  languageName: node
+  linkType: hard
+
+"@swc/core-linux-x64-musl@npm:1.2.185":
+  version: 1.2.185
+  resolution: "@swc/core-linux-x64-musl@npm:1.2.185"
+  conditions: os=linux & cpu=x64 & libc=musl
+  languageName: node
+  linkType: hard
+
+"@swc/core-win32-arm64-msvc@npm:1.2.185":
+  version: 1.2.185
+  resolution: "@swc/core-win32-arm64-msvc@npm:1.2.185"
+  conditions: os=win32 & cpu=arm64
+  languageName: node
+  linkType: hard
+
+"@swc/core-win32-ia32-msvc@npm:1.2.185":
+  version: 1.2.185
+  resolution: "@swc/core-win32-ia32-msvc@npm:1.2.185"
+  conditions: os=win32 & cpu=ia32
+  languageName: node
+  linkType: hard
+
+"@swc/core-win32-x64-msvc@npm:1.2.185":
+  version: 1.2.185
+  resolution: "@swc/core-win32-x64-msvc@npm:1.2.185"
+  conditions: os=win32 & cpu=x64
+  languageName: node
+  linkType: hard
+
+"@swc/core@npm:1.2.185":
+  version: 1.2.185
+  resolution: "@swc/core@npm:1.2.185"
+  dependencies:
+    "@swc/core-android-arm-eabi": 1.2.185
+    "@swc/core-android-arm64": 1.2.185
+    "@swc/core-darwin-arm64": 1.2.185
+    "@swc/core-darwin-x64": 1.2.185
+    "@swc/core-freebsd-x64": 1.2.185
+    "@swc/core-linux-arm-gnueabihf": 1.2.185
+    "@swc/core-linux-arm64-gnu": 1.2.185
+    "@swc/core-linux-arm64-musl": 1.2.185
+    "@swc/core-linux-x64-gnu": 1.2.185
+    "@swc/core-linux-x64-musl": 1.2.185
+    "@swc/core-win32-arm64-msvc": 1.2.185
+    "@swc/core-win32-ia32-msvc": 1.2.185
+    "@swc/core-win32-x64-msvc": 1.2.185
+  dependenciesMeta:
+    "@swc/core-android-arm-eabi":
+      optional: true
+    "@swc/core-android-arm64":
+      optional: true
+    "@swc/core-darwin-arm64":
+      optional: true
+    "@swc/core-darwin-x64":
+      optional: true
+    "@swc/core-freebsd-x64":
+      optional: true
+    "@swc/core-linux-arm-gnueabihf":
+      optional: true
+    "@swc/core-linux-arm64-gnu":
+      optional: true
+    "@swc/core-linux-arm64-musl":
+      optional: true
+    "@swc/core-linux-x64-gnu":
+      optional: true
+    "@swc/core-linux-x64-musl":
+      optional: true
+    "@swc/core-win32-arm64-msvc":
+      optional: true
+    "@swc/core-win32-ia32-msvc":
+      optional: true
+    "@swc/core-win32-x64-msvc":
+      optional: true
+  bin:
+    swcx: run_swcx.js
+  checksum: efa6d6efcc94e622d367dc617b98996230b4c96764e3f50addd4ac38a9e8c9834f399ff716b55053e71147c65c9a113c4c2b80814e87edfe5c979194024b37ce
+  languageName: node
+  linkType: hard
+
 "@teamscale/coverage-collector@workspace:packages/teamscale-coverage-collector":
   version: 0.0.0-use.local
   resolution: "@teamscale/coverage-collector@workspace:packages/teamscale-coverage-collector"
@@ -1973,6 +2114,7 @@ __metadata:
     "@babel/traverse": ^7.18.6
     "@babel/types": ^7.18.4
     "@cqse/commons": ^0.0.1-beta.1
+    "@swc/core": 1.2.185
     "@types/async": ^3.2.6
     "@types/bunyan": ^1.8.8
     "@types/convert-source-map": ^1.5.1
@@ -1999,6 +2141,7 @@ __metadata:
     mkdirp: ^1.0.4
     rimraf: ^3.0.2
     source-map: 0.7.3
+    swc-plugin-coverage-instrument: ^0.0.7
     ts-jest: ^27.0.5
     ts-node: ^10.2.1
     tslib: ^2.2.0
@@ -9396,6 +9539,13 @@ __metadata:
   languageName: node
   linkType: hard
 
+"swc-plugin-coverage-instrument@npm:^0.0.7":
+  version: 0.0.7
+  resolution: "swc-plugin-coverage-instrument@npm:0.0.7"
+  checksum: c4346ee486116ce200c6ea39b306306dbb5b54a0510e267006a11dfec74ada3bf31524f73d08a008d108c34680e58c48aaedf30cf0094a927cdc05669c8a5c8d
+  languageName: node
+  linkType: hard
+
 "symbol-tree@npm:^3.2.4":
   version: 3.2.4
   resolution: "symbol-tree@npm:3.2.4"
@@ -9441,6 +9591,12 @@ __metadata:
   checksum: a04c07bb9e2d8f46776517d4618f2406fb977a74d914ad98b264fc3db0fe8224da5bec11e5f8902c5b9bcb8ace22d95fbe3c7b36b8593b7dfc8391a25898f32f
   languageName: node
   linkType: hard
+
+"teamscale-istanbul-postprocessor-swc-plugin@workspace:packages/teamscale-istanbul-postprocessor-swc-plugin":
+  version: 0.0.0-use.local
+  resolution: "teamscale-istanbul-postprocessor-swc-plugin@workspace:packages/teamscale-istanbul-postprocessor-swc-plugin"
+  languageName: unknown
+  linkType: soft
 
 "teamscale-javascript-profiler@workspace:.":
   version: 0.0.0-use.local

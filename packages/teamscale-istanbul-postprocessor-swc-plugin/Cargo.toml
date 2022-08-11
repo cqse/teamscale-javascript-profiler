@@ -5,16 +5,29 @@ edition = "2021"
 
 [lib]
 crate-type = ["cdylib", "rlib"]
+path = "src/lib.rs"
 
 [dependencies]
 serde = "1"
-swc_common = "0.26.0"
+swc_common = "0.27.1"
 swc-coverage-instrument = "*"
-swc_plugin = { version = "0.71.0" }
+swc_ecmascript = { version = "0.188.0", features = ["utils", "visit"] }
+swc_plugin = { version = "0.89.0" }
+swc_ecma_quote = "0.32.0"
+swc_ecma_ast = "0.90.3"
+tracing-subscriber = { version = "0.3.15", features = ["fmt"] }
+swc_ecma_visit="0.76.0"
+swc_core = {version = "0.6.2", features = [
+  "plugin_transform",
+  "utils",
+  "visit",
+  "ast",
+  "common",
+]}
 
 [dev-dependencies]
-swc_ecma_transforms_testing="0.96.0"
-swc_ecma_parser="0.108.1"
-swc_ecma_visit="0.67.1"
-swc_ecma_ast="0.81.0"
+swc_ecma_transforms_testing="0.105.0"
+swc_ecmascript = { version = "0.188.0", features = ["parser", "transforms"] }
+swc_ecma_parser="0.117.0"
+swc_ecma_ast="0.90.3"
 testing="*"

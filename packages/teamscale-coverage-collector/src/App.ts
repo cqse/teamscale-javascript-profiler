@@ -311,14 +311,14 @@ export class App {
 
 		controlServer.post('/revision', async (request: express.Request<string>, response) => {
 			const targetRevision = (request.body as string).trim();
-			config.teamscale_commit = targetRevision;
+			config.teamscale_revision = targetRevision;
 			logger.info(`Switching the target revision to '${targetRevision}' via the control API.`);
 			response.sendStatus(200);
 		});
 
 		controlServer.post('/commit', async (request: express.Request<string>, response) => {
 			const targetCommit = (request.body as string).trim();
-			config.teamscale_revision = targetCommit;
+			config.teamscale_commit = targetCommit;
 			logger.info(`Switching the target commit to '${targetCommit}' via the control API.`);
 			response.sendStatus(200);
 		});
@@ -330,7 +330,7 @@ export class App {
 			response.sendStatus(200);
 		});
 
-		controlServer.post('/discard', async (request, response) => {
+		controlServer.post('/reset', async (request, response) => {
 			storage.discardCollectedCoverage();
 			logger.info(`Discarding collected coverage information as requested via the control API.`);
 			response.sendStatus(200);

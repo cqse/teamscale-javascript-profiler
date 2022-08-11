@@ -16,7 +16,7 @@
     "clean": "rimraf dist tsconfig.tsbuildinfo",
     "build": "tsc",
     "collector": "node dist/src/main.js",
-    "test": "yarn build && NODE_OPTIONS='--experimental-vm-modules' jest --forceExit --coverage --silent=true --detectOpenHandles"
+    "test": "yarn build && NODE_OPTIONS='--experimental-vm-modules' jest --coverage --silent=true"
   },
   "files": [
     "dist/**/*"

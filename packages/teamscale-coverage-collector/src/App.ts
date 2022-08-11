@@ -13,8 +13,7 @@ import mkdirp from 'mkdirp';
 import path from 'path';
 import { StdConsoleLogger } from './utils/StdConsoleLogger';
 import { PrettyFileLogger } from './utils/PrettyFileLogger';
-import express, {Express} from 'express';
-import { Server } from 'http';
+import express from 'express';
 
 /**
  * Error that is thrown when the upload to Teamscale failed
@@ -78,7 +77,7 @@ export class App {
 	 *
 	 * @param config - The configuration options to run the collector with.
 	 */
-	public static runWithConfig(config: ConfigParameters): { stop: () => void } {
+	public static runWithConfig(config: ConfigParameters): { stop: () => Promise<void> } {
 		// Build the logger
 		const logger = this.buildLogger(config);
 		logger.info(`Starting collector in working directory "${process.cwd()}".`);
@@ -108,10 +107,10 @@ export class App {
 		});
 
 		return {
-			stop() {
+			async stop() {
 				logger.info('Stopping the collector.');
 				timerState.stop();
-				controlServerState.stop();
+				await controlServerState.stop();
 				serverState.stop();
 			}
 		};
@@ -276,10 +275,10 @@ export class App {
 		config: ConfigParameters,
 		storage: DataStorage,
 		logger: Logger
-	): { stop: () => void } {
+	): { stop: () => Promise<void> } {
 		if (!config.enable_control_port) {
 			return {
-				stop() {
+				async stop() {
 					// nothing to stop in this case
 				}
 			};
@@ -339,8 +338,10 @@ export class App {
 		logger.info(`Control server enabled at port ${config.enable_control_port}`);
 
 		return {
-			stop() {
-				serverSocket.close();
+			async stop() {
+				return new Promise<void>(resolve => {
+					serverSocket.close(() => resolve());
+				});
 			}
 		};
 	}

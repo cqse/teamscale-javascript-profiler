@@ -93,11 +93,9 @@ function timeout(ms: number): Promise<void>  {
 
 describe('Test the control server that is integrated in the collector', () => {
 	const teamscaleServerMock = getLocal({ debug: true });
-	let collectorState: { stop: () => void };
+	let collectorState: { stop: () => Promise<void> };
 
 	beforeEach(() => {
-		jest.useFakeTimers()
-
 		// Start the Teamscale mock serer
 		teamscaleServerMock.start(TEAMSCALE_MOCK_PORT);
 
@@ -117,33 +115,30 @@ describe('Test the control server that is integrated in the collector', () => {
 		});
 	});
 
-	afterEach(() => {
+	afterEach(async () => {
 		// Stop the mock server
 		teamscaleServerMock.stop();
 
 		// Stop the collector
-		collectorState.stop();
+		await collectorState.stop();
 	});
 
-	it('Request dumping project coverage to a Teamscale server', async () => {
+	it('Change project ID and dump coverage', async () => {
 		const projectId = 'dummyProjectId';
 		const dummyFileId = 'dummyFileId';
-		let mockedEndpoint: MockedEndpoint;
-		setImmediate(async () => {
-			mockedEndpoint = await teamscaleServerMock
-				.forPost(`/api/projects/${projectId}/external-analysis/session/auto-create/report`)
-				.withQuery({ format: 'SIMPLE' })
-				.thenReply(200, 'Mocked response');
-			await requestProjectSwitch(CONTROL_URL, projectId);
-			const socket = await openSocket('ws://localhost:1234');
-			await postSourceMap(socket, dummyFileId, SOURCE_MAP);
-			await timeout(500);
-			await postCoverage(socket, dummyFileId, 1, 700, 1, 1255);
-			await timeout(1000);
-			await requestCoverageDump(CONTROL_URL);
-			await timeout(2000);
-			const requests = await mockedEndpoint.getSeenRequests();
-			expect(requests).toHaveLength(1);
-		});
-	}, 60000);
+		let mockedEndpoint = await teamscaleServerMock
+			.forPost(`/api/projects/${projectId}/external-analysis/session/auto-create/report`)
+			.withQuery({ format: 'SIMPLE' })
+			.thenReply(200, 'Mocked response');
+		await requestProjectSwitch(CONTROL_URL, projectId);
+		const socket = await openSocket('ws://localhost:1234');
+		await postSourceMap(socket, dummyFileId, SOURCE_MAP);
+		await timeout(500);
+		await postCoverage(socket, dummyFileId, 1, 700, 1, 1255);
+		await timeout(1000);
+		await requestCoverageDump(CONTROL_URL);
+		await timeout(2000);
+		const requests = await mockedEndpoint.getSeenRequests();
+		expect(requests).toHaveLength(1);
+	}, 20000);
 });

@@ -2,6 +2,7 @@ import WebSocket from 'ws';
 import { ProtocolMessageTypes } from '../src/receiver/CollectingServer';
 import axios from 'axios';
 
+/** Allows controlling a running collector via its API. */
 export class CollectorClient {
 
 	/** Sends a the given coverage to the collector via the given websocket. */
@@ -39,57 +40,37 @@ export class CollectorClient {
 
 	/** Sends a request to the collector to change the message used for the Teamscale upload. */
 	static async requestMessageChange(controlServerUrl: string, targetMessage: string) {
-		await axios.put(`${controlServerUrl}/message`, targetMessage, {
+		await CollectorClient.sendPut(`${controlServerUrl}/message`, targetMessage);
+	}
+
+	private static async sendPut(url: string, textBody: string) {
+		await axios.put(url, textBody, {
 			headers: {
-				'Content-Length': `${targetMessage.length}`,
+				'Content-Length': `${textBody.length}`,
 				'Content-Type': 'text/plain'
 			},
 			responseType: 'text'
 		});
 	}
 
-	/** Sends a request to the collector to change the project ID used for the Teamscale upload. */
-	static async requestCommitChange(controlServerUrl: string, targetProjectId: string) {
-		await axios.put(`${controlServerUrl}/commit`, targetProjectId, {
-			headers: {
-				'Content-Length': `${targetProjectId.length}`,
-				'Content-Type': 'text/plain'
-			},
-			responseType: 'text'
-		});
+	/** Sends a request to the collector to change the commit used for the Teamscale upload. */
+	static async requestCommitChange(controlServerUrl: string, targetCommit: string) {
+		await CollectorClient.sendPut(`${controlServerUrl}/commit`, targetCommit);
 	}
 
 	/** Sends a request to the collector to change the revision used for the Teamscale upload. */
 	static async requestRevisionChange(controlServerUrl: string, targetRevision: string) {
-		await axios.put(`${controlServerUrl}/revision`, targetRevision, {
-			headers: {
-				'Content-Length': `${targetRevision.length}`,
-				'Content-Type': 'text/plain'
-			},
-			responseType: 'text'
-		});
+		await CollectorClient.sendPut(`${controlServerUrl}/revision`, targetRevision);
 	}
 
 	/** Sends a request to the collector to change the partition used for the Teamscale upload. */
 	static async requestPartitionChange(controlServerUrl: string, targetPartition: string) {
-		await axios.put(`${controlServerUrl}/partition`, targetPartition, {
-			headers: {
-				'Content-Length': `${targetPartition.length}`,
-				'Content-Type': 'text/plain'
-			},
-			responseType: 'text'
-		});
+		await CollectorClient.sendPut(`${controlServerUrl}/partition`, targetPartition);
 	}
 
 	/** Sends a request to the collector to change the project ID used for the Teamscale upload. */
 	static async requestProjectSwitch(controlServerUrl: string, targetProjectId: string) {
-		await axios.put(`${controlServerUrl}/project`, targetProjectId, {
-			headers: {
-				'Content-Length': `${targetProjectId.length}`,
-				'Content-Type': 'text/plain'
-			},
-			responseType: 'text'
-		});
+		await CollectorClient.sendPut(`${controlServerUrl}/project`, targetProjectId);
 	}
 
 	/** Sends a request to the collector to perform a coverage dump. */

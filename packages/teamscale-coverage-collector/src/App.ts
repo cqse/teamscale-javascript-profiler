@@ -301,28 +301,28 @@ export class App {
 			response.sendStatus(200);
 		});
 
-		controlServer.post('/project', async (request: express.Request<string>, response) => {
+		controlServer.put('/project', async (request: express.Request<string>, response) => {
 			const targetProject = (request.body as string).trim();
 			config.teamscale_project = targetProject;
 			logger.info(`Switching the target project to '${targetProject}' via the control API.`);
 			response.sendStatus(200);
 		});
 
-		controlServer.post('/revision', async (request: express.Request<string>, response) => {
+		controlServer.put('/revision', async (request: express.Request<string>, response) => {
 			const targetRevision = (request.body as string).trim();
 			config.teamscale_revision = targetRevision;
 			logger.info(`Switching the target revision to '${targetRevision}' via the control API.`);
 			response.sendStatus(200);
 		});
 
-		controlServer.post('/commit', async (request: express.Request<string>, response) => {
+		controlServer.put('/commit', async (request: express.Request<string>, response) => {
 			const targetCommit = (request.body as string).trim();
 			config.teamscale_commit = targetCommit;
 			logger.info(`Switching the target commit to '${targetCommit}' via the control API.`);
 			response.sendStatus(200);
 		});
 
-		controlServer.post('/message', async (request: express.Request<string>, response) => {
+		controlServer.put('/message', async (request: express.Request<string>, response) => {
 			const uploadMessage = (request.body as string).trim();
 			config.teamscale_message = uploadMessage;
 			logger.info(`Switching the upload message to '${uploadMessage}' via the control API.`);

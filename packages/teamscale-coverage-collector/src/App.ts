@@ -25,7 +25,7 @@ class TeamscaleUploadError extends Error {
 
 /**
  * The main class of the Teamscale JavaScript Collector.
- * Used to start the collector for with a given configuration.
+ * Used to start the collector with a given configuration.
  */
 export class App {
 	/**

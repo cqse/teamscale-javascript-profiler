@@ -16,7 +16,7 @@
     "clean": "rimraf dist tsconfig.tsbuildinfo",
     "build": "tsc",
     "collector": "node dist/src/main.js",
-    "test": "yarn build && NODE_OPTIONS='--experimental-vm-modules' jest --forceExit --coverage --silent=true --detectOpenHandles"
+    "test": "yarn build && NODE_OPTIONS='--experimental-vm-modules' jest --coverage --silent=true"
   },
   "files": [
     "dist/**/*"
@@ -29,6 +29,7 @@
     "bunyan": "^1.8.15",
     "date-and-time": "^2.3.1",
     "dotenv": "^14.1.0",
+    "express": "^4.18.1",
     "form-data": "^4.0.0",
     "mkdirp": "^1.0.4",
     "rxjs": "^7.1.0",
@@ -43,6 +44,7 @@
     "@types/argparse": "^2.0.5",
     "@types/async": "^3.2.6",
     "@types/bunyan": "^1.8.8",
+    "@types/express": "^4.17.13",
     "@types/jest": "^27.0.1",
     "@types/mkdirp": "^1.0.2",
     "@types/node": "^15.0.1",
@@ -52,6 +54,7 @@
     "babel-jest": "^27.2.0",
     "esbuild": "^0.13.4",
     "jest": "^27.2.0",
+    "mockttp": "^3.1.0",
     "rimraf": "^3.0.2",
     "ts-jest": "^27.0.5",
     "ts-node": "^10.2.1",

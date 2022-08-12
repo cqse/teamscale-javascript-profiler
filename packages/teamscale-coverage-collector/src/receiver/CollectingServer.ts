@@ -30,7 +30,7 @@ export class WebSocketCollectingServer {
 	/**
 	 * The WebSocket server component.
 	 */
-	private readonly server: WebSocket.Server;
+	private server: WebSocket.Server | null;
 
 	/**
 	 * The storage to put the received coverage information to for aggregation and further processing.
@@ -59,11 +59,11 @@ export class WebSocketCollectingServer {
 	/**
 	 * Start the server socket, handle sessions and dispatch messages.
 	 */
-	public start(): void {
-		this.logger.info(`Starting server on port ${this.server.options.port}.`);
+	public start(): { stop: () => void } {
+		this.logger.info(`Starting server on port ${this.server?.options.port}.`);
 
 		// Handle new connections from clients
-		this.server.on('connection', (webSocket: WebSocket, req: IncomingMessage) => {
+		this.server?.on('connection', (webSocket: WebSocket, req: IncomingMessage) => {
 			let session: Session | null = new Session(req.socket, this.storage, this.logger);
 			this.logger.debug(`Connection from: ${req.socket.remoteAddress}`);
 
@@ -78,9 +78,9 @@ export class WebSocketCollectingServer {
 			});
 
 			// Handle incoming messages
-			webSocket.on('message', (message: WebSocket.Data) => {
+			webSocket.on('message', async (message: WebSocket.Data) => {
 				if (session && typeof message === 'string') {
-					this.handleMessage(session, message);
+					await this.handleMessage(session, message);
 				}
 			});
 
@@ -89,6 +89,13 @@ export class WebSocketCollectingServer {
 				this.logger.error('Error on server socket triggered.', e);
 			});
 		});
+
+		return {
+			stop: () => {
+				this.server?.close();
+				this.server = null;
+			}
+		};
 	}
 
 	/**
@@ -97,12 +104,12 @@ export class WebSocketCollectingServer {
 	 * @param session - The session that has been started for the client.
 	 * @param message - The message to handle.
 	 */
-	private handleMessage(session: Session, message: string) {
+	private async handleMessage(session: Session, message: string) {
 		try {
 			if (message.startsWith(ProtocolMessageTypes.TYPE_SOURCEMAP)) {
-				this.handleSourcemapMessage(session, message.substring(1));
+				await this.handleSourcemapMessage(session, message.substring(1));
 			} else if (message.startsWith(ProtocolMessageTypes.TYPE_COVERAGE)) {
-				this.handleCoverageMessage(session, message.substring(1));
+				await this.handleCoverageMessage(session, message.substring(1));
 			}
 		} catch (e) {
 			this.logger.error(
@@ -118,13 +125,13 @@ export class WebSocketCollectingServer {
 	 * @param session - The session to handle the message for.
 	 * @param body - The body of the message (to be parsed).
 	 */
-	private handleSourcemapMessage(session: Session, body: string) {
+	private async handleSourcemapMessage(session: Session, body: string) {
 		const fileIdSeparatorPosition = body.indexOf(INSTRUMENTATION_SUBJECT_SEPARATOR);
 		if (fileIdSeparatorPosition > -1) {
 			const fileId = body.substring(0, fileIdSeparatorPosition).trim();
 			this.logger.debug(`Received source map information for ${fileId}`);
 			const sourcemap = body.substring(fileIdSeparatorPosition + 1);
-			session.putSourcemap(fileId, sourcemap);
+			await session.putSourcemap(fileId, sourcemap);
 		}
 	}
 
@@ -134,7 +141,7 @@ export class WebSocketCollectingServer {
 	 * @param session - The session to handle the message for.
 	 * @param body - The body of the message (to be parsed).
 	 */
-	private handleCoverageMessage(session: Session, body: string) {
+	private async handleCoverageMessage(session: Session, body: string) {
 		const bodyPattern = /(?<fileId>\S+) (?<positions>((\d+:\d+(:\d+:\d+)?\s+)*(\d+:\d+(:\d+:\d+)?)))/;
 		const matches = bodyPattern.exec(body);
 		if (matches?.groups) {

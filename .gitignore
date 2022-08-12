@@ -144,3 +144,6 @@ dist
 
 # Playground file for testing purposes
 **/playground.*
+
+# generated during test execution
+packages/teamscale-javascript-instrumenter/outputs/

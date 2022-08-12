@@ -60,6 +60,11 @@ export interface IWriteableStorage {
 	 * @param project - The project to add the information to.
 	 */
 	signalUnmappedCoverage(project: string): void;
+
+	/**
+	 * Discard the coverage information that has been collected up to this point.
+	 */
+	discardCollectedCoverage(): void;
 }
 
 /**
@@ -275,5 +280,12 @@ export class DataStorage implements IDataStorage {
 	 */
 	getProjects(): string[] {
 		return Array.from(this.coverageByProject.keys());
+	}
+
+	/**
+	 * {@inheritDoc IWritableStorage.discardCollectedCoverage}
+	 */
+	discardCollectedCoverage(): void {
+		this.coverageByProject.clear();
 	}
 }

@@ -1,9 +1,9 @@
-import { DataStorage, ProjectCoverage } from '../src/storage/DataStorage';
+import { DataStorage, ProjectCoverage } from '../../src/storage/DataStorage';
 import Logger, { LogLevel } from 'bunyan';
-import { StdConsoleLogger } from '../src/utils/StdConsoleLogger';
 import tmp from 'tmp';
 import * as dat from 'date-and-time';
 import path from 'path';
+import {StdConsoleLogger} from "../../src/utils/StdConsoleLogger";
 
 test('Test if coverage is aggregated in the storage', () => {
 	const storage = new ProjectCoverage('42');

@@ -4,7 +4,7 @@ import { DataStorage } from './storage/DataStorage';
 import { WebSocketCollectingServer } from './receiver/CollectingServer';
 import 'dotenv/config';
 import * as fs from 'fs';
-import axios from 'axios';
+import axios, { AxiosError } from 'axios';
 import FormData from 'form-data';
 import QueryParameters from './utils/QueryParameters';
 import { buildParameterParser, ConfigParameters } from './utils/ConfigParameters';
@@ -100,7 +100,7 @@ export class App {
 		// Say bye bye on CTRL+C and exit the process
 		process.on('SIGINT', async () => {
 			// ... and do a final dump before.
-			await this.dumpCoverage(config, storage, logger).then();
+			await this.dumpCoverage(config, storage, logger);
 
 			logger.info('Bye bye.');
 			process.exit();
@@ -130,8 +130,8 @@ export class App {
 	): { stop: () => void } {
 		if (config.dump_after_mins > 0) {
 			logger.info(`Will dump coverage information every ${config.dump_after_mins} minute(s).`);
-			const timer = setInterval(() => {
-				this.dumpCoverage(config, storage, logger).then();
+			const timer = setInterval(async () => {
+				await this.dumpCoverage(config, storage, logger);
 			}, config.dump_after_mins * 1000 * 60);
 
 			process.on('SIGINT', () => {
@@ -207,51 +207,50 @@ export class App {
 		form: FormData,
 		logger: Logger
 	) {
-		await axios
-			.post(
-				`${config.teamscale_server_url?.replace(/\/$/, '')}/api/projects/${
-					config.teamscale_project
-				}/external-analysis/session/auto-create/report?${parameters.toString()}`,
-				form,
-				{
-					auth: {
-						username: config.teamscale_user ?? 'no username provided',
-						password: config.teamscale_access_token ?? 'no password provided'
-					},
-					headers: {
-						Accept: '*/*',
-						'Content-Type': `multipart/form-data; boundary=${form.getBoundary()}`
+		try {
+			const response = await axios
+				.post(
+					`${config.teamscale_server_url?.replace(/\/$/, '')}/api/projects/${
+						config.teamscale_project
+					}/external-analysis/session/auto-create/report?${parameters.toString()}`,
+					form,
+					{
+						auth: {
+							username: config.teamscale_user ?? 'no username provided',
+							password: config.teamscale_access_token ?? 'no password provided'
+						},
+						headers: {
+							Accept: '*/*',
+							'Content-Type': `multipart/form-data; boundary=${form.getBoundary()}`
+						}
 					}
-				}
-			)
-			.then(response => {
-				logger.info(`Upload finished with code ${response.status}.`);
-			})
-			.catch(function (error) {
-				if (error.response) {
-					const response = error.response;
-					if (response.status >= 400) {
-						throw new TeamscaleUploadError(
-							`Upload failed with code ${response.status}: ${response.statusText}. Response Data: ${response.data}`
-						);
-					} else {
-						logger.info(`Upload with status code ${response.status} finished.`);
-					}
-				} else if (error.request) {
-					throw new TeamscaleUploadError(`Upload request did not receive a response.`);
-				}
-
-				if (error.message) {
-					logger.debug(
-						`Something went wrong when uploading data: ${error.message}. Details of the error: ${inspect(
-							error
-						)}`
+				)
+			logger.info(`Upload finished with code ${response.status}.`);
+		} catch (error: any) {	
+			if (error.response) {
+				const response = error.response;
+				if (response.status >= 400) {
+					throw new TeamscaleUploadError(
+						`Upload failed with code ${response.status}: ${response.statusText}. Response Data: ${response.data}`
 					);
-					throw new TeamscaleUploadError(`Something went wrong when uploading data: ${error.message}`);
 				} else {
-					throw new TeamscaleUploadError(`Something went wrong when uploading data: ${inspect(error)}`);
+					logger.info(`Upload with status code ${response.status} finished.`);
 				}
-			});
+			} else if (error.request) {
+				throw new TeamscaleUploadError(`Upload request did not receive a response.`);
+			}
+
+			if (error.message) {
+				logger.debug(
+					`Something went wrong when uploading data: ${error.message}. Details of the error: ${inspect(
+						error
+					)}`
+				);
+				throw new TeamscaleUploadError(`Something went wrong when uploading data: ${error.message}`);
+			} else {
+				throw new TeamscaleUploadError(`Something went wrong when uploading data: ${inspect(error)}`);
+			}
+		}
 	}
 
 	private static prepareQueryParameters(config: ConfigParameters) {

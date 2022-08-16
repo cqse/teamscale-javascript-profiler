@@ -1,19 +1,16 @@
 use std::sync::Arc;
 use swc_common::comments::NoopComments;
 use swc_common::SourceMap;
-use swc_coverage_instrument::InstrumentOptions;
 use swc_common::{chain, pass::Optional, FileName};
-use swc_ecmascript::visit::{noop_fold_type, Fold, as_folder};
-use swc_ecma_ast::UpdateOp;
-use swc_ecmascript::visit::{VisitMut, VisitMutWith};
 use swc_core::{
     ast::Program,
-    plugin::{
-        plugin_transform,
-        proxies::TransformPluginProgramMetadata,
-    },
+    plugin::{plugin_transform, proxies::TransformPluginProgramMetadata},
     visit::FoldWith,
 };
+use swc_coverage_instrument::InstrumentOptions;
+use swc_ecma_ast::UpdateOp;
+use swc_ecmascript::visit::{as_folder, noop_fold_type, Fold};
+use swc_ecmascript::visit::{VisitMut, VisitMutWith};
 
 #[derive(Debug)]
 pub struct TransformVisitor;
@@ -25,7 +22,7 @@ impl VisitMut for TransformVisitor {
 
     fn visit_mut_update_op(&mut self, n: &mut UpdateOp) {
         // dbg!(self);
-        n.visit_mut_children_with(self);  
+        n.visit_mut_children_with(self);
     }
 }
 
@@ -37,8 +34,15 @@ pub fn transformer() -> impl Fold + VisitMut {
 pub fn process_transform(mut program: Program, data: TransformPluginProgramMetadata) -> Program {
     // See https://github.com/vercel/next.js/tree/canary/packages/next-swc/crates/styled_components as an example.
 
-    let mut pass = transformer();    
-    
+    let visitor = swc_coverage_instrument::create_coverage_instrumentation_visitor(
+        Arc::new(SourceMap::default()),
+        NoopComments {},
+        InstrumentOptions::default(),
+        String::from("Hello.js"),
+    );
+
+    let mut pass = chain!(visitor, transformer());
+
     program.visit_mut_with(&mut pass);
 
     program

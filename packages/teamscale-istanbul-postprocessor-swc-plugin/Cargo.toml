@@ -9,7 +9,7 @@ path = "src/lib.rs"
 
 [dependencies]
 serde = "1"
-swc_common = "0.27.1"
+swc_common = "0.26.0"
 swc-coverage-instrument = "*"
 swc_ecmascript = { version = "0.188.0", features = ["utils", "visit"] }
 swc_plugin = { version = "0.89.0" }

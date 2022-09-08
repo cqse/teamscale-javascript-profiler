@@ -1,9 +1,10 @@
 #![deny(unused)]
 
-use std::{path::PathBuf};
-use swc_ecma_transforms_testing::test_fixture;
-use swc_ecmascript::{
-    parser::{EsConfig, Syntax}
+use std::{path::PathBuf, sync::Arc};
+use swc_common::{SourceMap, FilePathMapping, FileName};
+use swc_core::{
+    ecma::parser::{EsConfig, Syntax},
+    ecma::transforms::testing::test_fixture,
 };
 
 use teamscale_istanbul_postprocessor_swc_plugin::{transformer};
@@ -18,7 +19,11 @@ fn fixture(input: PathBuf) {
             ..Default::default()
         }),
         &|_| {        
-            transformer()
+            let sm = SourceMap::new(FilePathMapping::empty());
+            sm.new_source_file(FileName::Custom("Hello.js".to_string()), 
+            "foo".to_string());    
+            let a = Arc::new(sm);
+            transformer(a)
         },
         &input,
         &test_dir.join("output.js"),

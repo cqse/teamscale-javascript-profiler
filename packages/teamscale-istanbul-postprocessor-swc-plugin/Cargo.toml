@@ -9,25 +9,25 @@ path = "src/lib.rs"
 
 [dependencies]
 serde = "1"
-swc_common = "0.26.0"
-swc-coverage-instrument = "*"
-swc_ecmascript = { version = "0.188.1", features = ["utils", "visit"] }
-swc_plugin = { version = "0.89.0" }
-swc_ecma_quote = "0.32.1"
-swc_ecma_ast = "0.90.4"
+swc_common = "0.27.15"
+swc-coverage-instrument = { version = "0.0.12" }
+swc_ecmascript = { version = "0.198.10", features = ["utils", "visit"] }
+swc_ecma_quote = "0.34.2"
 tracing-subscriber = { version = "0.3.15", features = ["fmt"] }
-swc_ecma_visit="0.76.2"
-swc_core = {version = "0.6.5", features = [
+swc_core = {version = "0.20.12", features = [
   "plugin_transform",
-  "utils",
-  "visit",
-  "ast",
   "common",
+  "ecma_ast",
+  "ecma_utils",
+  "ecma_visit",
+  "ecma_parser",
+  "ecma_transforms",
 ]}
 
 [dev-dependencies]
-swc_ecma_transforms_testing="0.105.1"
-swc_ecmascript = { version = "0.188.1", features = ["parser", "transforms"] }
-swc_ecma_parser="0.117.1"
-swc_ecma_ast="0.90.4"
-testing="*"
+testing = "0.29.4"
+swc_core = { version = "0.20.12", features = [
+  "ecma_parser",
+  "ecma_transforms",
+  "testing_transform"
+] }

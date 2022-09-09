@@ -1,0 +1,16 @@
+{
+	"folders": [
+		{
+			"path": "packages/swc-plugin-teamscale-instrumenter"
+		},
+		{
+			"path": "packages/teamscale-javascript-instrumenter"
+		},
+		{
+			"path": "packages/cqse-commons"
+		},
+		{
+			"path": "packages/teamscale-coverage-collector"
+		}
+	]
+}

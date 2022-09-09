@@ -2115,11 +2115,11 @@ __metadata:
     "@babel/types": ^7.18.4
     "@cqse/commons": ^0.0.1-beta.1
     "@swc/core": 1.2.185
+    "@teamscale/swc-instrumenter-plugin": "workspace:packages/swc-plugin-teamscale-instrumenter"
     "@types/async": ^3.2.6
     "@types/bunyan": ^1.8.8
     "@types/convert-source-map": ^1.5.1
     "@types/glob": ^7.1.3
-    "@types/istanbul-lib-instrument": ^1.7.4
     "@types/jest": ^27.0.1
     "@types/micromatch": ^4.0.2
     "@types/mkdirp": ^1.0.2
@@ -2135,13 +2135,11 @@ __metadata:
     esbuild-plugin-inline-worker: ^0.1.1
     foreground-child: ^2.0.0
     glob: ^7.1.7
-    istanbul-lib-instrument: ^5.2.0
     jest: ^27.2.0
     micromatch: 4.0.4
     mkdirp: ^1.0.4
     rimraf: ^3.0.2
     source-map: 0.7.3
-    swc-plugin-coverage-instrument: ^0.0.7
     ts-jest: ^27.0.5
     ts-node: ^10.2.1
     tslib: ^2.2.0
@@ -2151,6 +2149,12 @@ __metadata:
     web-worker: ^1.0.0
   bin:
     javascript-instrumenter: dist/src/main.js
+  languageName: unknown
+  linkType: soft
+
+"@teamscale/swc-instrumenter-plugin@workspace:packages/swc-plugin-teamscale-instrumenter":
+  version: 0.0.0-use.local
+  resolution: "@teamscale/swc-instrumenter-plugin@workspace:packages/swc-plugin-teamscale-instrumenter"
   languageName: unknown
   linkType: soft
 
@@ -2207,13 +2211,6 @@ __metadata:
   version: 3.2.13
   resolution: "@types/async@npm:3.2.13"
   checksum: 396d312ba1b627cf93590280a022f220bed1b9bed30b787c012671921115ae30e5bad5537fb3f2b867061b967e99d85095c00157237d3dc52efeab0c772a7b37
-  languageName: node
-  linkType: hard
-
-"@types/babel-types@npm:*":
-  version: 7.0.11
-  resolution: "@types/babel-types@npm:7.0.11"
-  checksum: 9b02719c7cf5062c9ab656a3b4efe3dd79e7a4ab49b5a2ce18d4ec1cb326588a1b40fc03863c24c9dec962f56762c53ed06cdc2a1c241c84e76e54a37a6195fc
   languageName: node
   linkType: hard
 
@@ -2304,17 +2301,6 @@ __metadata:
   version: 2.0.4
   resolution: "@types/istanbul-lib-coverage@npm:2.0.4"
   checksum: a25d7589ee65c94d31464c16b72a9dc81dfa0bea9d3e105ae03882d616e2a0712a9c101a599ec482d297c3591e16336962878cb3eb1a0a62d5b76d277a890ce7
-  languageName: node
-  linkType: hard
-
-"@types/istanbul-lib-instrument@npm:^1.7.4":
-  version: 1.7.4
-  resolution: "@types/istanbul-lib-instrument@npm:1.7.4"
-  dependencies:
-    "@types/babel-types": "*"
-    "@types/istanbul-lib-coverage": "*"
-    source-map: ^0.6.1
-  checksum: 3409d31c03fa08bf4d4af569a8ba63c2b1ee0019c0c712e0dbff3fdaf01e16ac0ad20a4ec6b7da1f76d81cb9d576333fec4a0dd17be7d9e0b08db86201a6aa12
   languageName: node
   linkType: hard
 
@@ -6335,7 +6321,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"istanbul-lib-instrument@npm:^5.0.4, istanbul-lib-instrument@npm:^5.1.0, istanbul-lib-instrument@npm:^5.2.0":
+"istanbul-lib-instrument@npm:^5.0.4, istanbul-lib-instrument@npm:^5.1.0":
   version: 5.2.0
   resolution: "istanbul-lib-instrument@npm:5.2.0"
   dependencies:
@@ -9539,13 +9525,6 @@ __metadata:
   languageName: node
   linkType: hard
 
-"swc-plugin-coverage-instrument@npm:^0.0.7":
-  version: 0.0.7
-  resolution: "swc-plugin-coverage-instrument@npm:0.0.7"
-  checksum: c4346ee486116ce200c6ea39b306306dbb5b54a0510e267006a11dfec74ada3bf31524f73d08a008d108c34680e58c48aaedf30cf0094a927cdc05669c8a5c8d
-  languageName: node
-  linkType: hard
-
 "symbol-tree@npm:^3.2.4":
   version: 3.2.4
   resolution: "symbol-tree@npm:3.2.4"
@@ -9591,12 +9570,6 @@ __metadata:
   checksum: a04c07bb9e2d8f46776517d4618f2406fb977a74d914ad98b264fc3db0fe8224da5bec11e5f8902c5b9bcb8ace22d95fbe3c7b36b8593b7dfc8391a25898f32f
   languageName: node
   linkType: hard
-
-"teamscale-istanbul-postprocessor-swc-plugin@workspace:packages/teamscale-istanbul-postprocessor-swc-plugin":
-  version: 0.0.0-use.local
-  resolution: "teamscale-istanbul-postprocessor-swc-plugin@workspace:packages/teamscale-istanbul-postprocessor-swc-plugin"
-  languageName: unknown
-  linkType: soft
 
 "teamscale-javascript-profiler@workspace:.":
   version: 0.0.0-use.local
@@ -9967,11 +9940,11 @@ __metadata:
 
 "typescript@patch:typescript@^4.4.3#~builtin<compat/typescript>":
   version: 4.7.3
-  resolution: "typescript@patch:typescript@npm%3A4.7.3#~builtin<compat/typescript>::version=4.7.3&hash=bda367"
+  resolution: "typescript@patch:typescript@npm%3A4.7.3#~builtin<compat/typescript>::version=4.7.3&hash=a1c5e5"
   bin:
     tsc: bin/tsc
     tsserver: bin/tsserver
-  checksum: 8257ce7ecbbf9416da60045a76a99d473698ca9e973fa0ddab7137cacb1587255431176cbbcc801a650938c4dc8109ab88355774829a714fabe56a53a2fe4524
+  checksum: 137d18a77f52254a284960b16ab53d0619f57b69b5d585804b8413f798a1175ce3e774fb95e6a101868577aafe357d8fcfc9171f0dc9fc0c210e9ae59d107cc0
   languageName: node
   linkType: hard
 

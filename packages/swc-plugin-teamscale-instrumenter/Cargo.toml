@@ -1,11 +1,15 @@
 [package]
-name = "teamscale-istanbul-postprocessor-swc-plugin"
-version = "0.1.0"
+description = "SWC instrumentation plugin to be used by the Teamscale JavaScript Profiler"
+name = "swc_plugin_teamscale_instrumenter"
+version = "0.0.1-beta.42"
 edition = "2021"
 
 [lib]
 crate-type = ["cdylib", "rlib"]
 path = "src/lib.rs"
+
+[profile.release]
+lto = true
 
 [dependencies]
 serde = "1"

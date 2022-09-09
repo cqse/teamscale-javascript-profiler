@@ -1,0 +1,17 @@
+{
+    "name": "@teamscale/swc-instrumenter-plugin",
+    "version": "0.0.1-beta.42",
+    "description": "SWC plugin to be used for instrumentation by the Teamscale JavaScript Profiler",
+    "author": "CQSE GmbH",
+    "license": "Apache-2.0",
+    "main": "swc_plugin_teamscale_instrumenter.wasm",
+    "homepage": "https://teamscale.com",
+    "keywords": [
+        "swc-plugin"
+    ],
+    "scripts": {
+        "prepack": "cargo build-wasi --release && cp target/wasm32-wasi/release/swc_plugin_teamscale_instrumenter.wasm .",
+        "prepublishOnly": "cargo test && cargo build --release && cargo build-wasi --release"
+    },
+    "files": []
+}

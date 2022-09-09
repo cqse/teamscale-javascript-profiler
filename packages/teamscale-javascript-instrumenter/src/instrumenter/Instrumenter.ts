@@ -428,7 +428,7 @@ export function instrumentWithSwc(
 		isModule: true,
 		jsc: {
 			experimental: {
-				plugins: [['swc-plugin-coverage-instrument', pluginOptions]]
+				plugins: [['@teamscale/swc-instrumenter-plugin', pluginOptions]]
 			}
 		}
 	});

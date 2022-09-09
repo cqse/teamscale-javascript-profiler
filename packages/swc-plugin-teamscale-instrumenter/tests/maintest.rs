@@ -6,8 +6,7 @@ use swc_core::{
     ecma::parser::{EsConfig, Syntax},
     ecma::transforms::testing::test_fixture,
 };
-
-use teamscale_istanbul_postprocessor_swc_plugin::{transformer};
+use swc_plugin_teamscale_instrumenter::transformer;
 
 #[testing::fixture("tests/fixtures/**/input.js")]
 fn fixture(input: PathBuf) {

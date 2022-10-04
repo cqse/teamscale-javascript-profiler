@@ -37,6 +37,12 @@ universe()._$stmtCov = function (fileId: string, statementId: number): void {
 };
 
 /**
+ * Signal the coverage of a particular function.
+ */
+universe()._$fnCov = function (fileId: string, functionId: number): void {
+};
+
+/**
  * Signal the coverage of a particular statement.
  */
 universe()._$brCov = function (fileId: string, branchId: number, locationId: number): void {

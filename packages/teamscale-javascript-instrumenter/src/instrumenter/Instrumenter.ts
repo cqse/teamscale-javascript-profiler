@@ -146,21 +146,21 @@ export class IstanbulInstrumenter implements IInstrumenter {
 					inputSourceMap
 				);
 
-				console.log(instrumentedSource);
 				// FIXME: swc.this.logger.debug('Instrumentation source maps to:', instrumenter.lastSourceMap()?.sources);
 
 				// In case of a bundle, the initial instrumentation step might have added
 				// too much and undesired instrumentations. Remove them now.
 				// FIXME: const instrumentedSourcemap = instrumenter.lastSourceMap();
-				const instrumentedSourcemap = undefined;
 
-				let instrumentedAndCleanedSource = await this.removeUnwantedInstrumentation(
-					taskElement,
-					instrumentedSource.code,
-					configurationAlternative,
-					sourcePattern,
-					instrumentedSourcemap as any
-				);
+
+				// let instrumentedAndCleanedSource = await this.removeUnwantedInstrumentation(
+				// 	taskElement,
+				// 	instrumentedSource.code,
+				// 	configurationAlternative,
+				// 	sourcePattern,
+				// 	instrumentedSourcemap as any
+				// );
+				let instrumentedAndCleanedSource = instrumentedSource.code;
 
 				instrumentedAndCleanedSource = instrumentedAndCleanedSource
 					.replace(
@@ -172,14 +172,14 @@ export class IstanbulInstrumenter implements IInstrumenter {
 				// The process also can result in a new source map that we will append in the result.
 				//
 				// `lastSourceMap` === Sourcemap for the last file that was instrumented.
-				finalSourceMap = convertSourceMap.fromObject(instrumentedSourcemap).toComment();
+				finalSourceMap = convertSourceMap.fromObject(JSON.parse(instrumentedSource.map!)).toComment();
 
 				// We now can glue together the final version of the instrumented file.
 				const vaccineSource = this.loadVaccine(collector);
 
 				writeToFile(
 					taskElement.toFile,
-					`${IS_INSTRUMENTED_TOKEN} ${vaccineSource} ${instrumentedAndCleanedSource} \n${finalSourceMap}`
+					`${IS_INSTRUMENTED_TOKEN} ${vaccineSource} ${instrumentedAndCleanedSource}`
 				);
 
 				return new TaskResult(1, 0, 0, 0, 0, 0, 0);
@@ -220,21 +220,23 @@ export class IstanbulInstrumenter implements IInstrumenter {
 		const removedInstrumentationFor: Set<string> = new Set<string>();
 
 		// Remove the unwanted instrumentation
-		const cleaned = cleanSourceCode(instrumentedSource, configurationAlternative.esModules as boolean, location => {
-			const originalPosition = instrumentedSourceMapConsumer.originalPositionFor({
-				line: location.start.line,
-				column: location.start.column
-			});
-			if (!originalPosition.source) {
-				return false;
-			}
-
-			const isToCover = sourcePattern.isAnyIncluded([originalPosition.source]);
-			if (!isToCover) {
-				removedInstrumentationFor.add(originalPosition.source);
-			}
-			return isToCover;
-		});
+		//
+		// const cleaned = cleanSourceCode(instrumentedSource, configurationAlternative.esModules as boolean, location => {
+		// 	const originalPosition = instrumentedSourceMapConsumer.originalPositionFor({
+		// 		line: location.start.line,
+		// 		column: location.start.column
+		// 	});
+		// 	if (!originalPosition.source) {
+		// 		return false;
+		// 	}
+		//
+		// 	const isToCover = sourcePattern.isAnyIncluded([originalPosition.source]);
+		// 	if (!isToCover) {
+		// 		removedInstrumentationFor.add(originalPosition.source);
+		// 	}
+		// 	return isToCover;
+		// });
+		const cleaned = instrumentedSource;
 
 		if (removedInstrumentationFor.size) {
 			this.logger.info(`Removed from ${taskElement.toFile} instrumentation for:`);

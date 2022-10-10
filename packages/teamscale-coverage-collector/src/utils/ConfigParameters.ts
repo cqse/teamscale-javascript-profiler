@@ -40,6 +40,16 @@ export type ConfigParameters = {
 	// eslint-disable-next-line camelcase
 	teamscale_message?: string;
 	// eslint-disable-next-line camelcase
+	artifactory_server_url?: string;
+	// eslint-disable-next-line camelcase
+	artifactory_user?: string;
+	// eslint-disable-next-line camelcase
+	artifactory_password?: string;
+	// eslint-disable-next-line camelcase
+	artifactory_access_token?: string;
+	// eslint-disable-next-line camelcase
+	artifactory_path_suffix?: string;
+	// eslint-disable-next-line camelcase
 	enable_control_port?: number;
 };
 
@@ -119,6 +129,26 @@ export function buildParameterParser(): ArgumentParser {
 	parser.add_argument('--teamscale-message', {
 		help: 'The commit message shown within Teamscale for the coverage upload. Default is "JavaScript coverage upload".',
 		default: process.env.TEAMSCALE_MESSAGE ?? 'JavaScript coverage upload'
+	});
+	parser.add_argument('--artifactory-server-url', {
+		help: 'Upload the coverage to the given Artifactory server URL. The URL may include a subpath on the artifactory server, e.g. https://artifactory.acme.com/my-repo/my/subpath',
+		default: process.env.ARTIFACTORY_SERVER_URL
+	});
+	parser.add_argument('--artifactory-user', {
+		help: 'The user for uploading coverage to Artifactory. Only needed when not using the --artifactory-access-token option',
+		default: process.env.ARTIFACTORY_USER
+	});
+	parser.add_argument('--artifactory-password', {
+		help: 'The password for uploading coverage to Artifactory. Only needed when not using the --artifactory-access-token option',
+		default: process.env.ARTIFACTORY_PASSWORD
+	});
+	parser.add_argument('--artifactory-access-token', {
+		help: 'The access_token for uploading coverage to Artifactory.',
+		default: process.env.ARTIFACTORY_ACCESS_TOKEN
+	});
+	parser.add_argument('--artifactory-path-suffix', {
+		help: '(optional): The path within the storage location between the default path and the uploaded artifact.',
+		default: process.env.ARTIFACTORY_PATH_SUFFIX
 	});
 
 	return parser;

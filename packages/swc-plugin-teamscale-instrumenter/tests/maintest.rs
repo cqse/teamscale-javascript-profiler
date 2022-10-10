@@ -1,12 +1,12 @@
 #![deny(unused)]
 
 use std::{path::PathBuf, sync::Arc};
-use swc_common::{SourceMap, FilePathMapping, FileName};
+use swc_common::{SourceMap, FilePathMapping};
 use swc_core::{
     ecma::parser::{EsConfig, Syntax},
-    ecma::transforms::testing::test_fixture,
+    ecma::transforms::testing::{test_fixture, FixtureTestConfig},
 };
-use swc_plugin_teamscale_instrumenter::transformer;
+use swc_plugin_teamscale_instrumenter::{transformer, source_origin::SourceOriginPattern};
 
 #[testing::fixture("tests/fixtures/**/input.js")]
 fn fixture(input: PathBuf) {
@@ -19,12 +19,16 @@ fn fixture(input: PathBuf) {
         }),
         &|_| {        
             let sm = SourceMap::new(FilePathMapping::empty());
-            sm.new_source_file(FileName::Custom("Hello.js".to_string()), 
-            "foo".to_string());    
-            let a = Arc::new(sm);
-            transformer(a)
+            let mapper = Arc::new(sm);
+            let pattern = Arc::new(SourceOriginPattern { 
+                mapper: mapper.clone(), include_origin_patterns: vec![], exclude_origin_patterns: vec![] } );
+            transformer(mapper, pattern)
         },
         &input,
         &test_dir.join("output.js"),
+        FixtureTestConfig {
+            sourcemap: true,
+            allow_error: false
+        }  
     )
 }

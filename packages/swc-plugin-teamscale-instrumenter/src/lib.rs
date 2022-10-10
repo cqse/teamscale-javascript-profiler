@@ -1,17 +1,21 @@
+pub mod source_origin;
+mod file_id_consts;
+
 use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
 use std::vec;
 
-use lazy_static::lazy_static;
-
+use file_id_consts::{COV_FN_NAME_TO_HASH, COV_FN_NAME_TO_NUMBER};
 use serde::{Deserialize, Serialize};
 
 
+use source_origin::{SourceMapMatcher, SourceOriginPattern};
 use swc::config::SourceMapsConfig;
 use swc::{Compiler, IdentCollector};
 
 use swc_common::comments::NoopComments;
-use swc_common::{chain, SourceMap};
+use swc_common::util::take::Take;
+use swc_common::{chain, SourceMap, SourceMapperDyn, Span};
 use swc_common::{SourceMapper, DUMMY_SP};
 use swc_core::ecma::ast::Pat;
 use swc_core::ecma::codegen::Node;
@@ -24,11 +28,10 @@ use swc_core::{
 use swc_coverage_instrument::InstrumentOptions;
 use swc_ecma_quote::swc_ecma_ast::{
     BindingIdent, EsVersion, ExprOrSpread, FnDecl, Lit, MemberExpr, MemberProp,
-    Module, ModuleItem, Number, Script, Str, UpdateExpr, VarDecl, VarDeclKind, VarDeclarator,
+    Module, ModuleItem, Number, Script, Str, UpdateExpr, VarDecl, VarDeclKind, VarDeclarator, Invalid,
 };
 
-#[derive(Debug)]
-pub struct FileIdVisitor { }
+use crate::file_id_consts::FileIdVisitor;
 
 pub struct FunctionCovInc {
     cov_fn_name: String,
@@ -51,11 +54,6 @@ pub enum CoverageIncrement {
     Branch(BranchCovInc),
     Statement(StatementCovInc),
     None(),
-}
-
-lazy_static! {
-    static ref COV_FN_NAME_TO_HASH: Mutex<HashMap<String, String>> = Mutex::new(HashMap::new());
-    static ref COV_FN_NAME_TO_NUMBER: Mutex<HashMap<String, i32>> = Mutex::new(HashMap::new());
 }
 
 fn printNode<T>(n: &T)
@@ -273,100 +271,6 @@ fn extract_coverage_increment(expr: &Expr) -> CoverageIncrement {
     }
 }
 
-fn extract_file_hash(n: &VarDeclarator) -> Option<String> {
-    match &n.name {
-        Pat::Assign(assign) => {
-            match &assign.left.as_ref() {
-                Pat::Ident(ident) => {
-                    if !ident.sym.to_string().eq_ignore_ascii_case("hash") {
-                        return Option::None;
-                    }
-                }
-                _ => {}
-            }
-
-            match &assign.right.as_ref() {
-                Expr::Lit(literal) => match &literal {
-                    Lit::Str(string_literal) => {
-                        return Option::Some(string_literal.value.to_string());
-                    }
-                    _ => {}
-                },
-                _ => {}
-            }
-        }
-        _ => {}
-    }
-
-    Option::None
-}
-
-#[derive(Debug)]
-pub struct CovFunctionSummary {
-    cov_fn_name: String,
-    cov_fn_id: String,
-    file_hash: String,
-}
-
-fn extract_cov_fn_summary(fn_decl: &FnDecl) -> Option<CovFunctionSummary> {
-    // function cov_oqh6rsgrd() {
-    let cov_fn_name = fn_decl.ident.sym.to_string();
-    if !cov_fn_name.starts_with("cov_") {
-        return Option::None;
-    }
-    let cov_fn_id = &cov_fn_name[5..];
-
-    return match &fn_decl.function.body {
-        Some(block_stmt) => {
-            if block_stmt.stmts.len() > 1 {
-                let hash_assign_stmt = &block_stmt.stmts[1];
-                match hash_assign_stmt {
-                    Stmt::Decl(decl_stmt) => match decl_stmt {
-                        Decl::Var(var_decl) => {
-                            if var_decl.decls.len() != 1 {
-                                return None;
-                            }
-
-                            let hash_decl = &var_decl.decls[0];
-
-                            match extract_file_hash(hash_decl) {
-                                Some(hash) => {
-                                    return Some(CovFunctionSummary {
-                                        cov_fn_id: String::from(cov_fn_id),
-                                        cov_fn_name: cov_fn_name,
-                                        file_hash: hash,
-                                    });
-                                }
-                                None => return None,
-                            }
-                        }
-                        _ => return None,
-                    },
-                    _ => return None,
-                }
-            }
-            None
-        }
-        _ => return None,
-    };
-}
-
-impl VisitMut for FileIdVisitor {
-    fn visit_mut_decl(&mut self, n: &mut Decl) {
-        match n {
-            Decl::Fn(fn_decl) => match extract_cov_fn_summary(fn_decl) {
-                Some(summary) => {
-                    let mut map = COV_FN_NAME_TO_HASH.lock().unwrap();
-                    let key = summary.cov_fn_name.clone();
-                    map.insert(key, summary.file_hash);
-                }
-                None => {}
-            },
-            _ => {}
-        }
-    }
-}
-
 fn new_statement_coverage_increment_call(inc: StatementCovInc) -> Expr {
     let cov_obj_varname = get_cov_obj_varname(&inc.cov_fn_name);
     let args = vec![
@@ -481,10 +385,12 @@ fn create_coverage_increment_replacement(expr: &Expr) -> Option<Box<Expr>> {
     }
 }
 
-#[derive(Debug)]
-pub struct TransformVisitor;
+pub struct TransformVisitor<'a> {
+    pattern: Arc<dyn SourceMapMatcher + 'a>
+}
 
-impl VisitMut for TransformVisitor {
+impl VisitMut for TransformVisitor<'_> {
+
     fn visit_mut_script(&mut self, n: &mut Script) {
         let mut i: i32 = 0;
         for (cov_fn_name, cov_fn_hash) in COV_FN_NAME_TO_HASH.lock().unwrap().iter() {
@@ -519,16 +425,36 @@ impl VisitMut for TransformVisitor {
         n.visit_mut_children_with(self);
     }
 
+    fn visit_mut_stmts(&mut self, stmts: &mut Vec<Stmt>) {
+        stmts.visit_mut_children_with(self);
+        stmts.retain(|s| {
+            !matches!(s, Stmt::Empty(..))
+        });
+    }
+
+
+    fn visit_mut_module_items(&mut self, items: &mut Vec<ModuleItem>) {
+        items.visit_mut_children_with(self);
+        items.retain(|s| {
+            !matches!(s, ModuleItem::Stmt(Stmt::Empty(..)))
+        });
+    }
+
     fn visit_mut_update_op(&mut self, n: &mut UpdateOp) {
         n.visit_mut_children_with(self);
     }
 
     fn visit_mut_stmt(&mut self, n: &mut Stmt) {
         n.visit_mut_children_with(self);
+
         match n.as_mut_expr() {
             Some(expr_stmt) => match create_coverage_increment_replacement(&expr_stmt.expr) {
                 Some(expr) => {
-                    expr_stmt.expr = expr;
+                    if self.pattern.is_included(expr_stmt.span) {
+                        expr_stmt.expr = expr;
+                    } else {
+                        n.take();
+                    }
                 }
                 _ => {}
             },
@@ -540,7 +466,7 @@ impl VisitMut for TransformVisitor {
         match n {
             Expr::Seq(seq_expr) => {
                 let mut new_expressions = vec![];
-                for expr in seq_expr.exprs.iter() {
+                for expr in seq_expr.exprs.iter() {                    
                     match create_coverage_increment_replacement(expr) {
                         Some(replacement) => new_expressions.push(replacement),
                         None => new_expressions.push(expr.clone()),
@@ -554,21 +480,21 @@ impl VisitMut for TransformVisitor {
     }
 }
 
-pub fn teamscale_transformer<S: SourceMapper>(mapper: Arc<S>) -> impl Fold + VisitMut {
+pub fn teamscale_transformer<'a>(origin_pattern: Arc<dyn SourceMapMatcher>) -> impl Fold + VisitMut {
     chain!(
         as_folder(FileIdVisitor {}),
-        as_folder(TransformVisitor {})
+        as_folder(TransformVisitor { pattern: origin_pattern.clone() })
     )
 }
 
-pub fn transformer<S: SourceMapper>(mapper: Arc<S>) -> impl Fold + VisitMut {
+pub fn transformer(mapper: Arc<impl SourceMapper>, pattern: Arc<dyn SourceMapMatcher>) -> impl Fold + VisitMut {
     chain!(
         istanbul_transformer(mapper.clone()),
-        teamscale_transformer(mapper.clone())
+        teamscale_transformer(pattern.clone())
     )
 }
 
-pub fn istanbul_transformer<S: SourceMapper>(mapper: Arc<S>) -> impl Fold + VisitMut {
+pub fn istanbul_transformer(mapper: Arc<impl SourceMapper>) -> impl Fold + VisitMut {
     let visitor = swc_coverage_instrument::create_coverage_instrumentation_visitor(
         mapper,
         NoopComments {},
@@ -585,10 +511,6 @@ pub fn istanbul_transformer<S: SourceMapper>(mapper: Arc<S>) -> impl Fold + Visi
     );
 
     as_folder(visitor)
-}
-
-fn mapper_arc<S: SourceMapper>(mapper: S) -> Arc<S> {
-    Arc::new(mapper)
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
@@ -625,9 +547,10 @@ pub fn process_transform(
     } else {
         Default::default()
     };
-
-    let mapper = mapper_arc(metadata.source_map);
-    let mut pass = transformer(mapper);
+    
+    let mapper = Arc::new(metadata.source_map);
+    let pattern = Arc::new(SourceOriginPattern { mapper: mapper.clone(), include_origin_patterns: plugin_options.include_origin_patterns, exclude_origin_patterns: plugin_options.exclude_origin_patterns } );
+    let mut pass = transformer(mapper.clone(), pattern);
     program.visit_mut_with(&mut pass);
 
     program

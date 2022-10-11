@@ -2,6 +2,8 @@ We use [Semantic Versioning](https://semver.org/).
 
 # New Release
 
+- [feature] Upload reports to artifactory is now supported.
+
 # 0.0.1-beta.43
 
 - [feature] `--enable-control-port` flag to enable a Rest API to control the collector parameters.

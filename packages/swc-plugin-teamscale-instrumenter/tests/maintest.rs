@@ -6,7 +6,10 @@ use swc_core::{
     ecma::parser::{EsConfig, Syntax},
     ecma::transforms::testing::{test_fixture, FixtureTestConfig},
 };
-use swc_plugin_teamscale_instrumenter::{transformer::coverage_statements::profiler_transformer, utils::source_origin::SourceOriginPattern};
+use swc_plugin_teamscale_instrumenter::{
+    transformer::coverage_statements::profiler_transformer,
+    utils::source_origin::SourceOriginPattern,
+};
 
 #[testing::fixture("tests/fixtures/**/input.js")]
 fn fixture(input: PathBuf) {
@@ -17,11 +20,14 @@ fn fixture(input: PathBuf) {
             jsx: true,
             ..Default::default()
         }),
-        &|_| {                    
+        &|_| {
             let sm = SourceMap::new(FilePathMapping::empty());
             let mapper: Arc<SourceMap> = Arc::new(sm);
-            let pattern = Arc::new(SourceOriginPattern { 
-                mapper: mapper.clone(), include_origin_patterns: vec![], exclude_origin_patterns: vec![] } );
+            let pattern = Arc::new(SourceOriginPattern {
+                mapper: mapper.clone(),
+                include_origin_patterns: vec![],
+                exclude_origin_patterns: vec![],
+            });
             profiler_transformer(mapper, pattern)
         },
         &input,
@@ -30,6 +36,6 @@ fn fixture(input: PathBuf) {
             sourcemap: true,
             allow_error: false,
             ..Default::default()
-        }  
+        },
     )
 }

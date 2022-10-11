@@ -1,8 +1,11 @@
 use std::{sync::Arc, collections::HashMap};
 
-use swc::{Compiler, IdentCollector, config::SourceMapsConfig,};
+use swc::{Compiler, IdentCollector, config::SourceMapsConfig};
 use swc_common::SourceMap;
-use swc_core::{ecma::codegen::Node, ecma::visit::{VisitWith}};
+use swc_core::{
+    ecma::codegen::Node,
+    ecma::visit::{VisitWith},
+};
 use swc_ecma_quote::swc_ecma_ast::EsVersion;
 
 /// Prints the given AST node to the console.

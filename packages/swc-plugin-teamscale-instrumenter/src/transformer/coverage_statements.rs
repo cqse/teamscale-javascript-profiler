@@ -1,4 +1,5 @@
 use std::sync::Arc;
+
 use std::vec;
 
 use swc_common::chain;
@@ -17,7 +18,6 @@ use swc_ecma_quote::swc_ecma_ast::{
     BindingIdent, ExprOrSpread, Lit, MemberExpr, MemberProp, Module, ModuleItem, Number, Script,
     Str, UpdateExpr, VarDecl, VarDeclKind, VarDeclarator,
 };
-
 
 use crate::transformer::file_id_consts::FileIdVisitor;
 use crate::utils::source_origin::SourceMapMatcher;

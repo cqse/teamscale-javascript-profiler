@@ -14,7 +14,7 @@ lazy_static! {
 }
 
 #[derive(Debug)]
-pub struct FileIdVisitor { }
+pub struct FileIdVisitor {}
 
 fn extract_file_hash(n: &VarDeclarator) -> Option<String> {
     match &n.name {

@@ -5,9 +5,14 @@ import FormData from "form-data";
 import {CommonUpload, UploadError} from "./CommonUpload";
 import axios from "axios";
 
+/**
+ * The class providing functionality to upload reports to Teamscale.
+ */
 export class TeamscaleUpload {
 
-
+    /**
+     * Uploads a coverage file to Teamscale with the provided configuration.
+     */
     public static async uploadToTeamscale(
         config: ConfigParameters,
         logger: Logger,

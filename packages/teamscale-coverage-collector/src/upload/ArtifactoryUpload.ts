@@ -4,8 +4,14 @@ import {CommonUpload, UploadError} from "./CommonUpload";
 import FormData from "form-data";
 import axios, {AxiosRequestConfig} from "axios";
 
+/**
+ * The class providing functionality to upload reports to artifactory.
+ */
 export class ArtifactoryUpload {
 
+    /**
+     * Uploads a coverage file to artifactory with the provided configuration.
+     */
     public static async uploadToArtifactory(
         config: ConfigParameters,
         logger: Logger,

@@ -1,9 +1,8 @@
 use std::{sync::Mutex, collections::HashMap};
 
 use swc_core::{
-    ecma::ast::{CallExpr, Callee, Decl, Expr, Ident, Program, Stmt, UpdateOp},
-    ecma::visit::{as_folder, Fold, VisitMut, VisitMutWith, VisitWith},
-    plugin::{plugin_transform, proxies::TransformPluginProgramMetadata},
+    ecma::ast::{Decl, Expr, Stmt},
+    ecma::visit::{VisitMut},
 };
 
 use lazy_static::lazy_static;

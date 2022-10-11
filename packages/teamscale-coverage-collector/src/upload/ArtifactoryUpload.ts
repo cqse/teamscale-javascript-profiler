@@ -12,7 +12,7 @@ export class ArtifactoryUpload {
         coverageFile: string,
         lines: number
     ): Promise<void> {
-        if (!(config.teamscale_access_token || (config.teamscale_user && config.teamscale_server_url))) {
+        if (!(config.artifactory_access_token || (config.artifactory_user && config.artifactory_password))) {
             throw new UploadError('API key or user name and password must be configured!');
         }
 
@@ -45,6 +45,7 @@ export class ArtifactoryUpload {
             uploadConfig = {
                 headers: {
                     Accept: '*/*',
+                    'X-JFrog-Art-Api': config.artifactory_access_token,
                     'Content-Type': `multipart/form-data; boundary=${form.getBoundary()}`
                 }
             }

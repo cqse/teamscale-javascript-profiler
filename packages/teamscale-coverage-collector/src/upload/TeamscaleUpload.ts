@@ -3,7 +3,7 @@ import Logger from "bunyan";
 import QueryParameters from "../utils/QueryParameters";
 import FormData from "form-data";
 import {CommonUpload, UploadError} from "./CommonUpload";
-import axios from "axios";
+import axios, {AxiosRequestConfig} from "axios";
 
 /**
  * The class providing functionality to upload reports to Teamscale.
@@ -44,16 +44,7 @@ export class TeamscaleUpload {
                 config.teamscale_project
             }/external-analysis/session/auto-create/report?${parameters.toString()}`,
             form,
-            {
-                auth: {
-                    username: config.teamscale_user ?? 'no username provided',
-                    password: config.teamscale_access_token ?? 'no password provided'
-                },
-                headers: {
-                    Accept: '*/*',
-                    'Content-Type': `multipart/form-data; boundary=${form.getBoundary()}`
-                }
-            },
+            this.prepareTeamscaleConfig(config, form),
             axios.post,
             logger)
     }
@@ -67,6 +58,19 @@ export class TeamscaleUpload {
         parameters.addIfDefined('revision', config.teamscale_revision);
         parameters.addIfDefined('partition', config.teamscale_partition);
         return parameters;
+    }
+
+    private static prepareTeamscaleConfig(config: ConfigParameters, form: FormData): AxiosRequestConfig<FormData> {
+        return {
+            auth: {
+                username: config.teamscale_user ?? 'no username provided',
+                password: config.teamscale_access_token ?? 'no password provided'
+            },
+            headers: {
+                Accept: '*/*',
+                'Content-Type': `multipart/form-data; boundary=${form.getBoundary()}`
+            }
+        }
     }
 
 }

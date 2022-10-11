@@ -37,7 +37,7 @@ export class ArtifactoryUpload {
         form: FormData,
         logger: Logger
     ) {
-        if(!config.teamscale_commit){
+        if (!config.teamscale_commit) {
             throw new UploadError('The "--teamscale-commit" option must be set with a valid branch and timestamp.')
         }
         const branchAndTimestamp: string[] = config.teamscale_commit.split(':');
@@ -46,31 +46,33 @@ export class ArtifactoryUpload {
             url = `${url}/${config.artifactory_path_suffix}`;
         }
         url = `${url}/report.simple`;
-        let uploadConfig: AxiosRequestConfig<FormData>;
+
+        await CommonUpload.performUpload(url,
+            form,
+            this.prepareArtifactoryConfig(config, form),
+            axios.put,
+            logger)
+    }
+
+    private static prepareArtifactoryConfig(config: ConfigParameters, form: FormData): AxiosRequestConfig<FormData> {
         if (config.artifactory_access_token) {
-            uploadConfig = {
+            return {
                 headers: {
                     Accept: '*/*',
                     'X-JFrog-Art-Api': config.artifactory_access_token,
                     'Content-Type': `multipart/form-data; boundary=${form.getBoundary()}`
                 }
             }
-        } else {
-            uploadConfig = {
-                auth: {
-                    username: config.artifactory_user ?? 'no username provided',
-                    password: config.artifactory_password ?? 'no password provided'
-                },
-                headers: {
-                    Accept: '*/*',
-                    'Content-Type': `multipart/form-data; boundary=${form.getBoundary()}`
-                }
+        }
+        return {
+            auth: {
+                username: config.artifactory_user ?? 'no username provided',
+                password: config.artifactory_password ?? 'no password provided'
+            },
+            headers: {
+                Accept: '*/*',
+                'Content-Type': `multipart/form-data; boundary=${form.getBoundary()}`
             }
         }
-        await CommonUpload.performUpload(url,
-            form,
-            uploadConfig,
-            axios.put,
-            logger)
     }
 }

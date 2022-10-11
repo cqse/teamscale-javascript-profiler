@@ -12,13 +12,23 @@ export class UploadError extends Error {
     // Sole use is to be able to distinguish upload errors from other errors.
 }
 
-export class CommonUpload{
+/**
+ * The class providing common functionality to upload reports to Teamscale or external artifact storages like artifactory.
+ */
+export class CommonUpload {
+
+    /**
+     * Prepares the form data from a given configuration file for the upload.
+     */
     public static prepareFormData(coverageFile: string): FormData {
         const form = new FormData();
         form.append('report', fs.createReadStream(coverageFile), 'coverage.simple');
         return form;
     }
 
+    /**
+     * Uploads a coverage file with the provided configuration.
+     */
     public static async performUpload(
         url: string,
         form: FormData,
@@ -28,10 +38,10 @@ export class CommonUpload{
     ): Promise<void> {
         try {
             const response = await uploadFunction(
-                    url,
-                    form,
-                    config
-                )
+                url,
+                form,
+                config
+            )
             logger.info(`Upload finished with code ${response.status}.`);
         } catch (error: any) {
             if (error.response) {

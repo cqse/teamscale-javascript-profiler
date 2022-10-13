@@ -10,9 +10,9 @@ import path from 'path';
 import { StdConsoleLogger } from './utils/StdConsoleLogger';
 import { PrettyFileLogger } from './utils/PrettyFileLogger';
 import express from 'express';
-import {TeamscaleUpload} from "./upload/TeamscaleUpload";
-import {UploadError} from "./upload/CommonUpload";
-import {ArtifactoryUpload} from "./upload/ArtifactoryUpload";
+import { uploadToTeamscale } from './upload/TeamscaleUpload';
+import { UploadError } from './upload/CommonUpload';
+import { uploadToArtifactory } from './upload/ArtifactoryUpload';
 
 /**
  * The main class of the Teamscale JavaScript Collector.
@@ -151,18 +151,8 @@ export class App {
 			logger.info(`Dumped ${lines} lines of coverage to ${coverageFile}.`);
 
 			// 2. Upload to Teamscale or Artifactory if configured
-			if (config.teamscale_server_url) {
-				await TeamscaleUpload.uploadToTeamscale(config, logger, coverageFile, lines);
-				// Delete coverage if upload was successful and keeping coverage files on disk was not configure by the user
-				if (!config.keep_coverage_files) {
-					fs.unlinkSync(coverageFile);
-				}
-			} else if(config.artifactory_server_url){
-				await ArtifactoryUpload.uploadToArtifactory(config, logger, coverageFile, lines);
-				// Delete coverage if upload was successful and keeping coverage files on disk was not configure by the user
-				if (!config.keep_coverage_files) {
-					fs.unlinkSync(coverageFile);
-				}
+			if (config.teamscale_server_url || config.artifactory_server_url) {
+				await this.uploadCoverage(config, coverageFile, lines, logger);
 			}
 		} catch (e) {
 			if (e instanceof UploadError) {
@@ -174,6 +164,24 @@ export class App {
 			} else {
 				logger.error('Coverage dump failed.', e);
 			}
+		}
+	}
+
+	private static async uploadCoverage(
+		config: ConfigParameters,
+		coverageFile: string,
+		lines: number,
+		logger: Logger
+	): Promise<void> {
+		if (config.teamscale_server_url) {
+			await uploadToTeamscale(config, logger, coverageFile, lines);
+		}
+		if (config.artifactory_server_url) {
+			await uploadToArtifactory(config, logger, coverageFile, lines);
+		}
+		// Delete coverage if upload was successful and keeping coverage files on disk was not configure by the user
+		if (!config.keep_coverage_files) {
+			fs.unlinkSync(coverageFile);
 		}
 	}
 

@@ -1,7 +1,6 @@
 #![deny(unused)]
 
 use std::{path::PathBuf, sync::Arc};
-use swc_common::{SourceMap, FilePathMapping};
 use swc_core::{
     ecma::parser::{EsConfig, Syntax},
     ecma::transforms::testing::{test_fixture, FixtureTestConfig},
@@ -20,20 +19,18 @@ fn fixture(input: PathBuf) {
             jsx: true,
             ..Default::default()
         }),
-        &|_| {
-            let sm = SourceMap::new(FilePathMapping::empty());
-            let mapper: Arc<SourceMap> = Arc::new(sm);
+        &|tester| {        
             let pattern = Arc::new(SourceOriginPattern {
-                mapper: mapper.clone(),
+                mapper: tester.cm.clone(),
                 include_origin_patterns: vec![],
                 exclude_origin_patterns: vec![],
             });
-            profiler_transformer(mapper, pattern)
+            profiler_transformer(tester.cm.clone(), pattern)
         },
         &input,
         &test_dir.join("output.js"),
         FixtureTestConfig {
-            sourcemap: true,
+            sourcemap: false,
             allow_error: false,
             ..Default::default()
         },

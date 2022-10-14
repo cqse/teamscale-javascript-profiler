@@ -12,6 +12,7 @@ path = "src/lib.rs"
 lto = true
 
 [dependencies]
+glob = "0.3"
 serde = "1"
 serde_json = "1"
 lazy_static = "1"

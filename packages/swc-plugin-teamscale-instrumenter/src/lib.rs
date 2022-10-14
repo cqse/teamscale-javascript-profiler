@@ -48,7 +48,6 @@ pub fn process_transform(
 
     let mapper = Arc::new(metadata.source_map);
     let pattern = Arc::new(SourceOriginPattern {
-        mapper: mapper.clone(),
         include_origin_patterns: plugin_options.include_origin_patterns,
         exclude_origin_patterns: plugin_options.exclude_origin_patterns,
     });

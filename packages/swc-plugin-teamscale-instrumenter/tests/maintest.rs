@@ -20,11 +20,7 @@ fn fixture(input: PathBuf) {
             ..Default::default()
         }),
         &|tester| {        
-            let pattern = Arc::new(SourceOriginPattern {
-                mapper: tester.cm.clone(),
-                include_origin_patterns: vec![],
-                exclude_origin_patterns: vec![],
-            });
+            let pattern = Arc::new(SourceOriginPattern::new(vec![],vec!["input.js".to_string()]));
             profiler_transformer(tester.cm.clone(), pattern)
         },
         &input,

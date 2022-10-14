@@ -17,7 +17,7 @@ use swc_core::{
 use swc_coverage_instrument::InstrumentOptions;
 use swc_ecma_quote::swc_ecma_ast::{
     BindingIdent, ExprOrSpread, Lit, MemberExpr, MemberProp, Module, ModuleItem, Number, Script,
-    Str, UpdateExpr, VarDecl, VarDeclKind, VarDeclarator, BlockStmt,
+    Str, UpdateExpr, VarDecl, VarDeclKind, VarDeclarator, BlockStmt, ExprStmt,
 };
 
 use crate::transformer::file_id_consts::FileIdVisitor;
@@ -71,9 +71,7 @@ fn extract_called_cov_fn_name(call_expr: &CallExpr) -> Option<String> {
             }
             _ => {}
         },
-        _ => {
-            println!("No callee");
-        }
+        _ => {}
     }
 
     None
@@ -367,10 +365,21 @@ fn create_coverage_increment_replacement(expr: &Expr) -> Option<Box<Expr>> {
 
 pub struct TransformVisitor<'a> {
     active_span_stack: Vec<Span>,
+    mapper: Arc<dyn SourceMapper + 'a>,
     pattern: Arc<dyn SourceMapMatcher + 'a>,
 }
 
 impl TransformVisitor<'_> {
+
+    fn is_included<'a> (&self, span: Span) -> bool {
+        let lines = self.mapper.span_to_snippet(span);
+        if lines.is_ok() {
+            let filename = self.mapper.span_to_filename(span);
+            return self.pattern.is_any_included(vec![filename.to_string()]);
+        }
+
+        false
+    }
         
     fn push_active_stmt_span(&mut self, n: &mut Stmt) -> Option<Span> {
         match n.as_expr() {
@@ -388,7 +397,6 @@ impl TransformVisitor<'_> {
             None
         } else {
             self.active_span_stack.push(span.clone());
-            println!("Pushed Span {} {} ", span.lo.0, span.hi.0);
             Some(span.clone())
         }
     }
@@ -420,12 +428,12 @@ impl TransformVisitor<'_> {
         if span.is_dummy() {
             let active = self.active_span();
             if active.is_some() {
-                return self.pattern.is_included(&active.expect("Must be there").clone());
+                return self.is_included(active.expect("Must be there").clone());
             } else {
                 return true;
             }
         } else {
-            return self.pattern.is_included(span);
+            return self.is_included(span.clone());
         }
     }
 
@@ -433,7 +441,9 @@ impl TransformVisitor<'_> {
 
 
 impl VisitMut for TransformVisitor<'_> {
+
     fn visit_mut_script(&mut self, n: &mut Script) {
+        let active_span = self.push_active_span(&n.span);
         let mut i: i32 = 0;
         for (cov_fn_name, cov_fn_hash) in COV_FN_NAME_TO_HASH.lock().unwrap().iter() {
             let mut map = COV_FN_NAME_TO_NUMBER.lock().unwrap();
@@ -446,15 +456,17 @@ impl VisitMut for TransformVisitor<'_> {
             i = i + 1;
         }
         n.visit_mut_children_with(self);
+        self.pop_active_span(active_span);
     }
 
     fn visit_mut_block_stmt(&mut self, n: &mut BlockStmt) {
         let active_span = self.push_active_span(&n.span);
         n.visit_mut_children_with(self);
         self.pop_active_span(active_span);
-    }
+    }    
 
     fn visit_mut_module(&mut self, n: &mut Module) {
+        let active_span = self.push_active_span(&n.span);
         let mut i: i32 = 0;
         for (cov_fn_name, cov_fn_hash) in COV_FN_NAME_TO_HASH.lock().unwrap().iter() {
             let mut map = COV_FN_NAME_TO_NUMBER.lock().unwrap();
@@ -471,6 +483,7 @@ impl VisitMut for TransformVisitor<'_> {
         }
 
         n.visit_mut_children_with(self);
+        self.pop_active_span(active_span);
     }
 
     fn visit_mut_stmts(&mut self, stmts: &mut Vec<Stmt>) {
@@ -530,13 +543,15 @@ impl VisitMut for TransformVisitor<'_> {
     }
 }
 
-pub fn teamscale_transformer<'a>(
+pub fn teamscale_transformer(
+    mapper: Arc<impl SourceMapper + 'static>,
     origin_pattern: Arc<dyn SourceMapMatcher>,
 ) -> impl Fold + VisitMut {
     chain!(
         as_folder(FileIdVisitor {}),
         as_folder(TransformVisitor {
             active_span_stack: Vec::new(),
+            mapper,
             pattern: origin_pattern.clone()
         })
     )
@@ -562,11 +577,11 @@ pub fn istanbul_transformer(mapper: Arc<impl SourceMapper>) -> impl Fold + Visit
 }
 
 pub fn profiler_transformer(
-    mapper: Arc<impl SourceMapper>,
+    mapper: Arc<impl SourceMapper + 'static>,
     pattern: Arc<dyn SourceMapMatcher>,
 ) -> impl Fold + VisitMut {
     chain!(
         istanbul_transformer(mapper.clone()),
-        teamscale_transformer(pattern.clone())
+        teamscale_transformer(mapper.clone(), pattern.clone())
     )
 }

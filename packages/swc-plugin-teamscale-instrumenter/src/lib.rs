@@ -47,11 +47,10 @@ pub fn process_transform(
     };
 
     let mapper = Arc::new(metadata.source_map);
-    let pattern = Arc::new(SourceOriginPattern {
-        include_origin_patterns: plugin_options.include_origin_patterns,
-        exclude_origin_patterns: plugin_options.exclude_origin_patterns,
-    });
-    let mut pass = profiler_transformer(mapper.clone(), pattern);
+    let pattern = Arc::new(SourceOriginPattern::new(
+        plugin_options.include_origin_patterns,
+        plugin_options.exclude_origin_patterns));
+    let mut pass = profiler_transformer(mapper, pattern);
     program.visit_mut_with(&mut pass);
 
     program

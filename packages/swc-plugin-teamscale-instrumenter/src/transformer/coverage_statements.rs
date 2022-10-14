@@ -1,4 +1,3 @@
-use std::borrow::BorrowMut;
 use std::sync::Arc;
 
 use std::vec;
@@ -17,7 +16,7 @@ use swc_core::{
 use swc_coverage_instrument::InstrumentOptions;
 use swc_ecma_quote::swc_ecma_ast::{
     BindingIdent, ExprOrSpread, Lit, MemberExpr, MemberProp, Module, ModuleItem, Number, Script,
-    Str, UpdateExpr, VarDecl, VarDeclKind, VarDeclarator, BlockStmt, ExprStmt,
+    Str, UpdateExpr, VarDecl, VarDeclKind, VarDeclarator, BlockStmt,
 };
 
 use crate::transformer::file_id_consts::FileIdVisitor;
@@ -52,11 +51,11 @@ fn print_opt_span(prefix: &str, opt_span: Option<Span>) {
     match opt_span {
         Some(span) => {
             println!("{}: Span Ho {} Hi {}", prefix, span.lo.0, span.hi.0);
-        },
+        }
         None => {
             println!("{}: Span Unavailable", prefix);
         }
-    }    
+    }
 }
 
 fn extract_called_cov_fn_name(call_expr: &CallExpr) -> Option<String> {
@@ -370,8 +369,7 @@ pub struct TransformVisitor<'a> {
 }
 
 impl TransformVisitor<'_> {
-
-    fn is_included<'a> (&self, span: Span) -> bool {
+    fn is_included<'a>(&self, span: Span) -> bool {
         let lines = self.mapper.span_to_snippet(span);
         if lines.is_ok() {
             let filename = self.mapper.span_to_filename(span);
@@ -380,12 +378,12 @@ impl TransformVisitor<'_> {
 
         false
     }
-        
+
     fn push_active_stmt_span(&mut self, n: &mut Stmt) -> Option<Span> {
         match n.as_expr() {
             Some(expr_stmt) => {
                 return self.push_active_span(&expr_stmt.span);
-            },
+            }
             None => {}
         }
 
@@ -406,7 +404,7 @@ impl TransformVisitor<'_> {
             Some(_) => {
                 let element = self.active_span_stack.pop();
                 print_opt_span("Popped", element);
-            },
+            }
             None => {}
         }
     }
@@ -416,11 +414,9 @@ impl TransformVisitor<'_> {
             return None;
         }
 
-        match self.active_span_stack.get(self.active_span_stack.len()-1) {
-            Some(span) => {
-                Some(span.clone())
-            },
-            None => None
+        match self.active_span_stack.get(self.active_span_stack.len() - 1) {
+            Some(span) => Some(span.clone()),
+            None => None,
         }
     }
 
@@ -436,12 +432,9 @@ impl TransformVisitor<'_> {
             return self.is_included(span.clone());
         }
     }
-
 }
 
-
 impl VisitMut for TransformVisitor<'_> {
-
     fn visit_mut_script(&mut self, n: &mut Script) {
         let active_span = self.push_active_span(&n.span);
         let mut i: i32 = 0;
@@ -463,7 +456,7 @@ impl VisitMut for TransformVisitor<'_> {
         let active_span = self.push_active_span(&n.span);
         n.visit_mut_children_with(self);
         self.pop_active_span(active_span);
-    }    
+    }
 
     fn visit_mut_module(&mut self, n: &mut Module) {
         let active_span = self.push_active_span(&n.span);
@@ -504,18 +497,16 @@ impl VisitMut for TransformVisitor<'_> {
         let active_span = self.push_active_stmt_span(n);
         n.visit_mut_children_with(self);
         match n.as_mut_expr() {
-            Some(expr_stmt) => {
-                match create_coverage_increment_replacement(&expr_stmt.expr) {
-                    Some(expr) => {
-                        if self.is_span_included(&expr_stmt.span) {
-                            expr_stmt.expr = expr;
-                        } else {
-                            n.take();
-                        }
+            Some(expr_stmt) => match create_coverage_increment_replacement(&expr_stmt.expr) {
+                Some(expr) => {
+                    if self.is_span_included(&expr_stmt.span) {
+                        expr_stmt.expr = expr;
+                    } else {
+                        n.take();
                     }
-                    _ => {}
-                }                
-            }
+                }
+                _ => {}
+            },
             None => {}
         }
         self.pop_active_span(active_span);
@@ -527,11 +518,11 @@ impl VisitMut for TransformVisitor<'_> {
                 let mut new_expressions = vec![];
                 for expr in seq_expr.exprs.iter() {
                     match create_coverage_increment_replacement(expr) {
-                        Some(replacement) => {                            
+                        Some(replacement) => {
                             if self.is_span_included(&seq_expr.span) {
                                 new_expressions.push(replacement);
                             }
-                        },
+                        }
                         None => new_expressions.push(expr.clone()),
                     }
                 }

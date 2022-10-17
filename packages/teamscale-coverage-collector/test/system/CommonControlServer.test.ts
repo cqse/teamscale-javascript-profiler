@@ -1,12 +1,15 @@
 import { App } from '../../src/App';
-import { getLocal } from 'mockttp';
 import { CollectorClient } from '../CollectorClient';
 
-const TEAMSCALE_MOCK_PORT = 11234;
+/**
+ * The port for the control server.
+ */
+export const CONTROL_URL = 'http://localhost:7777';
 
-const CONTROL_URL = 'http://localhost:7777';
-
-const SOURCE_MAP = {
+/**
+ * The mock source map for the tests.
+ */
+export const SOURCE_MAP = {
 	version: 3,
 	file: 'index.02ace207.js',
 	sources: [
@@ -91,109 +94,17 @@ function timeout(ms: number): Promise<void>  {
 	return new Promise(resolve => setTimeout(resolve, ms));
 }
 
-describe('Test the control server that is integrated in the collector', () => {
-	const teamscaleServerMock = getLocal({ debug: true });
-	let collectorState: { stop: () => Promise<void> };
+/**
+ * Calls the control api to dump the coverage and upload it.
+ */
+export async function postAndDumpCoverage() {
+	const dummyFileId = 'dummyFileId';
+	const socket = await CollectorClient.openSocket('ws://localhost:1234');
+	await CollectorClient.postSourceMap(socket, dummyFileId, SOURCE_MAP);
+	await timeout(500);
+	CollectorClient.postCoverage(socket, dummyFileId, 1, 700, 1, 1255);
+	await timeout(1000);
+	await CollectorClient.requestCoverageDump(CONTROL_URL);
+	await timeout(500);
+}
 
-	beforeEach(() => {
-		// Start the Teamscale mock serer
-		teamscaleServerMock.start(TEAMSCALE_MOCK_PORT);
-
-		// Start the collector
-		collectorState = App.runWithConfig({
-			dump_to_folder: 'coverage',
-			keep_coverage_files: true,
-			enable_control_port: 7777,
-			dump_after_mins: 1,
-			teamscale_access_token: 'DummyAccessToken',
-			teamscale_project: 'p',
-			teamscale_partition: 'part',
-			teamscale_user: 'Bert',
-			teamscale_message: 'originalmessage',
-			json_log: false,
-			log_level: 'INFO',
-			log_to_file: 'logs/test.log',
-			port: 1234,
-			teamscale_server_url: `http://localhost:${TEAMSCALE_MOCK_PORT}`
-		});
-	});
-
-	afterEach(async () => {
-		// Stop the mock server
-		teamscaleServerMock.stop();
-
-		// Stop the collector
-		await collectorState.stop();
-	});
-
-  async function postAndDumpCoverage() {
-		const dummyFileId = 'dummyFileId';
-		const socket = await CollectorClient.openSocket('ws://localhost:1234');
-		await CollectorClient.postSourceMap(socket, dummyFileId, SOURCE_MAP);
-		await timeout(500);
-		CollectorClient.postCoverage(socket, dummyFileId, 1, 700, 1, 1255);
-		await timeout(1000);
-		await CollectorClient.requestCoverageDump(CONTROL_URL);
-		await timeout(500);
-  }
-
-	it('Change message and dump coverage', async () => {
-		let mockedEndpoint = await teamscaleServerMock
-			.forPost(`/api/projects/p/external-analysis/session/auto-create/report`)
-			.withQuery({ format: 'SIMPLE' })
-			.thenReply(200, 'Mocked response');
-		await CollectorClient.requestMessageChange(CONTROL_URL, 'mymessage');
-    await postAndDumpCoverage();
-		const requests = await mockedEndpoint.getSeenRequests();
-		expect(requests).toHaveLength(1);
-		expect(requests[0].url).toContain("message=mymessage");
-	}, 10000);
-
-	it('Change commit and dump coverage', async () => {
-		let mockedEndpoint = await teamscaleServerMock
-			.forPost(`/api/projects/p/external-analysis/session/auto-create/report`)
-			.withQuery({ format: 'SIMPLE' })
-			.thenReply(200, 'Mocked response');
-		await CollectorClient.requestCommitChange(CONTROL_URL, 'master:123456789000');
-    await postAndDumpCoverage();
-		const requests = await mockedEndpoint.getSeenRequests();
-		expect(requests).toHaveLength(1);
-		expect(requests[0].url).toContain("t=master%3A123456789000");
-	}, 10000);
-
-	it('Change revision and dump coverage', async () => {
-		let mockedEndpoint = await teamscaleServerMock
-			.forPost(`/api/projects/p/external-analysis/session/auto-create/report`)
-			.withQuery({ format: 'SIMPLE' })
-			.thenReply(200, 'Mocked response');
-		await CollectorClient.requestRevisionChange(CONTROL_URL, 'rev123');
-    await postAndDumpCoverage();
-		const requests = await mockedEndpoint.getSeenRequests();
-		expect(requests).toHaveLength(1);
-		expect(requests[0].url).toContain("revision=rev123");
-	}, 10000);
-
-	it('Change partiton and dump coverage', async () => {
-		let mockedEndpoint = await teamscaleServerMock
-			.forPost(`/api/projects/p/external-analysis/session/auto-create/report`)
-			.withQuery({ format: 'SIMPLE' })
-			.thenReply(200, 'Mocked response');
-		await CollectorClient.requestPartitionChange(CONTROL_URL, 'dummyPartition');
-    await postAndDumpCoverage();
-		const requests = await mockedEndpoint.getSeenRequests();
-		expect(requests).toHaveLength(1);
-		expect(requests[0].url).toContain("partition=dummyPartition");
-	}, 10000);
-
-	it('Change project ID and dump coverage', async () => {
-		const projectId = 'dummyProjectId';
-		let mockedEndpoint = await teamscaleServerMock
-			.forPost(`/api/projects/${projectId}/external-analysis/session/auto-create/report`)
-			.withQuery({ format: 'SIMPLE' })
-			.thenReply(200, 'Mocked response');
-		await CollectorClient.requestProjectSwitch(CONTROL_URL, projectId);
-    await postAndDumpCoverage();
-		const requests = await mockedEndpoint.getSeenRequests();
-		expect(requests).toHaveLength(1);
-	}, 10000);
-});

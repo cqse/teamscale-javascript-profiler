@@ -23,7 +23,7 @@ We instrument the final bundle only and use source maps for mapping back to
 the origins of the code.
 
 As a result, we have to implement support for pure JavaScript code only.
-We can keep the implementation of the instrumenter lean and have not care
+We can keep the implementation of the instrumenter lean and have not to care
 about language extensions or other programming languages the code could
 have been transpiled from.
 

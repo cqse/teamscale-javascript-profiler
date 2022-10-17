@@ -1,7 +1,7 @@
 import { App } from '../../src/App';
 import { getLocal } from 'mockttp';
 import { CollectorClient } from '../CollectorClient';
-import {CONTROL_URL, postAndDumpCoverage} from "./CommonControlServer.test";
+import {CONTROL_URL, postAndDumpCoverage} from "./CommonControlServerTestUtils";
 
 const ARTIFACTORY_MOCK_PORT = 11235;
 

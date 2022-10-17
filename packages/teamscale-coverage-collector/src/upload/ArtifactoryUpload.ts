@@ -33,8 +33,11 @@ async function performArtifactoryUpload(config: ConfigParameters, form: FormData
 	}
 	const branchAndTimestamp: string[] = config.teamscale_commit.split(':');
 	let url = `${config.artifactory_server_url?.replace(/\/$/, '')}/uploads/${branchAndTimestamp[0]}/${
-		branchAndTimestamp[1]
-	}/${config.teamscale_partition}/simple`;
+		branchAndTimestamp[1]}`;
+	if(config.teamscale_revision){
+		url = url + `-${config.teamscale_revision}`;
+	}
+	url = url +	`/${config.teamscale_partition}/simple`;
 	if (config.artifactory_path_suffix !== undefined) {
 		url = `${url}/${config.artifactory_path_suffix}`;
 	}

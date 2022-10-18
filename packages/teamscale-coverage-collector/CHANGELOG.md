@@ -1,10 +1,17 @@
 We use [Semantic Versioning](https://semver.org/).
 
 # New Release
+
+# 0.0.1-beta.43
+
+- [feature] `--enable-control-port` flag to enable a Rest API to control the collector parameters.
+
+# 0.0.1-beta.42
+
 - [fix] Reset coverage after dump
 - [feature] Coverage files are now timestamped.
 - [deprecation] Deprecated `dump_to_file` in favor of `dump_to_folder`. If `dump_to_file` is still used, a folder will be created at the provided path and timestamped coverage files will be saved within it.
-- [feature] `--keep--overage-files` flag to keep coverage file on disk after successful upload to Teamsacle
+- [feature] `--keep--overage-files` flag to keep coverage file on disk after successful upload to Teamsacle.
 
 # 0.0.1-beta.36
 

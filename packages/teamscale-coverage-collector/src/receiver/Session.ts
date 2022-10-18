@@ -4,9 +4,22 @@ import { Position, BasicSourceMapConsumer, NullableMappedPosition } from 'source
 import { IDataStorage } from '../storage/DataStorage';
 import { Contract } from '@cqse/commons';
 import Logger from 'bunyan';
+import {file} from "tmp";
 
 /** The type of sourcemap consumer we use. */
 type SourceMapConsumer = BasicSourceMapConsumer;
+
+/**
+ * Coverage information that has not been mapped back to the
+ * original code using a source map.
+ */
+export type UnmappedCoverage = {
+	fileId: string,
+	startLine: number,
+	startColumn: number,
+	endLine: number,
+	endColumn: number
+}
 
 /**
  * The session maintains the relevant information for a client.
@@ -32,6 +45,11 @@ export class Session {
 	private readonly sourceMaps: Map<string, SourceMapConsumer>;
 
 	/**
+	 * Unmapped coverage information.
+	 */
+	private readonly unmappedCoverage: Map<string, Array<UnmappedCoverage>>;
+
+	/**
 	 * The logger to use.
 	 */
 	private readonly logger: Logger;
@@ -53,6 +71,7 @@ export class Session {
 		this.storage = Contract.requireDefined(storage);
 		this.logger = Contract.requireDefined(logger);
 		this.sourceMaps = new Map<string, SourceMapConsumer>();
+		this.unmappedCoverage = new Map<string, Array<UnmappedCoverage>>();
 		this.projectId = ''; // We currently only support coverage for one project.
 	}
 
@@ -72,7 +91,20 @@ export class Session {
 		startColumn: number,
 		endLine: number,
 		endColumn: number
-	): void {
+	): boolean {
+		// Delay the mapping if the sourcemap has not yet arrived
+		if (!this.sourceMaps.has(fileId)) {
+			let unmappedForFile = this.unmappedCoverage.get(fileId);
+			if (!unmappedForFile) {
+				unmappedForFile = [];
+				this.unmappedCoverage.set(fileId, unmappedForFile);
+			}
+			unmappedForFile.push({endColumn, endLine, fileId, startColumn, startLine});
+			return false;
+		}
+
+		let mapped = false;
+
 		// Iterate over the lines to scan
 		let line = startLine;
 		while (line <= endLine) {
@@ -102,10 +134,9 @@ export class Session {
 				if (originalPosition.line && originalPosition.source) {
 					if (lastCoveredLine !== originalPosition.line) {
 						this.storage.putCoverage(this.projectId, originalPosition.source, [originalPosition.line]);
+						mapped = true;
 						lastCoveredLine = originalPosition.line;
 					}
-				} else {
-					this.storage.signalUnmappedCoverage(this.projectId);
 				}
 
 				// Step to the next column to map back to the original.
@@ -117,6 +148,8 @@ export class Session {
 			// And the next line
 			line++;
 		}
+
+		return mapped;
 	}
 
 	/**
@@ -142,15 +175,24 @@ export class Session {
 	 * @param fileId - The identifier of the file bundle.
 	 * @param sourceMapText - The actual source map.
 	 */
-	public putSourcemap(fileId: string, sourceMapText: string): void {
+	public async putSourcemap(fileId: string, sourceMapText: string): Promise<void> {
 		const rawSourceMap = JSON.parse(sourceMapText);
-		new sourceMap.SourceMapConsumer(rawSourceMap)
-			.then(consumer => {
-				this.sourceMaps.set(fileId, consumer);
-			})
-			.catch(e => {
-				this.logger.error(`Consuming source map failed! ${e}`);
-			});
+		try {
+			const sourceMapConsumer = await new sourceMap.SourceMapConsumer(rawSourceMap);
+			this.sourceMaps.set(fileId, sourceMapConsumer);
+			this.processUnmappedCoverageOf(fileId);
+		} catch (e) {
+			this.logger.error(`Consuming source map failed! ${e}`);
+		}
+	}
+
+	private processUnmappedCoverageOf(fileId: string): void {
+		const unmapped = this.unmappedCoverage.get(fileId) ?? [];
+		unmapped.forEach((entry) => {
+			if (!this.putCoverage(entry.fileId, entry.startLine, entry.startColumn, entry.endLine, entry.endColumn)) {
+				this.storage.signalUnmappedCoverage(this.projectId);
+			}
+		});
 	}
 
 	/**

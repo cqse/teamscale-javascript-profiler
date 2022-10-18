@@ -30,7 +30,7 @@
     "local-web-server": "^5.1.1",
     "mkdirp": "^1.0.4",
     "mock-http-server": "^1.4.5",
-    "prettier": "^2.3.2",
+    "prettier": "^2.7.1",
     "typescript": "^4.4.3"
   },
   "packageManager": "yarn@3.2.3"

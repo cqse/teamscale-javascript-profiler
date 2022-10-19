@@ -10,8 +10,8 @@
         "swc-plugin"
     ],
     "scripts": {
-        "prepack": "cargo build-wasi --release && cp target/wasm32-wasi/release/swc_plugin_teamscale_instrumenter.wasm .",
-        "prepublishOnly": "cargo test && cargo build --release && cargo build-wasi --release"
+        "prepack": "cargo build --target wasm32-wasi --release && cp ./target/wasm32-wasi/release/swc_plugin_teamscale_instrumenter.wasm .",
+        "prepublishOnly": "cargo test && cargo build && cargo build --target wasm32-wasi"
     },
     "files": []
 }

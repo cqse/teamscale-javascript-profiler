@@ -2,11 +2,10 @@ use std::{sync::Mutex, collections::HashMap};
 
 use swc_core::{
     ecma::ast::{Decl, Expr, Stmt},
-    ecma::visit::{VisitMut},
+    ecma::{visit::{VisitMut}, ast::{Pat, Lit, VarDeclarator, FnDecl}},
 };
 
 use lazy_static::lazy_static;
-use swc_ecma_quote::swc_ecma_ast::{VarDeclarator, Pat, Lit, FnDecl};
 
 lazy_static! {
     pub static ref COV_FN_NAME_TO_HASH: Mutex<HashMap<String, String>> = Mutex::new(HashMap::new());

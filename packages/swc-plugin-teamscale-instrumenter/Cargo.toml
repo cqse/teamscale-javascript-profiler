@@ -5,39 +5,38 @@ version = "0.0.1-beta.42"
 edition = "2021"
 
 [lib]
-crate-type = ["cdylib", "rlib"]
+crate-type = ["cdylib"]
 path = "src/lib.rs"
 
 [profile.release]
-lto = true
+# lto = true
 
 [dependencies]
+rand = { version = "0.8.5" }
 glob = "0.3"
-serde = "1"
-serde_json = "1"
+serde              = { version = "1.0.160" }
+serde_json         = { version = "1.0.96" }
+serde-wasm-bindgen = { version = "0.5.0" }
+wasm-bindgen       = { version = "0.2.84" }
 lazy_static = "1"
-swc = "0.232.7"
-swc_common = "0.29.5"
-swc-coverage-instrument = { version = "0.0.13" }
-swc_ecmascript = { version = "0.205.7", features = ["utils", "visit"] }
-swc_ecma_quote = "0.38.9"
+istanbul-oxide = { version = "0.0.18", path = "../swc-coverage-instrument/packages/istanbul-oxide" }
+swc-coverage-instrument = { version = "0.0.18", path = "../swc-coverage-instrument/packages/swc-coverage-instrument" }
 tracing-subscriber = { version = "0.3.16", features = ["fmt"] }
-swc_core = {version = "0.34.0", features = [
-  "plugin_transform",
+swc = { version = "0.261.7", optional = true }
+swc_common = { version = "0.31.10", features = ["concurrent"] }
+swc_core = {version = "0.76.9", features = [
+  "ecma_plugin_transform",
   "common",
   "ecma_ast",
   "ecma_utils",
   "ecma_visit",
   "ecma_parser",
   "ecma_transforms",
-  "ecma_codegen",
+  "ecma_codegen"  
 ]}
-sourcemap = "6.1"
+tracing = "0.1.37"
+sourcemap = "6.2.1"
 
 [dev-dependencies]
-testing = "0.31.5"
-swc_core = { version = "0.34.0", features = [
-  "ecma_parser",
-  "ecma_transforms",
-  "testing_transform"
-] }
+testing = "0.33.10"
+swc_core = { version = "0.76.9", features =[ "testing_transform" ] }

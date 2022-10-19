@@ -2,11 +2,11 @@ use std::sync::Arc;
 
 use std::vec;
 
-use swc_common::{chain, Span};
-use swc_common::comments::NoopComments;
-use swc_common::util::take::Take;
-use swc_common::{SourceMapper, DUMMY_SP};
-use swc_core::ecma::ast::Pat;
+use istanbul_oxide::SourceMap;
+use swc_core::common::util::take::Take;
+use swc_core::common::{chain, Span, DUMMY_SP, SourceMapper};
+use swc_core::common::comments::NoopComments;
+use swc_core::ecma::ast::{Pat, MemberProp, Lit, VarDeclKind, ModuleItem, MemberExpr, UpdateExpr, ExprOrSpread, Number, VarDecl, VarDeclarator, BindingIdent, Str, Script, BlockStmt, Module};
 
 use swc_core::{
     ecma::ast::{CallExpr, Callee, Decl, Expr, Ident, Stmt, UpdateOp},
@@ -14,10 +14,6 @@ use swc_core::{
 };
 
 use swc_coverage_instrument::InstrumentOptions;
-use swc_ecma_quote::swc_ecma_ast::{
-    BindingIdent, ExprOrSpread, Lit, MemberExpr, MemberProp, Module, ModuleItem, Number, Script,
-    Str, UpdateExpr, VarDecl, VarDeclKind, VarDeclarator, BlockStmt,
-};
 
 use crate::transformer::file_id_consts::FileIdVisitor;
 use crate::utils::source_origin::SourceMapMatcher;
@@ -59,18 +55,14 @@ fn print_opt_span(prefix: &str, opt_span: Option<Span>) {
 }
 
 fn extract_called_cov_fn_name(call_expr: &CallExpr) -> Option<String> {
-    match &call_expr.callee {
-        Callee::Expr(expr) => match expr.as_ref() {
-            Expr::Ident(ident) => {
-                let cov_fn_name = ident.sym.to_string();
-                let prefix: String = cov_fn_name[0..4].into();
-                if prefix.eq_ignore_ascii_case("cov_") {
-                    return Some(cov_fn_name);
-                }
+    if let Callee::Expr(expr) = &call_expr.callee {
+        if let Expr::Ident(ident) = expr.as_ref() {
+            let cov_fn_name = ident.sym.to_string();
+            let prefix: String = cov_fn_name[0..4].into();
+            if prefix.eq_ignore_ascii_case("cov_") {
+                return Some(cov_fn_name);
             }
-            _ => {}
-        },
-        _ => {}
+        }
     }
 
     None
@@ -274,7 +266,7 @@ fn get_cov_obj_varname(cov_fn_name: &String) -> String {
     let lookup_map = COV_FN_NAME_TO_NUMBER.lock().unwrap();
     let cov_obj_id = lookup_map
         .get(cov_fn_name)
-        .expect("Coverage function must be mapped to a fileid variable.");
+        .expect(format!("Coverage function '{}' must be mapped to a fileid variable.", &cov_fn_name.as_str()).as_str());
 
     format!("_$fid{}", cov_obj_id)
 }
@@ -369,14 +361,20 @@ pub struct TransformVisitor<'a> {
 }
 
 impl TransformVisitor<'_> {
-    fn is_included<'a>(&self, span: Span) -> bool {
+    fn is_included<'a>(&self, span: Span) -> bool {      
+        if span.is_dummy() {
+            return true;
+        }
+        
+        println!("SPAN LO {} HI {}", span.lo.0, span.hi.0);    
+        
         let lines = self.mapper.span_to_snippet(span);
         if lines.is_ok() {
             let filename = self.mapper.span_to_filename(span);
             return self.pattern.is_any_included(vec![filename.to_string()]);
         }
 
-        false
+        true
     }
 
     fn push_active_stmt_span(&mut self, n: &mut Stmt) -> Option<Span> {
@@ -402,8 +400,7 @@ impl TransformVisitor<'_> {
     fn pop_active_span(&mut self, span: Option<Span>) {
         match span {
             Some(_) => {
-                let element = self.active_span_stack.pop();
-                print_opt_span("Popped", element);
+                self.active_span_stack.pop();        
             }
             None => {}
         }
@@ -548,7 +545,7 @@ pub fn teamscale_transformer(
     )
 }
 
-pub fn istanbul_transformer(mapper: Arc<impl SourceMapper>) -> impl Fold + VisitMut {
+pub fn istanbul_transformer(mapper: Arc<impl SourceMapper>, input_source_map: Option<SourceMap>) -> impl Fold + VisitMut {
     let visitor = swc_coverage_instrument::create_coverage_instrumentation_visitor(
         mapper,
         NoopComments {},
@@ -557,11 +554,11 @@ pub fn istanbul_transformer(mapper: Arc<impl SourceMapper>) -> impl Fold + Visit
             compact: false,
             report_logic: false,
             ignore_class_methods: Default::default(),
-            input_source_map: Option::None,
+            input_source_map: input_source_map,
             instrument_log: Default::default(),
             debug_initial_coverage_comment: false,
         },
-        String::from("Hello.js"),
+        String::from("Teamscale.js"),
     );
 
     as_folder(visitor)
@@ -570,9 +567,9 @@ pub fn istanbul_transformer(mapper: Arc<impl SourceMapper>) -> impl Fold + Visit
 pub fn profiler_transformer(
     mapper: Arc<impl SourceMapper + 'static>,
     pattern: Arc<dyn SourceMapMatcher>,
+    input_source_map: Option<SourceMap>
 ) -> impl Fold + VisitMut {
     chain!(
-        istanbul_transformer(mapper.clone()),
-        teamscale_transformer(mapper.clone(), pattern.clone())
-    )
+        istanbul_transformer(mapper.clone(), input_source_map),
+        teamscale_transformer(mapper.clone(), pattern.clone()))
 }

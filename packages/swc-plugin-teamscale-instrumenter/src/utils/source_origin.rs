@@ -54,11 +54,11 @@ pub trait SourceMapMatcher {
 }
 
 fn matching(to_filter: &Vec<String>, any_of_patterns: &Vec<Pattern>) -> usize {
-    let mut result: usize = 0;
+    let mut result: usize = usize::default();
     for element in to_filter {
         for pattern in any_of_patterns.iter() {
             if pattern.matches(element.as_str()) {
-                result = result + 1;
+                result = result.checked_add(1).expect("Expecting no overflow");
             }
         }
     }

@@ -121,6 +121,8 @@ universe()._$registerCoverageObject = function (coverage: IstanbulCoverageStore)
 				);
 				sentMaps.add(coverage.path);
 			}
+		} else {
+			console.error(`The coverage object of "${fileId} "does not include a valid 'inputSourceMap'.`);
 		}
 	})();
 };

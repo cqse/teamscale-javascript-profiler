@@ -152,7 +152,6 @@ export class IstanbulInstrumenter implements IInstrumenter {
 				// too much and undesired instrumentations. Remove them now.
 				// FIXME: const instrumentedSourcemap = instrumenter.lastSourceMap();
 
-
 				// let instrumentedAndCleanedSource = await this.removeUnwantedInstrumentation(
 				// 	taskElement,
 				// 	instrumentedSource.code,
@@ -419,6 +418,7 @@ export function instrumentWithSwc(
 	sourceMap: RawSourceMap | undefined
 ): swc.Output {
 	const pluginOptions = {
+		input_source_map: sourceMap,
 		inputSourceMap: sourceMap
 	};
 

@@ -12,6 +12,15 @@ import ServerMock from 'mock-http-server';
  */
 const caseStudies = [
 	{
+		name: 'baseline-empty-js',
+		rootDir: 'test/casestudies/baseline-empty-js',
+		distDir: 'dist',
+		expectCoveredLines: {},
+		expectUncoveredLines: {},
+		excludeOrigins: [],
+		includeOrigins: []
+	},
+	{
 		name: 'vite-react-ts-coverable-app',
 		rootDir: 'test/casestudies/vite-react-ts-coverable-app',
 		distDir: 'dist',
@@ -251,10 +260,11 @@ for (const study of caseStudies) {
 		 * Attention: This does wildcard expansion!!
 		 * 		See https://stackoverflow.com/questions/11717281/wildcards-in-child-process-spawn
 		 */
+		const instrumenterProfilingFile = path.resolve(`${study.rootDir}/instrumenter.perf`);
 		execSync(
-			`node ./dist/src/main.js ${excludeArgument} ${includeArgument} --in-place ${fullStudyDistPath} --collector ws://localhost:54678`,
-			{ cwd: INSTRUMENTER_DIR, stdio: 'inherit' }
-		);
+			`./test/scripts/profile_instrumentation.sh ${fullStudyDistPath} 54678 ${instrumenterProfilingFile} ${excludeArgument} ${includeArgument}`,
+			{ cwd: '', stdio: 'inherit' }
+		);	
 
 		console.log('## Starting the Web server');
 		const ws = await LocalWebServer.create({

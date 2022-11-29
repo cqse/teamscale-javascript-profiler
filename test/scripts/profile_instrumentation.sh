@@ -31,7 +31,6 @@ MEMORY_SAMPLING_FILE="memory-sampling-instrument.dat"
 
 # Run the instrumenter with the memory profiler attached
 START_NANOS=$(date +%s%N)
-cd packages/teamscale-javascript-instrumenter
 mprof run --interval 0.05 --include-children --output "$MEMORY_SAMPLING_FILE" \
     node ./dist/src/main.js \
         --in-place ${DIST_DIR} \

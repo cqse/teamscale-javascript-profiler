@@ -1,10 +1,23 @@
-import LocalWebServer from 'local-web-server';
-import cypress from 'cypress';
+import tempfile from 'tempfile';
 import { execSync, spawn } from 'child_process';
 import path from 'path';
 import * as fs from 'fs';
 import * as fsp from 'fs/promises';
 import ServerMock from 'mock-http-server';
+import { fileURLToPath } from 'url';
+
+import treeKill from 'tree-kill';
+
+const __filename = fileURLToPath(import.meta.url);
+
+/**
+ * The name of the study that will not be instrumented.
+ */
+const BASELINE_STUDY = 'baseline-empty-js';
+
+const KEY_PERF_TESTING_NO_INSTRUMENTATION = 'testingUninstrumented';
+const KEY_PERF_TESTING_WITH_INSTRUMENTATION = 'testingInstrumented';
+const KEY_PERF_INSTRUMENTATION = 'Instrumentation';
 
 /**
  * Definition of the case studies along with
@@ -12,7 +25,7 @@ import ServerMock from 'mock-http-server';
  */
 const caseStudies = [
 	{
-		name: 'baseline-empty-js',
+		name: BASELINE_STUDY,
 		rootDir: 'test/casestudies/baseline-empty-js',
 		distDir: 'dist',
 		expectCoveredLines: {},
@@ -74,8 +87,10 @@ const caseStudies = [
 	}
 ];
 
-const INSTRUMENTER_DIR = 'packages/teamscale-javascript-instrumenter';
-const COLLECTOR_DIR = 'packages/teamscale-coverage-collector';
+const PROFILER_ROOT_DIR = path.dirname(path.dirname(__filename));
+const INSTRUMENTER_DIR = path.join('packages', 'teamscale-javascript-instrumenter');
+const COLLECTOR_DIR = path.join('packages', 'teamscale-coverage-collector');
+const COLLECTOR_PORT = 54678;
 const SERVER_PORT = 9000;
 const TEAMSCALE_MOCK_PORT = 10088;
 
@@ -192,7 +207,8 @@ function startCollector(coverageFolder, logTargetFile, projectId) {
 				TEAMSCALE_PROJECT: projectId
 			},
 			TEAMSCALE_PARTITION: 'mockPartition',
-			TEAMSCALE_BRANCH: 'mockBranch'
+			TEAMSCALE_BRANCH: 'mockBranch',
+			detached: false				
 		}
 	);
 
@@ -205,6 +221,49 @@ function startCollector(coverageFolder, logTargetFile, projectId) {
 	});
 
 	return collector;
+}
+
+/**
+ * Start the Web server process.
+ * @returns {ChildProcessWithoutNullStreams}
+ */
+ function startWebServer(distributionFolder) {
+	const webserver = spawn(
+		'node',
+		['node_modules/.bin/ws', '--static.maxage', '0', 		
+		'--hostname', 'localhost',
+		'--port', SERVER_PORT,
+		'--directory', distributionFolder],
+		{
+			detached: false,
+			killSignal: 'SIGKILL',
+			env: {
+				...process.env
+			}
+		}
+	);
+
+	webserver.stdout.on('data', function (data) {
+		console.log('webserver stdout: ' + data.toString());
+	});
+
+	webserver.stderr.on('data', function (data) {
+		console.error('webserver stderr: ' + data.toString());
+	});
+
+	webserver.on('close', (code) => {
+		console.log(`webserver process exited with code ${code}`);
+	});
+
+	return webserver;
+}
+
+function startStudyWebServer(study) {
+	const deploymentDir = path.resolve(`${study.rootDir}/${study.distDir}`);
+	console.log(`In directory "${deploymentDir}".`);
+	const webserverProcess = startWebServer(deploymentDir);
+	console.log(`## Started the Web server with PID ${webserverProcess.pid}.`);
+	return webserverProcess;
 }
 
 /**
@@ -238,40 +297,137 @@ function checkCoverage(coverageTargetFile, study) {
 	}
 }
 
+function parsePerformanceMeasures(instrumentationPerfFile, testingUninstrumentedPerfFile, testingPerfFile) {
+	const instPerf = fs.readFileSync(instrumentationPerfFile);
+	const testingNoInstPerf = fs.readFileSync(testingUninstrumentedPerfFile);
+	const testingPerf = fs.readFileSync(testingPerfFile);
+
+	return {		
+		'instrumentation': JSON.parse(instPerf),		
+		'testingUninstrumented': JSON.parse(testingNoInstPerf),
+		'testing': JSON.parse(testingPerf)
+	};
+}
+
+const perfMeasuresByStudy = {};
+
+function summarizePerformanceMeasurse() {
+	const baselinePerf = perfMeasuresByStudy[BASELINE_STUDY][KEY_PERF_TESTING_NO_INSTRUMENTATION];
+	const baseRuntimeMillis = Number(baselinePerf['duration_millis'].toPrecision(2));
+	const baseRuntimeMemory = Math.ceil(baselinePerf['memory_mb_peak']);
+
+	// Aggregate results on the runtime performance overhead
+	const runtimeResults = [];
+	for (const study of caseStudies) {
+		if (study.name === BASELINE_STUDY) {
+			continue;
+		}
+
+		const studyWithInstTestingPerf = perfMeasuresByStudy[study.name][KEY_PERF_INSTRUMENTATION];
+		const studyNoInstTestingPerf = perfMeasuresByStudy[study.name][KEY_PERF_TESTING_NO_INSTRUMENTATION];
+
+		const studyNoInstRuntimeMillis = Number(studyNoInstTestingPerf['duration_millis'].toPrecision(2));
+		const studyInstRuntimeMillis = Number(studyWithInstTestingPerf['duration_millis'].toPrecision(2));
+		const studyNoInstRuntimeMemory = Math.ceil(studyNoInstTestingPerf['memory_mb_peak']);
+		const studyInstRuntimeMemory = Math.ceil(studyWithInstTestingPerf['memory_mb_peak']);
+
+		runtimeResults.push({
+			'study': study.name,
+			'timeAbs': studyInstRuntimeMillis,
+			'timeAbsNoInst': studyNoInstRuntimeMillis,
+			'timeDelta': studyInstRuntimeMillis - studyNoInstRuntimeMillis,
+			'timeFraction': studyInstRuntimeMillis / studyNoInstRuntimeMillis,
+			'memoryAbs': studyInstRuntimeMemory,
+			'memoryAbsNoInst': studyNoInstRuntimeMemory,
+			'memoryDelta': studyInstRuntimeMemory - studyNoInstRuntimeMemory,
+			'memoryFraction': studyInstRuntimeMemory / studyNoInstRuntimeMemory,
+			'normTimeDelta': (studyInstRuntimeMillis - baseRuntimeMillis) - (studyNoInstRuntimeMillis - baseRuntimeMillis),
+			'normTimeFraction': (studyInstRuntimeMillis - baseRuntimeMillis) / (studyNoInstRuntimeMillis - baseRuntimeMillis),
+			'normMemoryAbs': (studyInstRuntimeMemory - baseRuntimeMemory),
+			'normMemoryDelta': (studyInstRuntimeMemory - baseRuntimeMemory) - (studyNoInstRuntimeMemory - baseRuntimeMemory),
+			'normMemoryFraction': (studyInstRuntimeMemory - baseRuntimeMemory) / (studyNoInstRuntimeMemory - baseRuntimeMemory),
+		});
+	}
+
+	console.log(runtimeResults);
+}
+
+function runTestsOnSubjectInBrowser(studyName) {
+	const browserPerformanceFile = tempfile('.json');
+	console.log('## Running Cypress on the original version');				
+	execSync(
+		`${path.join(PROFILER_ROOT_DIR, 'test', 'scripts', 'profile_testing.sh')} ${studyName} ${SERVER_PORT} ${browserPerformanceFile}`,
+		{ cwd: PROFILER_ROOT_DIR, stdio: 'inherit' }
+	);
+	return JSON.parse(fs.readFileSync(browserPerformanceFile));
+}
+
+function bestPerformance(perf1, perf2) {
+	if (perf1.duration_millis > perf2.duration_millis) {
+		return perf2;
+	}
+	return perf1;
+}
+
+function profileTestingInBrowser(studyName) {
+	let best = runTestsOnSubjectInBrowser(studyName);
+	best = bestPerformance(best, runTestsOnSubjectInBrowser(studyName));
+	best = bestPerformance(best, runTestsOnSubjectInBrowser(studyName));
+	return best;
+}
+
+function instrumentStudy(study) {
+	const fullStudyDistPath = path.resolve(`${study.rootDir}/${study.distDir}`);
+	console.log(`## Instrument the case study in ${fullStudyDistPath}`);
+
+	/**
+	 * Attention: This does wildcard expansion!!
+	 * 		See https://stackoverflow.com/questions/11717281/wildcards-in-child-process-spawn
+	 */	
+	const excludeArgument =
+		study.excludeOrigins.length > 0 ? `--exclude-origin ${study.excludeOrigins.join(' ')}` : '';
+	const includeArgument =
+		study.includeOrigins.length > 0 ? `--include-origin ${study.includeOrigins.join(' ')}` : '';
+	console.log('Include/exclude arguments: ', includeArgument, excludeArgument);
+
+	const performanceFile = tempfile('.json');
+	execSync(
+		`${path.join(PROFILER_ROOT_DIR, 'test', 'scripts', 'profile_instrumentation.sh')} ${fullStudyDistPath} ${COLLECTOR_PORT} ${performanceFile} ${excludeArgument} ${includeArgument}`,
+		{ cwd: INSTRUMENTER_DIR, stdio: 'inherit' }
+	);		
+	return JSON.parse(fs.readFileSync(performanceFile));	
+}
+
+function storePerfResult(studyName, perfKey, perf) {
+	let studyPerfs = perfMeasuresByStudy[studyName];
+	if (!studyPerfs) {
+		studyPerfs = {};
+		perfMeasuresByStudy[studyName] = studyPerfs;
+	}
+	studyPerfs[perfKey] = perf;
+}
+
+function buildStudy(study) {
+	console.log('## Build the case study');
+	execSync('npm install', { cwd: study.rootDir });
+	execSync('npm run clean', { cwd: study.rootDir });
+	execSync('npm run build', { cwd: study.rootDir });
+}
+
 for (const study of caseStudies) {
 	console.group('# Case study', study.name);
 	try {
-		console.log('## Build the case study');
-		execSync('npm install', { cwd: study.rootDir });
-		execSync('npm run clean', { cwd: study.rootDir });
-		execSync('npm run build', { cwd: study.rootDir });
+		// Build the case study
+		buildStudy(study);
 
-		const fullStudyDistPath = path.resolve(`${study.rootDir}/${study.distDir}`);
-		console.log(`Instrument the case study in ${fullStudyDistPath}`);
+		// Start local web server 
+		const webserverProcess = startStudyWebServer(study);
 
-		const excludeArgument =
-			study.excludeOrigins.length > 0 ? `--exclude-origin ${study.excludeOrigins.join(' ')}` : '';
-		const includeArgument =
-			study.includeOrigins.length > 0 ? `--include-origin ${study.includeOrigins.join(' ')}` : '';
+		// Run the tests on the version without instrumentation 
+		storePerfResult(study.name, KEY_PERF_TESTING_NO_INSTRUMENTATION, profileTestingInBrowser(study.name));
 
-		console.log('Include/exclude arguments: ', includeArgument, excludeArgument);
-
-		/**
-		 * Attention: This does wildcard expansion!!
-		 * 		See https://stackoverflow.com/questions/11717281/wildcards-in-child-process-spawn
-		 */
-		const instrumenterProfilingFile = path.resolve(`${study.rootDir}/instrumenter.perf`);
-		execSync(
-			`./test/scripts/profile_instrumentation.sh ${fullStudyDistPath} 54678 ${instrumenterProfilingFile} ${excludeArgument} ${includeArgument}`,
-			{ cwd: '', stdio: 'inherit' }
-		);	
-
-		console.log('## Starting the Web server');
-		const ws = await LocalWebServer.create({
-			port: SERVER_PORT,
-			directory: `${study.rootDir}/${study.distDir}`,
-			staticMaxage: 0
-		});
+		// Perform the instrumentation
+		storePerfResult(study.name, KEY_PERF_INSTRUMENTATION, instrumentStudy(study));
 
 		try {
 			const coverageFolder = path.resolve(path.join(study.rootDir, 'coverage'));
@@ -308,21 +464,10 @@ for (const study of caseStudies) {
 			console.log(`Collector is logging to ${logTargetFile}`);
 			const collectProcess = startCollector(coverageFolder, logTargetFile, study.name);
 
+			// Run the tests in the browser (on the instrumented version)
 			try {
-				console.log('## Running Cypress');
-				await cypress.run({
-					configFile: 'cypress.json',
-					reporter: 'junit',
-					browser: 'chrome',
-					headed: false,
-					quiet: true,
-					config: {
-						baseUrl: `http://localhost:${SERVER_PORT}`,
-						video: false,
-						integrationFolder: `test/integration/${study.name}/`
-					},
-					env: {}
-				});
+				console.log('## Running Cypress');	
+				storePerfResult(study.name, KEY_PERF_TESTING_WITH_INSTRUMENTATION, profileTestingInBrowser(study.name));			
 			} finally {
 				console.log('## Stopping the collector');
 				await sleep(1000);
@@ -336,6 +481,7 @@ for (const study of caseStudies) {
 				throw new Error('The coverage collector is supposed to write a log file!');
 			}
 
+			// Analyze the coverage
 			const coverageFiles = fs.readdirSync(coverageFolder);
 			if (coverageFiles.length === 0) {
 				throw new Error('The coverage collector did not write a coverage file!');
@@ -343,8 +489,7 @@ for (const study of caseStudies) {
 				throw new Error('More than one coverage file was written');
 			}
 			const coverageFile = path.join(coverageFolder, coverageFiles[0]);
-
-			// Analyze the coverage
+			
 			console.log(`## Analysis of coverage in ${coverageFile}`);
 			checkCoverage(coverageFile, study);
 
@@ -361,12 +506,15 @@ for (const study of caseStudies) {
 				teamscaleServerMock.stop(resolve);
 			});
 		} finally {
-			console.log('## Stop the case study Web server');
-			ws.server.close();
+			console.log(`## Stoping the case study Web server with PID ${webserverProcess.pid}`);
+			webserverProcess.kill();
+			treeKill(webserverProcess.pid, 'SIGKILL');
 		}
 	} finally {
 		console.groupEnd();
-	}
+	}	
 }
+
+summarizePerformanceMeasurse();
 
 process.exit(0);

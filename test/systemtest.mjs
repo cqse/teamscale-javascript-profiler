@@ -74,7 +74,7 @@ const caseStudies = [
 		},
 		excludeOrigins: [],
 		includeOrigins: [`'src/app/**/*.*'`],
-		maxNormTimeFraction: 1.5,
+		maxNormTimeFraction: 5.0,
 		maxNormMemoryFraction: 1.2
 	},
 	{

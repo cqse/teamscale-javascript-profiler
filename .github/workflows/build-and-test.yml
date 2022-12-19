@@ -38,6 +38,12 @@ jobs:
           yarn install
           yarn build
           yarn test
+      - name: Set up Python
+        uses: actions/setup-python@v2
+        with:
+          python-version: 3.10
+      - name: Install the `mprof` profiler
+        run: pip3 install memory-profiler
       - name: Run the system test
         uses: GabrielBB/xvfb-action@v1
         with:

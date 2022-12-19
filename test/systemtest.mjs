@@ -362,12 +362,13 @@ function summarizePerformanceMeasurse() {
 	// Check the study results
 	for (let i=0; i<runtimeResults.length; i++) {
 		const runtimeResult = runtimeResults[i];
-		const study = caseStudies[i];
+		// The baseline study is skipped, that is, a +1 is needed:
+		const study = caseStudies[i+1];
 
 		if ('maxNormTimeFraction' in study) {
 			const maxNormTimeFraction = study['maxNormTimeFraction'];
 			if (runtimeResult.normTimeFraction > maxNormTimeFraction) {
-				console.error('Time overhead added by the instrumentation was too high!', study.name);
+				console.error(`Time overhead added by the instrumentation was too high! ${runtimeResult.normTimeFraction} > ${maxNormTimeFraction}`, study.name);
 				process.exit(6);
 			}
 		}
@@ -375,7 +376,7 @@ function summarizePerformanceMeasurse() {
 		if ('maxNormMemoryFraction' in study) {
 			const maxNormMemoryFraction = study['maxNormMemoryFraction'];
 			if (runtimeResult.normMemoryFraction > maxNormMemoryFraction) {
-				console.error('Memory overhead added by the instrumentation was too high!', study.name);
+				console.error(`Memory overhead added by the instrumentation was too high! ${runtimeResult.normMemoryFraction} > ${maxNormMemoryFraction}`, study.name);
 				process.exit(7);
 			}
 		}

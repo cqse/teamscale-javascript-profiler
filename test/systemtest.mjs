@@ -42,7 +42,9 @@ const caseStudies = [
 		},
 		expectUncoveredLines: {},
 		excludeOrigins: [],
-		includeOrigins: [`'../../src/**/*.*'`]
+		includeOrigins: [`'../../src/**/*.*'`],
+		maxNormTimeFraction: 1.5,
+		maxNormMemoryFraction: 1.4
 	},
 	{
 		name: 'vite-react-app',
@@ -53,7 +55,9 @@ const caseStudies = [
 		},
 		expectUncoveredLines: {},
 		excludeOrigins: [],
-		includeOrigins: [`'../../src/**/*.*'`]
+		includeOrigins: [`'../../src/**/*.*'`],
+		maxNormTimeFraction: 1.1,
+		maxNormMemoryFraction: 1.2
 	},
 	{
 		name: 'angular-hero-app',
@@ -69,7 +73,9 @@ const caseStudies = [
 			'src/app/hero-detail/hero-detail.component.ts': [33]
 		},
 		excludeOrigins: [],
-		includeOrigins: [`'src/app/**/*.*'`]
+		includeOrigins: [`'src/app/**/*.*'`],
+		maxNormTimeFraction: 1.1,
+		maxNormMemoryFraction: 1.2
 	},
 	{
 		name: 'angular-hero-app-with-excludes',
@@ -83,7 +89,9 @@ const caseStudies = [
 			'node_modules/zone.js/fesm2015/zone.js': [17, 90, 28, 1054]
 		},
 		excludeOrigins: [`'src/app/heroes/*.*'`, `'node_modules/**/*.*'`, `'webpack/**/*'`],
-		includeOrigins: []
+		includeOrigins: [],
+		maxNormTimeFraction: 1.1,
+		maxNormMemoryFraction: 1.2
 	}
 ];
 
@@ -350,6 +358,28 @@ function summarizePerformanceMeasurse() {
 	}
 
 	console.log(runtimeResults);
+
+	// Check the study results
+	for (let i=0; i<runtimeResults.length; i++) {
+		const runtimeResult = runtimeResults[i];
+		const study = caseStudies[i];
+
+		if ('maxNormTimeFraction' in study) {
+			const maxNormTimeFraction = study['maxNormTimeFraction'];
+			if (runtimeResult.normTimeFraction > maxNormTimeFraction) {
+				console.error('Time overhead added by the instrumentation was too high!', study.name);
+				process.exit(6);
+			}
+		}
+
+		if ('maxNormMemoryFraction' in study) {
+			const maxNormMemoryFraction = study['maxNormMemoryFraction'];
+			if (runtimeResult.normMemoryFraction > maxNormMemoryFraction) {
+				console.error('Memory overhead added by the instrumentation was too high!', study.name);
+				process.exit(7);
+			}
+		}
+	}
 }
 
 function runTestsOnSubjectInBrowser(studyName) {

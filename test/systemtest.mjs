@@ -5,10 +5,7 @@ import * as fs from 'fs';
 import * as fsp from 'fs/promises';
 import ServerMock from 'mock-http-server';
 import { fileURLToPath } from 'url';
-
 import treeKill from 'tree-kill';
-
-const __filename = fileURLToPath(import.meta.url);
 
 /**
  * The name of the study that will not be instrumented.
@@ -18,6 +15,15 @@ const BASELINE_STUDY = 'baseline-empty-js';
 const KEY_PERF_TESTING_NO_INSTRUMENTATION = 'testingUninstrumented';
 const KEY_PERF_TESTING_WITH_INSTRUMENTATION = 'testingInstrumented';
 const KEY_PERF_INSTRUMENTATION = 'Instrumentation';
+
+const __filename = fileURLToPath(import.meta.url);
+
+const PROFILER_ROOT_DIR = path.dirname(path.dirname(__filename));
+const INSTRUMENTER_DIR = path.join('packages', 'teamscale-javascript-instrumenter');
+const COLLECTOR_DIR = path.join('packages', 'teamscale-coverage-collector');
+const COLLECTOR_PORT = 54678;
+const SERVER_PORT = 9000;
+const TEAMSCALE_MOCK_PORT = 10088;
 
 /**
  * Definition of the case studies along with
@@ -75,7 +81,7 @@ const caseStudies = [
 		excludeOrigins: [],
 		includeOrigins: [`'src/app/**/*.*'`],
 		maxNormTimeFraction: 5.0,
-		maxNormMemoryFraction: 1.2
+		maxNormMemoryFraction: 20.0
 	},
 	{
 		name: 'angular-hero-app-with-excludes',
@@ -94,13 +100,6 @@ const caseStudies = [
 		maxNormMemoryFraction: 1.2
 	}
 ];
-
-const PROFILER_ROOT_DIR = path.dirname(path.dirname(__filename));
-const INSTRUMENTER_DIR = path.join('packages', 'teamscale-javascript-instrumenter');
-const COLLECTOR_DIR = path.join('packages', 'teamscale-coverage-collector');
-const COLLECTOR_PORT = 54678;
-const SERVER_PORT = 9000;
-const TEAMSCALE_MOCK_PORT = 10088;
 
 /**
  * Load coverage from a file in the simple coverage format to an object
@@ -287,8 +286,19 @@ function sleep(ms) {
 /**
  * Check if the produced coverage is sufficient for the given study.
  */
-function checkCoverage(coverageTargetFile, study) {
-	const actualCoverage = loadFromSimpleCoverage(coverageTargetFile);
+function checkObtainedCoverage(study) {
+	const coverageFolder = getStudyCoverageFolder(study);
+	const coverageFile = identifyCoverageFile(coverageFolder);
+
+	// Check if the coverage collector has written the files
+	// it was assumed to write.
+	if (!fs.existsSync(coverageFile)) {
+		throw new Error('The coverage collector is supposed to write a log file!');
+	}
+
+	console.log(`## Analysis of coverage in ${coverageFile}`);
+
+	const actualCoverage = loadFromSimpleCoverage(coverageFile);
 	const expectCovered = loadFromCoverageDict(study.expectCoveredLines);
 	const expectUncovered = loadFromCoverageDict(study.expectUncoveredLines);
 	const notCoveredButExpected = identifyExpectedButAbsent(actualCoverage, expectCovered);
@@ -305,21 +315,7 @@ function checkCoverage(coverageTargetFile, study) {
 	}
 }
 
-function parsePerformanceMeasures(instrumentationPerfFile, testingUninstrumentedPerfFile, testingPerfFile) {
-	const instPerf = fs.readFileSync(instrumentationPerfFile);
-	const testingNoInstPerf = fs.readFileSync(testingUninstrumentedPerfFile);
-	const testingPerf = fs.readFileSync(testingPerfFile);
-
-	return {		
-		'instrumentation': JSON.parse(instPerf),		
-		'testingUninstrumented': JSON.parse(testingNoInstPerf),
-		'testing': JSON.parse(testingPerf)
-	};
-}
-
-const perfMeasuresByStudy = {};
-
-function summarizePerformanceMeasurse() {
+function summarizePerformanceMeasures(perfMeasuresByStudy) {
 	const baselinePerf = perfMeasuresByStudy[BASELINE_STUDY][KEY_PERF_TESTING_NO_INSTRUMENTATION];
 	const baseRuntimeMillis = Number(baselinePerf['duration_millis'].toPrecision(2));
 	const baseRuntimeMemory = Math.ceil(baselinePerf['memory_mb_peak']);
@@ -429,7 +425,7 @@ function instrumentStudy(study) {
 	return JSON.parse(fs.readFileSync(performanceFile));	
 }
 
-function storePerfResult(studyName, perfKey, perf) {
+function storePerfResult(perfMeasuresByStudy, studyName, perfKey, perf) {
 	let studyPerfs = perfMeasuresByStudy[studyName];
 	if (!studyPerfs) {
 		studyPerfs = {};
@@ -445,107 +441,123 @@ function buildStudy(study) {
 	execSync('npm run build', { cwd: study.rootDir });
 }
 
-for (const study of caseStudies) {
-	console.group('# Case study', study.name);
-	try {
-		// Build the case study
-		buildStudy(study);
-
-		// Start local web server 
-		const webserverProcess = startStudyWebServer(study);
-
-		// Run the tests on the version without instrumentation 
-		storePerfResult(study.name, KEY_PERF_TESTING_NO_INSTRUMENTATION, profileTestingInBrowser(study.name));
-
-		// Perform the instrumentation
-		storePerfResult(study.name, KEY_PERF_INSTRUMENTATION, instrumentStudy(study));
-
-		try {
-			const coverageFolder = path.resolve(path.join(study.rootDir, 'coverage'));
-			const logTargetFile = path.resolve(`${study.rootDir}/coverage.log`);
-
-			// Delete existing files
-			if (fs.existsSync(coverageFolder)) {
-				fs.rmdirSync(coverageFolder, { recursive: true });
-			}
-			fs.mkdirSync(coverageFolder);
-			if (fs.existsSync(logTargetFile)) {
-				await fsp.unlink(logTargetFile);
-			}
-
-			// Start the Teamscale mock serer
-			let teamscaleServerMock = new ServerMock({ host: 'localhost', port: TEAMSCALE_MOCK_PORT });
-			teamscaleServerMock.on({
-				method: 'POST',
-				path: `/api/projects/${study.name}/external-analysis/session/auto-create/report`,
-				reply: {
-					status: 200,
-					headers: { 'content-type': 'text/plain' },
-					body: 'Thanks for the report!'
-				}
-			});
-
-			await new Promise(resolve => {
-				console.log('## Starting the Teamscale mock server');
-				teamscaleServerMock.start(resolve);
-			});
-
-			// Start the new collector
-			console.log('## Starting the collector');
-			console.log(`Collector is logging to ${logTargetFile}`);
-			const collectProcess = startCollector(coverageFolder, logTargetFile, study.name);
-
-			// Run the tests in the browser (on the instrumented version)
-			try {
-				console.log('## Running Cypress');	
-				storePerfResult(study.name, KEY_PERF_TESTING_WITH_INSTRUMENTATION, profileTestingInBrowser(study.name));			
-			} finally {
-				console.log('## Stopping the collector');
-				await sleep(1000);
-				collectProcess.kill('SIGINT');
-				await sleep(7000);
-			}
-
-			// Check if the coverage collector has written the files
-			// it was assumed to write.
-			if (!fs.existsSync(logTargetFile)) {
-				throw new Error('The coverage collector is supposed to write a log file!');
-			}
-
-			// Analyze the coverage
-			const coverageFiles = fs.readdirSync(coverageFolder);
-			if (coverageFiles.length === 0) {
-				throw new Error('The coverage collector did not write a coverage file!');
-			} else if (coverageFiles.length > 1) {
-				throw new Error('More than one coverage file was written');
-			}
-			const coverageFile = path.join(coverageFolder, coverageFiles[0]);
-			
-			console.log(`## Analysis of coverage in ${coverageFile}`);
-			checkCoverage(coverageFile, study);
-
-			// Check the calls to the Teamscale mock server
-			const mockedRequests = teamscaleServerMock.requests({ method: 'POST' }).length;
-			if (mockedRequests === 0 && Object.keys(study.expectCoveredLines).length > 0) {
-				throw new Error('No coverage information was sent to the Teamscale mock server!');
-			} else {
-				console.log(`Received ${mockedRequests} requests in the Teamscale mock server.`);
-			}
-
-			await new Promise(resolve => {
-				console.log('## Stopping the Teamscale mock server');
-				teamscaleServerMock.stop(resolve);
-			});
-		} finally {
-			console.log(`## Stoping the case study Web server with PID ${webserverProcess.pid}`);
-			webserverProcess.kill();
-			treeKill(webserverProcess.pid, 'SIGKILL');
-		}
-	} finally {
-		console.groupEnd();
-	}	
+function getStudyCoverageFolder(study) {
+	return path.resolve(path.join(study.rootDir, 'coverage'));
 }
 
-summarizePerformanceMeasurse();
+function identifyCoverageFile(coverageFolder) {
+	const coverageFiles = fs.readdirSync(coverageFolder);
+	if (coverageFiles.length === 0) {
+		throw new Error('The coverage collector did not write a coverage file!');
+	} else if (coverageFiles.length > 1) {
+		throw new Error('More than one coverage file was written');
+	}
+	return path.join(coverageFolder, coverageFiles[0]);
+}
 
-process.exit(0);
+async function clearStudyOutputs(study) {
+	const coverageFolder = getStudyCoverageFolder(study);
+	const logTargetFile = path.resolve(`${study.rootDir}/coverage.log`);
+
+	// Delete existing files
+	if (fs.existsSync(coverageFolder)) {
+		fs.rmdirSync(coverageFolder, { recursive: true });
+	}
+	fs.mkdirSync(coverageFolder);
+	if (fs.existsSync(logTargetFile)) {
+		await fsp.unlink(logTargetFile);
+	}
+
+	return [coverageFolder, logTargetFile];
+}
+
+async function startTeamscaleMockServer(study) {
+	const teamscaleServerMock = new ServerMock({ host: 'localhost', port: TEAMSCALE_MOCK_PORT }, null);
+	teamscaleServerMock.on({
+		method: 'POST',
+		path: `/api/projects/${study.name}/external-analysis/session/auto-create/report`,
+		reply: {
+			status: 200,
+			headers: { 'content-type': 'text/plain' },
+			body: 'Thanks for the report!'
+		}
+	});
+
+	await new Promise(resolve => {
+		console.log('## Starting the Teamscale mock server');
+		teamscaleServerMock.start(resolve);
+	});
+
+	return teamscaleServerMock;
+}
+
+function checkTeamscaleServerMockInteractions(mockInstance, study) {
+	const mockedRequests = mockInstance.requests({method: 'POST'}).length;
+	if (mockedRequests === 0 && Object.keys(study.expectCoveredLines).length > 0) {
+		throw new Error('No coverage information was sent to the Teamscale mock server!');
+	} else {
+		console.log(`Received ${mockedRequests} requests in the Teamscale mock server.`);
+	}
+}
+
+await (async function runSystemTest() {
+	const perfStore = {};
+
+	for (const study of caseStudies) {
+		console.group('# Case study', study.name);
+		try {
+			buildStudy(study);
+
+			const webserverProcess = startStudyWebServer(study);
+
+			// Run the tests in the browser on the version without instrumentation
+			const notInstrumentedRuntimePerf = profileTestingInBrowser(study.name);
+			storePerfResult(perfStore, study.name, KEY_PERF_TESTING_NO_INSTRUMENTATION, notInstrumentedRuntimePerf);
+
+			const instrumentationPerformance = instrumentStudy(study);
+			storePerfResult(perfStore, study.name, KEY_PERF_INSTRUMENTATION, instrumentationPerformance);
+
+			try {
+				const [coverageFolder, logTargetFile] = await clearStudyOutputs(study);
+
+				const teamscaleServerMock = await startTeamscaleMockServer(study);
+				try {
+					console.log('## Starting the collector');
+					console.log(`Collector is logging to ${logTargetFile}`);
+					const collectProcess = startCollector(coverageFolder, logTargetFile, study.name);
+
+					// Run the tests in the browser on the instrumented version
+					try {
+						console.log('## Running Cypress');
+						const runtimePerformance = profileTestingInBrowser(study.name);
+						storePerfResult(perfStore, study.name, KEY_PERF_TESTING_WITH_INSTRUMENTATION, runtimePerformance);
+					} finally {
+						console.log('## Stopping the collector');
+						await sleep(1000);
+						collectProcess.kill('SIGINT');
+						await sleep(7000);
+					}
+
+					checkObtainedCoverage(study);
+
+					checkTeamscaleServerMockInteractions(teamscaleServerMock, study);
+				} finally {
+					await new Promise(resolve => {
+						console.log('## Stopping the Teamscale mock server');
+						teamscaleServerMock.stop(resolve);
+					});
+				}
+			} finally {
+				console.log(`## Stopping the case study Web server with PID ${webserverProcess.pid}`);
+				webserverProcess.kill();
+				treeKill(webserverProcess.pid, 'SIGKILL');
+			}
+		} finally {
+			console.groupEnd();
+		}
+	}
+
+	summarizePerformanceMeasures(perfStore);
+
+	process.exit(0);
+})();

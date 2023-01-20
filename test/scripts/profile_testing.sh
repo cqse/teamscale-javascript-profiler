@@ -44,7 +44,7 @@ fi
 
 # Run the test with the memory profiler attached
 START_NANOS=$(gnudate +%s%N)
-mprof run --interval 0.05 --include-children --output "$MEMORY_SAMPLING_FILE" \
+mprof run --interval 0.01 --include-children --output "$MEMORY_SAMPLING_FILE" \
     npx cypress run \
         --config-file "cypress.json" \
         --reporter "junit" \

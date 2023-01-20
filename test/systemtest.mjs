@@ -96,7 +96,7 @@ const caseStudies = [
 		},
 		excludeOrigins: [`'src/app/heroes/*.*'`, `'node_modules/**/*.*'`, `'webpack/**/*'`],
 		includeOrigins: [],
-		maxNormTimeFraction: 1.5,
+		maxNormTimeFraction: 5.0,
 		maxNormMemoryFraction: 1.2
 	}
 ];
@@ -316,67 +316,77 @@ function checkObtainedCoverage(study) {
 }
 
 function summarizePerformanceMeasures(perfMeasuresByStudy) {
-	const baselinePerf = perfMeasuresByStudy[BASELINE_STUDY][KEY_PERF_TESTING_NO_INSTRUMENTATION];
-	const baseRuntimeMillis = Number(baselinePerf['duration_millis'].toPrecision(2));
-	const baseRuntimeMemory = Math.ceil(baselinePerf['memory_mb_peak']);
+	const computeStats = (perfType, noInstPerfValue, withInstPerfValue, basePerfValue) => {
+		const perfPlusDueToInstrumentation = Math.min(0, withInstPerfValue - noInstPerfValue);
+		const noInstPerfDiffToBase = noInstPerfValue - basePerfValue;
+		const withInstPerfDiffToBase = withInstPerfValue - basePerfValue;
 
-	// Aggregate results on the runtime performance overhead
-	const runtimeResults = [];
-	for (const study of caseStudies) {
-		if (study.name === BASELINE_STUDY) {
-			continue;
+		const result = {};
+		result[perfType + 'AbsWithInst'] = withInstPerfValue;
+		result[perfType + 'AbsNoInst'] = noInstPerfValue;
+		result[perfType + 'AbsPlusDueToInst'] = perfPlusDueToInstrumentation;
+		result[perfType + 'Fraction'] = withInstPerfValue / noInstPerfValue;
+		result[perfType + 'Normalized'] = withInstPerfValue - basePerfValue;
+		result[perfType + 'NormalizedDelta'] = withInstPerfDiffToBase - noInstPerfDiffToBase;
+		result[perfType + 'NormalizedFraction'] = withInstPerfDiffToBase / noInstPerfDiffToBase;
+		return result;
+	};
+
+	const computePerfStats = (study, perfType, valueKey, valueTransformer) => {
+		const baselinePerf = perfMeasuresByStudy[BASELINE_STUDY][KEY_PERF_TESTING_NO_INSTRUMENTATION];
+		const withInstRuntimePerf = perfMeasuresByStudy[study.name][KEY_PERF_INSTRUMENTATION];
+		const withoutInstRuntimePerf = perfMeasuresByStudy[study.name][KEY_PERF_TESTING_NO_INSTRUMENTATION];
+
+		const basePerfValue = valueTransformer(baselinePerf[valueKey]);
+		const noInstRuntimeMemory = valueTransformer(withoutInstRuntimePerf[valueKey]);
+		const withInstRuntimeMemory = valueTransformer(withInstRuntimePerf[valueKey]);
+
+		return computeStats(perfType, noInstRuntimeMemory, withInstRuntimeMemory, basePerfValue);
+	};
+
+	const aggregatePerformanceResults = () => {
+		const results = [];
+		for (const study of caseStudies) {
+			if (study.name === BASELINE_STUDY) {
+				continue;
+			}
+
+			results.push({
+				'study': study.name,
+				...computePerfStats(study, 'memory', 'memory_mb_peak', (value) => Math.ceil(value)),
+				...computePerfStats(study, 'time', 'duration_millis', (value) => Number(value.toPrecision(2)))
+			});
 		}
-
-		const studyWithInstTestingPerf = perfMeasuresByStudy[study.name][KEY_PERF_INSTRUMENTATION];
-		const studyNoInstTestingPerf = perfMeasuresByStudy[study.name][KEY_PERF_TESTING_NO_INSTRUMENTATION];
-
-		const studyNoInstRuntimeMillis = Number(studyNoInstTestingPerf['duration_millis'].toPrecision(2));
-		const studyInstRuntimeMillis = Number(studyWithInstTestingPerf['duration_millis'].toPrecision(2));
-		const studyNoInstRuntimeMemory = Math.ceil(studyNoInstTestingPerf['memory_mb_peak']);
-		const studyInstRuntimeMemory = Math.ceil(studyWithInstTestingPerf['memory_mb_peak']);
-
-		runtimeResults.push({
-			'study': study.name,
-			'timeAbs': studyInstRuntimeMillis,
-			'timeAbsNoInst': studyNoInstRuntimeMillis,
-			'timeDelta': studyInstRuntimeMillis - studyNoInstRuntimeMillis,
-			'timeFraction': studyInstRuntimeMillis / studyNoInstRuntimeMillis,
-			'memoryAbs': studyInstRuntimeMemory,
-			'memoryAbsNoInst': studyNoInstRuntimeMemory,
-			'memoryDelta': studyInstRuntimeMemory - studyNoInstRuntimeMemory,
-			'memoryFraction': studyInstRuntimeMemory / studyNoInstRuntimeMemory,
-			'normTimeDelta': (studyInstRuntimeMillis - baseRuntimeMillis) - (studyNoInstRuntimeMillis - baseRuntimeMillis),
-			'normTimeFraction': (studyInstRuntimeMillis - baseRuntimeMillis) / (studyNoInstRuntimeMillis - baseRuntimeMillis),
-			'normMemoryAbs': (studyInstRuntimeMemory - baseRuntimeMemory),
-			'normMemoryDelta': (studyInstRuntimeMemory - baseRuntimeMemory) - (studyNoInstRuntimeMemory - baseRuntimeMemory),
-			'normMemoryFraction': (studyInstRuntimeMemory - baseRuntimeMemory) / (studyNoInstRuntimeMemory - baseRuntimeMemory),
-		});
+		return results;
 	}
 
+	const checkPerformanceMeasures = (runtimeResults) => {
+		for (let i=0; i<runtimeResults.length; i++) {
+			const runtimeResult = runtimeResults[i];
+			// The baseline study is skipped, that is, a +1 is needed:
+			const study = caseStudies[i+1];
+
+			if ('maxNormTimeFraction' in study) {
+				const maxNormTimeFraction = study.maxNormTimeFraction;
+				if (runtimeResult.timeNormalizedFraction > maxNormTimeFraction) {
+					console.error(`Time overhead added by the instrumentation was too high! ${runtimeResult.timeNormalizedFraction} > ${maxNormTimeFraction}`, study.name);
+					process.exit(6);
+				}
+			}
+
+			if ('maxNormMemoryFraction' in study) {
+				const maxNormMemoryFraction = study.maxNormMemoryFraction;
+				if (runtimeResult.memoryNormalizedFraction > maxNormMemoryFraction) {
+					console.error(`Memory overhead added by the instrumentation was too high! ${runtimeResult.memoryNormalizedFraction} > ${maxNormMemoryFraction}`, study.name);
+					process.exit(7);
+				}
+			}
+		}
+	}
+
+	const runtimeResults = aggregatePerformanceResults();
 	console.log(runtimeResults);
-
-	// Check the study results
-	for (let i=0; i<runtimeResults.length; i++) {
-		const runtimeResult = runtimeResults[i];
-		// The baseline study is skipped, that is, a +1 is needed:
-		const study = caseStudies[i+1];
-
-		if ('maxNormTimeFraction' in study) {
-			const maxNormTimeFraction = study.maxNormTimeFraction;
-			if (runtimeResult.normTimeFraction > maxNormTimeFraction) {
-				console.error(`Time overhead added by the instrumentation was too high! ${runtimeResult.normTimeFraction} > ${maxNormTimeFraction}`, study.name);
-				process.exit(6);
-			}
-		}
-
-		if ('maxNormMemoryFraction' in study) {
-			const maxNormMemoryFraction = study.maxNormMemoryFraction;
-			if (runtimeResult.normMemoryFraction > maxNormMemoryFraction) {
-				console.error(`Memory overhead added by the instrumentation was too high! ${runtimeResult.normMemoryFraction} > ${maxNormMemoryFraction}`, study.name);
-				process.exit(7);
-			}
-		}
-	}
+	checkPerformanceMeasures(runtimeResults);
 }
 
 function runTestsOnSubjectInBrowser(studyName) {

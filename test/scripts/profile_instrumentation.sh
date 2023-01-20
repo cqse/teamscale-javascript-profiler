@@ -38,7 +38,7 @@ fi
 
 # Run the instrumenter with the memory profiler attached
 START_NANOS=$(gnudate +%s%N)
-mprof run --interval 0.05 --include-children --output "$MEMORY_SAMPLING_FILE" \
+mprof run --interval 0.01 --include-children --output "$MEMORY_SAMPLING_FILE" \
     node ./dist/src/main.js \
         --in-place ${DIST_DIR} \
         --collector "ws://localhost:$COLLECTOR_PORT" \

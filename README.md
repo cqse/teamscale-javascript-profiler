@@ -55,7 +55,6 @@ All tags are built automatically using [Github Actions](https://github.com/cqse/
 
 Only use official releases in production. 
 
-
 ### Versioning
 
 We generally stick to Semantic Versioning. However, we might release new versions

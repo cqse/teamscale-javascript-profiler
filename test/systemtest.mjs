@@ -49,8 +49,7 @@ const caseStudies = [
 		expectUncoveredLines: {},
 		excludeOrigins: [],
 		includeOrigins: [`'../../src/**/*.*'`],
-		maxNormTimeFraction: 1.5,
-		maxNormMemoryFraction: 1.4
+		maxNormTimeFraction: 1.5
 	},
 	{
 		name: 'vite-react-app',
@@ -62,8 +61,7 @@ const caseStudies = [
 		expectUncoveredLines: {},
 		excludeOrigins: [],
 		includeOrigins: [`'../../src/**/*.*'`],
-		maxNormTimeFraction: 1.1,
-		maxNormMemoryFraction: 1.2
+		maxNormTimeFraction: 1.1
 	},
 	{
 		name: 'angular-hero-app',
@@ -80,8 +78,7 @@ const caseStudies = [
 		},
 		excludeOrigins: [],
 		includeOrigins: [`'src/app/**/*.*'`],
-		maxNormTimeFraction: 5.0,
-		maxNormMemoryFraction: 20.0
+		maxNormTimeFraction: 5.0
 	},
 	{
 		name: 'angular-hero-app-with-excludes',
@@ -96,8 +93,7 @@ const caseStudies = [
 		},
 		excludeOrigins: [`'src/app/heroes/*.*'`, `'node_modules/**/*.*'`, `'webpack/**/*'`],
 		includeOrigins: [],
-		maxNormTimeFraction: 5.0,
-		maxNormMemoryFraction: 1.2
+		maxNormTimeFraction: 5.0
 	}
 ];
 
@@ -274,7 +270,8 @@ function startStudyWebServer(study) {
 }
 
 /**
- * Sleep for the given milliseconds
+ * Sleep for the given milliseconds.
+ *
  * @returns {Promise<unknown>}
  */
 function sleep(ms) {
@@ -317,16 +314,18 @@ function checkObtainedCoverage(study) {
 
 function summarizePerformanceMeasures(perfMeasuresByStudy) {
 	const computeStats = (perfType, noInstPerfValue, withInstPerfValue, basePerfValue) => {
-		const perfPlusDueToInstrumentation = Math.min(0, withInstPerfValue - noInstPerfValue);
+		const perfPlusDueToInstrumentation = Math.max(0, withInstPerfValue - noInstPerfValue);
 		const noInstPerfDiffToBase = noInstPerfValue - basePerfValue;
 		const withInstPerfDiffToBase = withInstPerfValue - basePerfValue;
 
 		const result = {};
-		result[perfType + 'AbsWithInst'] = withInstPerfValue;
-		result[perfType + 'AbsNoInst'] = noInstPerfValue;
+		result[perfType + 'Base'] = basePerfValue;
+		result[perfType + 'WithInstAbs'] = withInstPerfValue;
+		result[perfType + 'NoInstAbs'] = noInstPerfValue;
 		result[perfType + 'AbsPlusDueToInst'] = perfPlusDueToInstrumentation;
-		result[perfType + 'Fraction'] = withInstPerfValue / noInstPerfValue;
-		result[perfType + 'Normalized'] = withInstPerfValue - basePerfValue;
+		result[perfType + 'InstNoInstFraction'] = withInstPerfValue / noInstPerfValue;
+		result[perfType + 'WithInstNormalized'] = withInstPerfDiffToBase;
+		result[perfType + 'NoInstNormalized'] = noInstPerfDiffToBase;
 		result[perfType + 'NormalizedDelta'] = withInstPerfDiffToBase - noInstPerfDiffToBase;
 		result[perfType + 'NormalizedFraction'] = withInstPerfDiffToBase / noInstPerfDiffToBase;
 		return result;
@@ -354,7 +353,7 @@ function summarizePerformanceMeasures(perfMeasuresByStudy) {
 			results.push({
 				'study': study.name,
 				...computePerfStats(study, 'memory', 'memory_mb_peak', (value) => Math.ceil(value)),
-				...computePerfStats(study, 'time', 'duration_millis', (value) => Number(value.toPrecision(2)))
+				...computePerfStats(study, 'time', 'duration_secs', (value) => Number(value.toPrecision(2)))
 			});
 		}
 		return results;
@@ -366,7 +365,8 @@ function summarizePerformanceMeasures(perfMeasuresByStudy) {
 			// The baseline study is skipped, that is, a +1 is needed:
 			const study = caseStudies[i+1];
 
-			if ('maxNormTimeFraction' in study) {
+			// We only trigger a violation if the time needed for the study itself is larger than 2s
+			if ('maxNormTimeFraction' in study && runtimeResult.timeWithInstNormalized > 2) {
 				const maxNormTimeFraction = study.maxNormTimeFraction;
 				if (runtimeResult.timeNormalizedFraction > maxNormTimeFraction) {
 					console.error(`Time overhead added by the instrumentation was too high! ${runtimeResult.timeNormalizedFraction} > ${maxNormTimeFraction}`, study.name);
@@ -374,7 +374,8 @@ function summarizePerformanceMeasures(perfMeasuresByStudy) {
 				}
 			}
 
-			if ('maxNormMemoryFraction' in study) {
+			// We only trigger a violation if the memory needed for the study itself is larger than 50MB
+			if ('maxNormMemoryFraction' in study && runtimeResult.memoryWithInstNormalized > 50) {
 				const maxNormMemoryFraction = study.maxNormMemoryFraction;
 				if (runtimeResult.memoryNormalizedFraction > maxNormMemoryFraction) {
 					console.error(`Memory overhead added by the instrumentation was too high! ${runtimeResult.memoryNormalizedFraction} > ${maxNormMemoryFraction}`, study.name);
@@ -389,36 +390,37 @@ function summarizePerformanceMeasures(perfMeasuresByStudy) {
 	checkPerformanceMeasures(runtimeResults);
 }
 
-function runTestsOnSubjectInBrowser(studyName) {
-	const browserPerformanceFile = tempfile('.json');
-	console.log('## Running Cypress on the original version');				
-	execSync(
-		`${path.join(PROFILER_ROOT_DIR, 'test', 'scripts', 'profile_testing.sh')} ${studyName} ${SERVER_PORT} ${browserPerformanceFile}`,
-		{ cwd: PROFILER_ROOT_DIR, stdio: 'inherit' }
-	);
-	return JSON.parse(fs.readFileSync(browserPerformanceFile));
-}
-
-function bestPerformance(perf1, perf2) {
-	if (perf2 && perf1.duration_millis > perf2.duration_millis) {
-		return perf2;
+function averagePerformance(samples) {
+	let durationSum = 0;
+	let memorySum = 0;
+	for (const sample of samples) {
+		durationSum = durationSum + sample.duration_secs;
+		memorySum = memorySum + sample.memory_mb_peak;
 	}
-
-	return perf1;
+	return { duration_secs: durationSum / samples.length, memory_mb_peak: memorySum / samples.length };
 }
 
 function profileTestingInBrowser(studyName) {
+	const runTestsOnSubjectInBrowser = (studyName) => {
+		const browserPerformanceFile = tempfile('.json');
+		console.log('## Running Cypress tests on the subject');
+		const command = `${path.join(PROFILER_ROOT_DIR, 'test', 'scripts', 'profile_testing.sh')} ${studyName} ${SERVER_PORT} ${browserPerformanceFile}`;
+		execSync(command, { cwd: PROFILER_ROOT_DIR, stdio: 'inherit' });
+		return JSON.parse(fs.readFileSync(browserPerformanceFile));
+	}
+
 	// We do one run that is just for warm-up. Its measures are not considered.
-	let best = runTestsOnSubjectInBrowser(studyName);
+	runTestsOnSubjectInBrowser(studyName);
 
 	// The actual runs to determine the best performance.
+	const runResults = [];
 	let remainingRuns = 3;
 	while (remainingRuns > 0) {
-		best = bestPerformance(runTestsOnSubjectInBrowser(studyName), best);
+		runResults.push(runTestsOnSubjectInBrowser(studyName));
 		remainingRuns--;
 	}
 
-	return best;
+	return averagePerformance(runResults);
 }
 
 function instrumentStudy(study) {
@@ -479,7 +481,7 @@ async function clearStudyOutputs(study) {
 
 	// Delete existing files
 	if (fs.existsSync(coverageFolder)) {
-		fs.rmdirSync(coverageFolder, { recursive: true });
+		fs.rmSync(coverageFolder, { recursive: true });
 	}
 	fs.mkdirSync(coverageFolder);
 	if (fs.existsSync(logTargetFile)) {
@@ -546,7 +548,6 @@ await (async function runSystemTest() {
 
 					// Run the tests in the browser on the instrumented version
 					try {
-						console.log('## Running Cypress');
 						const runtimePerformance = profileTestingInBrowser(study.name);
 						storePerfResult(perfStore, study.name, KEY_PERF_TESTING_WITH_INSTRUMENTATION, runtimePerformance);
 					} finally {

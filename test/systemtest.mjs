@@ -400,16 +400,24 @@ function runTestsOnSubjectInBrowser(studyName) {
 }
 
 function bestPerformance(perf1, perf2) {
-	if (perf1.duration_millis > perf2.duration_millis) {
+	if (perf2 && perf1.duration_millis > perf2.duration_millis) {
 		return perf2;
 	}
+
 	return perf1;
 }
 
 function profileTestingInBrowser(studyName) {
+	// We do one run that is just for warm-up. Its measures are not considered.
 	let best = runTestsOnSubjectInBrowser(studyName);
-	best = bestPerformance(best, runTestsOnSubjectInBrowser(studyName));
-	best = bestPerformance(best, runTestsOnSubjectInBrowser(studyName));
+
+	// The actual runs to determine the best performance.
+	let remainingRuns = 3;
+	while (remainingRuns > 0) {
+		best = bestPerformance(runTestsOnSubjectInBrowser(studyName), best);
+		remainingRuns--;
+	}
+
 	return best;
 }
 

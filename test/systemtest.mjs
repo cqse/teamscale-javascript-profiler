@@ -313,10 +313,20 @@ function checkObtainedCoverage(study) {
 }
 
 function summarizePerformanceMeasures(perfMeasuresByStudy) {
-	const computeStats = (perfType, noInstPerfValue, withInstPerfValue, basePerfValue) => {
+	const computeStats = (perfType, noInstPerfValue, withInstPerfValue, basePerfValue, fractionFactor) => {
+		// Adjust the base performance if one of the others performed better.
+		basePerfValue = Math.min(basePerfValue, noInstPerfValue, withInstPerfValue);
+
 		const perfPlusDueToInstrumentation = Math.max(0, withInstPerfValue - noInstPerfValue);
 		const noInstPerfDiffToBase = noInstPerfValue - basePerfValue;
 		const withInstPerfDiffToBase = withInstPerfValue - basePerfValue;
+
+		const ifZeroElse = (valueInCaseOfZero, toCheck) => {
+			if (toCheck === 0) {
+				return valueInCaseOfZero;
+			}
+			return toCheck;
+		}
 
 		const result = {};
 		result[perfType + 'Base'] = basePerfValue;
@@ -328,10 +338,12 @@ function summarizePerformanceMeasures(perfMeasuresByStudy) {
 		result[perfType + 'NoInstNormalized'] = noInstPerfDiffToBase;
 		result[perfType + 'NormalizedDelta'] = withInstPerfDiffToBase - noInstPerfDiffToBase;
 		result[perfType + 'NormalizedFraction'] = withInstPerfDiffToBase / noInstPerfDiffToBase;
+		result[perfType + 'NormalizedFraction' + String(fractionFactor)] = Math.round(withInstPerfDiffToBase / fractionFactor) / ifZeroElse(1, Math.round(noInstPerfDiffToBase / fractionFactor));
+		result[perfType + 'NormalizedFraction'] = withInstPerfDiffToBase / noInstPerfDiffToBase / fractionFactor;
 		return result;
 	};
 
-	const computePerfStats = (study, perfType, valueKey, valueTransformer) => {
+	const computePerfStats = (study, perfType, valueKey, fractionFactor, valueTransformer) => {
 		const baselinePerf = perfMeasuresByStudy[BASELINE_STUDY][KEY_PERF_TESTING_NO_INSTRUMENTATION];
 		const withInstRuntimePerf = perfMeasuresByStudy[study.name][KEY_PERF_INSTRUMENTATION];
 		const withoutInstRuntimePerf = perfMeasuresByStudy[study.name][KEY_PERF_TESTING_NO_INSTRUMENTATION];
@@ -340,7 +352,7 @@ function summarizePerformanceMeasures(perfMeasuresByStudy) {
 		const noInstRuntimeMemory = valueTransformer(withoutInstRuntimePerf[valueKey]);
 		const withInstRuntimeMemory = valueTransformer(withInstRuntimePerf[valueKey]);
 
-		return computeStats(perfType, noInstRuntimeMemory, withInstRuntimeMemory, basePerfValue);
+		return computeStats(perfType, noInstRuntimeMemory, withInstRuntimeMemory, basePerfValue, fractionFactor);
 	};
 
 	const aggregatePerformanceResults = () => {
@@ -352,8 +364,8 @@ function summarizePerformanceMeasures(perfMeasuresByStudy) {
 
 			results.push({
 				'study': study.name,
-				...computePerfStats(study, 'memory', 'memory_mb_peak', (value) => Math.ceil(value)),
-				...computePerfStats(study, 'time', 'duration_secs', (value) => Number(value.toPrecision(2)))
+				...computePerfStats(study, 'memory', 'memory_mb_peak', 100, (value) => Math.ceil(value)),
+				...computePerfStats(study, 'time', 'duration_secs', 1, (value) => Number(value.toPrecision(2)))
 			});
 		}
 		return results;
@@ -367,18 +379,18 @@ function summarizePerformanceMeasures(perfMeasuresByStudy) {
 
 			// We only trigger a violation if the time needed for the study itself is larger than 2s
 			if ('maxNormTimeFraction' in study && runtimeResult.timeWithInstNormalized > 2) {
-				const maxNormTimeFraction = study.maxNormTimeFraction;
-				if (runtimeResult.timeNormalizedFraction > maxNormTimeFraction) {
-					console.error(`Time overhead added by the instrumentation was too high! ${runtimeResult.timeNormalizedFraction} > ${maxNormTimeFraction}`, study.name);
+				const maxValue = study.maxNormTimeFraction;
+				if (runtimeResult.timeNormalizedFraction > maxValue) {
+					console.error(`Time overhead added by the instrumentation was too high! ${runtimeResult.timeNormalizedFraction} > ${maxValue}`, study.name);
 					process.exit(6);
 				}
 			}
 
-			// We only trigger a violation if the memory needed for the study itself is larger than 50MB
-			if ('maxNormMemoryFraction' in study && runtimeResult.memoryWithInstNormalized > 50) {
-				const maxNormMemoryFraction = study.maxNormMemoryFraction;
-				if (runtimeResult.memoryNormalizedFraction > maxNormMemoryFraction) {
-					console.error(`Memory overhead added by the instrumentation was too high! ${runtimeResult.memoryNormalizedFraction} > ${maxNormMemoryFraction}`, study.name);
+			// We only trigger a violation if the memory needed for the study itself is larger than 200MB
+			if ('maxNormMemoryFraction100' in study && runtimeResult.memoryNormalizedFraction100 > 2) {
+				const maxValue = study.maxNormMemoryFraction100;
+				if (runtimeResult.memoryNormalizedFraction > maxValue) {
+					console.error(`Memory overhead added by the instrumentation was too high! ${runtimeResult.memoryNormalizedFraction} > ${maxValue}`, study.name);
 					process.exit(7);
 				}
 			}

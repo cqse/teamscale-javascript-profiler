@@ -2,6 +2,8 @@ We use [Semantic Versioning](https://semver.org/).
 
 # New Release
 
+- [fix] Library `source-map` upgraded to address https://github.com/mozilla/source-map/issues/432
+
 # 0.0.1-beta.42
 
 - [fix] Tab crash due to object creation frequency of instrumented code (and too slow garbage collection). 

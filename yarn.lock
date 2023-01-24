@@ -10135,9 +10135,28 @@ __metadata:
     mkdirp: ^1.0.4
     mock-http-server: ^1.4.5
     prettier: ^2.7.1
+    tempfile: ^4.0.0
+    tree-kill: ^1.2.2
     typescript: ^4.4.3
   languageName: unknown
   linkType: soft
+
+"temp-dir@npm:^2.0.0":
+  version: 2.0.0
+  resolution: "temp-dir@npm:2.0.0"
+  checksum: cc4f0404bf8d6ae1a166e0e64f3f409b423f4d1274d8c02814a59a5529f07db6cd070a749664141b992b2c1af337fa9bb451a460a43bb9bcddc49f235d3115aa
+  languageName: node
+  linkType: hard
+
+"tempfile@npm:^4.0.0":
+  version: 4.0.0
+  resolution: "tempfile@npm:4.0.0"
+  dependencies:
+    temp-dir: ^2.0.0
+    uuid: ^8.3.2
+  checksum: 6229dfc12dd5a15123b8d7e8ce2c9cacdf9424b303dd070c358c8eec0a6e14db61732bafd4ea4738924ad421bc3157751ac6e7c77ad6d2c49d1bef2eab928aa4
+  languageName: node
+  linkType: hard
 
 "terminal-link@npm:^2.0.0":
   version: 2.1.1
@@ -10286,6 +10305,15 @@ __metadata:
   version: 0.0.3
   resolution: "tr46@npm:0.0.3"
   checksum: 726321c5eaf41b5002e17ffbd1fb7245999a073e8979085dacd47c4b4e8068ff5777142fc6726d6ca1fd2ff16921b48788b87225cbc57c72636f6efa8efbffe3
+  languageName: node
+  linkType: hard
+
+"tree-kill@npm:^1.2.2":
+  version: 1.2.2
+  resolution: "tree-kill@npm:1.2.2"
+  bin:
+    tree-kill: cli.js
+  checksum: 49117f5f410d19c84b0464d29afb9642c863bc5ba40fcb9a245d474c6d5cc64d1b177a6e6713129eb346b40aebb9d4631d967517f9fbe8251c35b21b13cd96c7
   languageName: node
   linkType: hard
 

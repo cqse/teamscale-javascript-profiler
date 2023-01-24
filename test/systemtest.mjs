@@ -1,16 +1,44 @@
-import LocalWebServer from 'local-web-server';
-import cypress from 'cypress';
+import tempfile from 'tempfile';
 import { execSync, spawn } from 'child_process';
 import path from 'path';
 import * as fs from 'fs';
 import * as fsp from 'fs/promises';
 import ServerMock from 'mock-http-server';
+import { fileURLToPath } from 'url';
+import treeKill from 'tree-kill';
+
+/**
+ * The name of the study that will not be instrumented.
+ */
+const BASELINE_STUDY = 'baseline-empty-js';
+
+const KEY_PERF_TESTING_NO_INSTRUMENTATION = 'testingUninstrumented';
+const KEY_PERF_TESTING_WITH_INSTRUMENTATION = 'testingInstrumented';
+const KEY_PERF_INSTRUMENTATION = 'Instrumentation';
+
+const __filename = fileURLToPath(import.meta.url);
+
+const PROFILER_ROOT_DIR = path.dirname(path.dirname(__filename));
+const INSTRUMENTER_DIR = path.join('packages', 'teamscale-javascript-instrumenter');
+const COLLECTOR_DIR = path.join('packages', 'teamscale-coverage-collector');
+const COLLECTOR_PORT = 54678;
+const SERVER_PORT = 9000;
+const TEAMSCALE_MOCK_PORT = 10088;
 
 /**
  * Definition of the case studies along with
  * the expected coverage produced by our tool chain.
  */
 const caseStudies = [
+	{
+		name: BASELINE_STUDY,
+		rootDir: 'test/casestudies/baseline-empty-js',
+		distDir: 'dist',
+		expectCoveredLines: {},
+		expectUncoveredLines: {},
+		excludeOrigins: [],
+		includeOrigins: []
+	},
 	{
 		name: 'vite-react-ts-coverable-app',
 		rootDir: 'test/casestudies/vite-react-ts-coverable-app',
@@ -20,7 +48,8 @@ const caseStudies = [
 		},
 		expectUncoveredLines: {},
 		excludeOrigins: [],
-		includeOrigins: [`'../../src/**/*.*'`]
+		includeOrigins: [`'../../src/**/*.*'`],
+		maxNormTimeFraction: 1.5
 	},
 	{
 		name: 'vite-react-app',
@@ -31,7 +60,8 @@ const caseStudies = [
 		},
 		expectUncoveredLines: {},
 		excludeOrigins: [],
-		includeOrigins: [`'../../src/**/*.*'`]
+		includeOrigins: [`'../../src/**/*.*'`],
+		maxNormTimeFraction: 1.1
 	},
 	{
 		name: 'angular-hero-app',
@@ -47,7 +77,8 @@ const caseStudies = [
 			'src/app/hero-detail/hero-detail.component.ts': [33]
 		},
 		excludeOrigins: [],
-		includeOrigins: [`'src/app/**/*.*'`]
+		includeOrigins: [`'src/app/**/*.*'`],
+		maxNormTimeFraction: 6.0
 	},
 	{
 		name: 'angular-hero-app-with-excludes',
@@ -61,14 +92,10 @@ const caseStudies = [
 			'node_modules/zone.js/fesm2015/zone.js': [17, 90, 28, 1054]
 		},
 		excludeOrigins: [`'src/app/heroes/*.*'`, `'node_modules/**/*.*'`, `'webpack/**/*'`],
-		includeOrigins: []
+		includeOrigins: [],
+		maxNormTimeFraction: 6.0
 	}
 ];
-
-const INSTRUMENTER_DIR = 'packages/teamscale-javascript-instrumenter';
-const COLLECTOR_DIR = 'packages/teamscale-coverage-collector';
-const SERVER_PORT = 9000;
-const TEAMSCALE_MOCK_PORT = 10088;
 
 /**
  * Load coverage from a file in the simple coverage format to an object
@@ -183,7 +210,8 @@ function startCollector(coverageFolder, logTargetFile, projectId) {
 				TEAMSCALE_PROJECT: projectId
 			},
 			TEAMSCALE_PARTITION: 'mockPartition',
-			TEAMSCALE_BRANCH: 'mockBranch'
+			TEAMSCALE_BRANCH: 'mockBranch',
+			detached: false				
 		}
 	);
 
@@ -199,7 +227,51 @@ function startCollector(coverageFolder, logTargetFile, projectId) {
 }
 
 /**
- * Sleep for the given milliseconds
+ * Start the Web server process.
+ * @returns {ChildProcessWithoutNullStreams}
+ */
+ function startWebServer(distributionFolder) {
+	const webserver = spawn(
+		'node',
+		['node_modules/.bin/ws', '--static.maxage', '0', 		
+		'--hostname', 'localhost',
+		'--port', SERVER_PORT,
+		'--directory', distributionFolder],
+		{
+			detached: false,
+			killSignal: 'SIGKILL',
+			env: {
+				...process.env
+			}
+		}
+	);
+
+	webserver.stdout.on('data', function (data) {
+		console.log('webserver stdout: ' + data.toString());
+	});
+
+	webserver.stderr.on('data', function (data) {
+		console.error('webserver stderr: ' + data.toString());
+	});
+
+	webserver.on('close', (code) => {
+		console.log(`webserver process exited with code ${code}`);
+	});
+
+	return webserver;
+}
+
+function startStudyWebServer(study) {
+	const deploymentDir = path.resolve(`${study.rootDir}/${study.distDir}`);
+	console.log(`In directory "${deploymentDir}".`);
+	const webserverProcess = startWebServer(deploymentDir);
+	console.log(`## Started the Web server with PID ${webserverProcess.pid}.`);
+	return webserverProcess;
+}
+
+/**
+ * Sleep for the given milliseconds.
+ *
  * @returns {Promise<unknown>}
  */
 function sleep(ms) {
@@ -211,8 +283,19 @@ function sleep(ms) {
 /**
  * Check if the produced coverage is sufficient for the given study.
  */
-function checkCoverage(coverageTargetFile, study) {
-	const actualCoverage = loadFromSimpleCoverage(coverageTargetFile);
+function checkObtainedCoverage(study) {
+	const coverageFolder = getStudyCoverageFolder(study);
+	const coverageFile = identifyCoverageFile(coverageFolder);
+
+	// Check if the coverage collector has written the files
+	// it was assumed to write.
+	if (!fs.existsSync(coverageFile)) {
+		throw new Error('The coverage collector is supposed to write a log file!');
+	}
+
+	console.log(`## Analysis of coverage in ${coverageFile}`);
+
+	const actualCoverage = loadFromSimpleCoverage(coverageFile);
 	const expectCovered = loadFromCoverageDict(study.expectCoveredLines);
 	const expectUncovered = loadFromCoverageDict(study.expectUncoveredLines);
 	const notCoveredButExpected = identifyExpectedButAbsent(actualCoverage, expectCovered);
@@ -229,134 +312,283 @@ function checkCoverage(coverageTargetFile, study) {
 	}
 }
 
-for (const study of caseStudies) {
-	console.group('# Case study', study.name);
-	try {
-		console.log('## Build the case study');
-		execSync('npm install', { cwd: study.rootDir });
-		execSync('npm run clean', { cwd: study.rootDir });
-		execSync('npm run build', { cwd: study.rootDir });
+function summarizePerformanceMeasures(perfMeasuresByStudy) {
+	const computeStats = (perfType, noInstPerfValue, withInstPerfValue, basePerfValue, fractionFactor) => {
+		// Adjust the base performance if one of the others performed better.
+		basePerfValue = Math.min(basePerfValue, noInstPerfValue, withInstPerfValue);
 
-		const fullStudyDistPath = path.resolve(`${study.rootDir}/${study.distDir}`);
-		console.log(`Instrument the case study in ${fullStudyDistPath}`);
+		const perfPlusDueToInstrumentation = Math.max(0, withInstPerfValue - noInstPerfValue);
+		const noInstPerfDiffToBase = noInstPerfValue - basePerfValue;
+		const withInstPerfDiffToBase = withInstPerfValue - basePerfValue;
 
-		const excludeArgument =
-			study.excludeOrigins.length > 0 ? `--exclude-origin ${study.excludeOrigins.join(' ')}` : '';
-		const includeArgument =
-			study.includeOrigins.length > 0 ? `--include-origin ${study.includeOrigins.join(' ')}` : '';
-
-		console.log('Include/exclude arguments: ', includeArgument, excludeArgument);
-
-		/**
-		 * Attention: This does wildcard expansion!!
-		 * 		See https://stackoverflow.com/questions/11717281/wildcards-in-child-process-spawn
-		 */
-		execSync(
-			`node ./dist/src/main.js ${excludeArgument} ${includeArgument} --in-place ${fullStudyDistPath} --collector ws://localhost:54678`,
-			{ cwd: INSTRUMENTER_DIR, stdio: 'inherit' }
-		);
-
-		console.log('## Starting the Web server');
-		const ws = await LocalWebServer.create({
-			port: SERVER_PORT,
-			directory: `${study.rootDir}/${study.distDir}`,
-			staticMaxage: 0
-		});
-
-		try {
-			const coverageFolder = path.resolve(path.join(study.rootDir, 'coverage'));
-			const logTargetFile = path.resolve(`${study.rootDir}/coverage.log`);
-
-			// Delete existing files
-			if (fs.existsSync(coverageFolder)) {
-				fs.rmdirSync(coverageFolder, { recursive: true });
+		const ifZeroElse = (valueInCaseOfZero, toCheck) => {
+			if (toCheck === 0) {
+				return valueInCaseOfZero;
 			}
-			fs.mkdirSync(coverageFolder);
-			if (fs.existsSync(logTargetFile)) {
-				await fsp.unlink(logTargetFile);
-			}
-
-			// Start the Teamscale mock serer
-			let teamscaleServerMock = new ServerMock({ host: 'localhost', port: TEAMSCALE_MOCK_PORT });
-			teamscaleServerMock.on({
-				method: 'POST',
-				path: `/api/projects/${study.name}/external-analysis/session/auto-create/report`,
-				reply: {
-					status: 200,
-					headers: { 'content-type': 'text/plain' },
-					body: 'Thanks for the report!'
-				}
-			});
-
-			await new Promise(resolve => {
-				console.log('## Starting the Teamscale mock server');
-				teamscaleServerMock.start(resolve);
-			});
-
-			// Start the new collector
-			console.log('## Starting the collector');
-			console.log(`Collector is logging to ${logTargetFile}`);
-			const collectProcess = startCollector(coverageFolder, logTargetFile, study.name);
-
-			try {
-				console.log('## Running Cypress');
-				await cypress.run({
-					configFile: 'cypress.json',
-					reporter: 'junit',
-					browser: 'chrome',
-					headed: false,
-					quiet: true,
-					config: {
-						baseUrl: `http://localhost:${SERVER_PORT}`,
-						video: false,
-						integrationFolder: `test/integration/${study.name}/`
-					},
-					env: {}
-				});
-			} finally {
-				console.log('## Stopping the collector');
-				await sleep(1000);
-				collectProcess.kill('SIGINT');
-				await sleep(7000);
-			}
-
-			// Check if the coverage collector has written the files
-			// it was assumed to write.
-			if (!fs.existsSync(logTargetFile)) {
-				throw new Error('The coverage collector is supposed to write a log file!');
-			}
-
-			const coverageFiles = fs.readdirSync(coverageFolder);
-			if (coverageFiles.length === 0) {
-				throw new Error('The coverage collector did not write a coverage file!');
-			} else if (coverageFiles.length > 1) {
-				throw new Error('More than one coverage file was written');
-			}
-			const coverageFile = path.join(coverageFolder, coverageFiles[0]);
-
-			// Analyze the coverage
-			console.log(`## Analysis of coverage in ${coverageFile}`);
-			checkCoverage(coverageFile, study);
-
-			// Check the calls to the Teamscale mock server
-			const mockedRequests = teamscaleServerMock.requests({ method: 'POST' }).length;
-			if (mockedRequests === 0 && Object.keys(study.expectCoveredLines).length > 0) {
-				throw new Error('No coverage information was sent to the Teamscale mock server!');
-			} else {
-				console.log(`Received ${mockedRequests} requests in the Teamscale mock server.`);
-			}
-
-			await new Promise(resolve => {
-				console.log('## Stopping the Teamscale mock server');
-				teamscaleServerMock.stop(resolve);
-			});
-		} finally {
-			console.log('## Stop the case study Web server');
-			ws.server.close();
+			return toCheck;
 		}
-	} finally {
-		console.groupEnd();
+
+		const result = {};
+		result[perfType + 'Base'] = basePerfValue;
+		result[perfType + 'WithInstAbs'] = withInstPerfValue;
+		result[perfType + 'NoInstAbs'] = noInstPerfValue;
+		result[perfType + 'AbsPlusDueToInst'] = perfPlusDueToInstrumentation;
+		result[perfType + 'InstNoInstFraction'] = withInstPerfValue / noInstPerfValue;
+		result[perfType + 'WithInstNormalized'] = withInstPerfDiffToBase;
+		result[perfType + 'NoInstNormalized'] = noInstPerfDiffToBase;
+		result[perfType + 'NormalizedDelta'] = withInstPerfDiffToBase - noInstPerfDiffToBase;
+		result[perfType + 'NormalizedFraction'] = withInstPerfDiffToBase / noInstPerfDiffToBase;
+		result[perfType + 'NormalizedFraction' + String(fractionFactor)] = Math.round(withInstPerfDiffToBase / fractionFactor) / ifZeroElse(1, Math.round(noInstPerfDiffToBase / fractionFactor));
+		result[perfType + 'NormalizedFraction'] = withInstPerfDiffToBase / noInstPerfDiffToBase / fractionFactor;
+		return result;
+	};
+
+	const computePerfStats = (study, perfType, valueKey, fractionFactor, valueTransformer) => {
+		const baselinePerf = perfMeasuresByStudy[BASELINE_STUDY][KEY_PERF_TESTING_NO_INSTRUMENTATION];
+		const withInstRuntimePerf = perfMeasuresByStudy[study.name][KEY_PERF_INSTRUMENTATION];
+		const withoutInstRuntimePerf = perfMeasuresByStudy[study.name][KEY_PERF_TESTING_NO_INSTRUMENTATION];
+
+		const basePerfValue = valueTransformer(baselinePerf[valueKey]);
+		const noInstRuntimeMemory = valueTransformer(withoutInstRuntimePerf[valueKey]);
+		const withInstRuntimeMemory = valueTransformer(withInstRuntimePerf[valueKey]);
+
+		return computeStats(perfType, noInstRuntimeMemory, withInstRuntimeMemory, basePerfValue, fractionFactor);
+	};
+
+	const aggregatePerformanceResults = () => {
+		const results = [];
+		for (const study of caseStudies) {
+			if (study.name === BASELINE_STUDY) {
+				continue;
+			}
+
+			results.push({
+				'study': study.name,
+				...computePerfStats(study, 'memory', 'memory_mb_peak', 100, (value) => Math.ceil(value)),
+				...computePerfStats(study, 'time', 'duration_secs', 1, (value) => Number(value.toPrecision(2)))
+			});
+		}
+		return results;
+	}
+
+	const checkPerformanceMeasures = (runtimeResults) => {
+		for (let i=0; i<runtimeResults.length; i++) {
+			const runtimeResult = runtimeResults[i];
+			// The baseline study is skipped, that is, a +1 is needed:
+			const study = caseStudies[i+1];
+
+			// We only trigger a violation if the time needed for the study itself is larger than 2s
+			if ('maxNormTimeFraction' in study && runtimeResult.timeWithInstNormalized > 2) {
+				const maxValue = study.maxNormTimeFraction;
+				if (runtimeResult.timeNormalizedFraction > maxValue) {
+					console.error(`Time overhead added by the instrumentation was too high! ${runtimeResult.timeNormalizedFraction} > ${maxValue}`, study.name);
+					process.exit(6);
+				}
+			}
+
+			// We only trigger a violation if the memory needed for the study itself is larger than 200MB
+			if ('maxNormMemoryFraction100' in study && runtimeResult.memoryNormalizedFraction100 > 2) {
+				const maxValue = study.maxNormMemoryFraction100;
+				if (runtimeResult.memoryNormalizedFraction > maxValue) {
+					console.error(`Memory overhead added by the instrumentation was too high! ${runtimeResult.memoryNormalizedFraction} > ${maxValue}`, study.name);
+					process.exit(7);
+				}
+			}
+		}
+	}
+
+	const runtimeResults = aggregatePerformanceResults();
+	console.log(runtimeResults);
+	checkPerformanceMeasures(runtimeResults);
+}
+
+function averagePerformance(samples) {
+	let durationSum = 0;
+	let memorySum = 0;
+	for (const sample of samples) {
+		durationSum = durationSum + sample.duration_secs;
+		memorySum = memorySum + sample.memory_mb_peak;
+	}
+	return { duration_secs: durationSum / samples.length, memory_mb_peak: memorySum / samples.length };
+}
+
+function profileTestingInBrowser(studyName) {
+	const runTestsOnSubjectInBrowser = (studyName) => {
+		const browserPerformanceFile = tempfile('.json');
+		console.log('## Running Cypress tests on the subject');
+		const command = `${path.join(PROFILER_ROOT_DIR, 'test', 'scripts', 'profile_testing.sh')} ${studyName} ${SERVER_PORT} ${browserPerformanceFile}`;
+		execSync(command, { cwd: PROFILER_ROOT_DIR, stdio: 'inherit' });
+		return JSON.parse(fs.readFileSync(browserPerformanceFile));
+	}
+
+	// We do one run that is just for warm-up. Its measures are not considered.
+	runTestsOnSubjectInBrowser(studyName);
+
+	// The actual runs to determine the best performance.
+	const runResults = [];
+	let remainingRuns = 3;
+	while (remainingRuns > 0) {
+		runResults.push(runTestsOnSubjectInBrowser(studyName));
+		remainingRuns--;
+	}
+
+	return averagePerformance(runResults);
+}
+
+function instrumentStudy(study) {
+	const fullStudyDistPath = path.resolve(`${study.rootDir}/${study.distDir}`);
+	console.log(`## Instrument the case study in ${fullStudyDistPath}`);
+
+	/**
+	 * Attention: This does wildcard expansion!!
+	 * 		See https://stackoverflow.com/questions/11717281/wildcards-in-child-process-spawn
+	 */	
+	const excludeArgument =
+		study.excludeOrigins.length > 0 ? `--exclude-origin ${study.excludeOrigins.join(' ')}` : '';
+	const includeArgument =
+		study.includeOrigins.length > 0 ? `--include-origin ${study.includeOrigins.join(' ')}` : '';
+	console.log('Include/exclude arguments: ', includeArgument, excludeArgument);
+
+	const performanceFile = tempfile('.json');
+	execSync(
+		`${path.join(PROFILER_ROOT_DIR, 'test', 'scripts', 'profile_instrumentation.sh')} ${fullStudyDistPath} ${COLLECTOR_PORT} ${performanceFile} ${excludeArgument} ${includeArgument}`,
+		{ cwd: INSTRUMENTER_DIR, stdio: 'inherit' }
+	);		
+	return JSON.parse(fs.readFileSync(performanceFile));	
+}
+
+function storePerfResult(perfMeasuresByStudy, studyName, perfKey, perf) {
+	let studyPerfs = perfMeasuresByStudy[studyName];
+	if (!studyPerfs) {
+		studyPerfs = {};
+		perfMeasuresByStudy[studyName] = studyPerfs;
+	}
+	studyPerfs[perfKey] = perf;
+}
+
+function buildStudy(study) {
+	console.log('## Build the case study');
+	execSync('npm install', { cwd: study.rootDir });
+	execSync('npm run clean', { cwd: study.rootDir });
+	execSync('npm run build', { cwd: study.rootDir });
+}
+
+function getStudyCoverageFolder(study) {
+	return path.resolve(path.join(study.rootDir, 'coverage'));
+}
+
+function identifyCoverageFile(coverageFolder) {
+	const coverageFiles = fs.readdirSync(coverageFolder);
+	if (coverageFiles.length === 0) {
+		throw new Error('The coverage collector did not write a coverage file!');
+	} else if (coverageFiles.length > 1) {
+		throw new Error('More than one coverage file was written');
+	}
+	return path.join(coverageFolder, coverageFiles[0]);
+}
+
+async function clearStudyOutputs(study) {
+	const coverageFolder = getStudyCoverageFolder(study);
+	const logTargetFile = path.resolve(`${study.rootDir}/coverage.log`);
+
+	// Delete existing files
+	if (fs.existsSync(coverageFolder)) {
+		fs.rmSync(coverageFolder, { recursive: true });
+	}
+	fs.mkdirSync(coverageFolder);
+	if (fs.existsSync(logTargetFile)) {
+		await fsp.unlink(logTargetFile);
+	}
+
+	return [coverageFolder, logTargetFile];
+}
+
+async function startTeamscaleMockServer(study) {
+	const teamscaleServerMock = new ServerMock({ host: 'localhost', port: TEAMSCALE_MOCK_PORT }, null);
+	teamscaleServerMock.on({
+		method: 'POST',
+		path: `/api/projects/${study.name}/external-analysis/session/auto-create/report`,
+		reply: {
+			status: 200,
+			headers: { 'content-type': 'text/plain' },
+			body: 'Thanks for the report!'
+		}
+	});
+
+	await new Promise(resolve => {
+		console.log('## Starting the Teamscale mock server');
+		teamscaleServerMock.start(resolve);
+	});
+
+	return teamscaleServerMock;
+}
+
+function checkTeamscaleServerMockInteractions(mockInstance, study) {
+	const mockedRequests = mockInstance.requests({method: 'POST'}).length;
+	if (mockedRequests === 0 && Object.keys(study.expectCoveredLines).length > 0) {
+		throw new Error('No coverage information was sent to the Teamscale mock server!');
+	} else {
+		console.log(`Received ${mockedRequests} requests in the Teamscale mock server.`);
 	}
 }
 
-process.exit(0);
+await (async function runSystemTest() {
+	const perfStore = {};
+
+	for (const study of caseStudies) {
+		console.group('# Case study', study.name);
+		try {
+			buildStudy(study);
+
+			const webserverProcess = startStudyWebServer(study);
+
+			// Run the tests in the browser on the version without instrumentation
+			const notInstrumentedRuntimePerf = profileTestingInBrowser(study.name);
+			storePerfResult(perfStore, study.name, KEY_PERF_TESTING_NO_INSTRUMENTATION, notInstrumentedRuntimePerf);
+
+			const instrumentationPerformance = instrumentStudy(study);
+			storePerfResult(perfStore, study.name, KEY_PERF_INSTRUMENTATION, instrumentationPerformance);
+
+			try {
+				const [coverageFolder, logTargetFile] = await clearStudyOutputs(study);
+
+				const teamscaleServerMock = await startTeamscaleMockServer(study);
+				try {
+					console.log('## Starting the collector');
+					console.log(`Collector is logging to ${logTargetFile}`);
+					const collectProcess = startCollector(coverageFolder, logTargetFile, study.name);
+
+					// Run the tests in the browser on the instrumented version
+					try {
+						const runtimePerformance = profileTestingInBrowser(study.name);
+						storePerfResult(perfStore, study.name, KEY_PERF_TESTING_WITH_INSTRUMENTATION, runtimePerformance);
+					} finally {
+						console.log('## Stopping the collector');
+						await sleep(1000);
+						collectProcess.kill('SIGINT');
+						await sleep(7000);
+					}
+
+					checkObtainedCoverage(study);
+
+					checkTeamscaleServerMockInteractions(teamscaleServerMock, study);
+				} finally {
+					await new Promise(resolve => {
+						console.log('## Stopping the Teamscale mock server');
+						teamscaleServerMock.stop(resolve);
+					});
+				}
+			} finally {
+				console.log(`## Stopping the case study Web server with PID ${webserverProcess.pid}`);
+				webserverProcess.kill();
+				treeKill(webserverProcess.pid, 'SIGKILL');
+			}
+		} finally {
+			console.groupEnd();
+		}
+	}
+
+	summarizePerformanceMeasures(perfStore);
+
+	process.exit(0);
+})();

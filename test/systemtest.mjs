@@ -312,94 +312,36 @@ function checkObtainedCoverage(study) {
 	}
 }
 
-function summarizePerformanceMeasures(perfMeasuresByStudy) {
-	const computeStats = (perfType, noInstPerfValue, withInstPerfValue, basePerfValue, fractionFactor) => {
-		// Adjust the base performance if one of the others performed better.
-		basePerfValue = Math.min(basePerfValue, noInstPerfValue, withInstPerfValue);
+function checkPerformanceMeasures(runtimeResults) {
+	for (let i = 0; i < runtimeResults.length; i++) {
+		const runtimeResult = runtimeResults[i];
+		// The baseline study is skipped, that is, a +1 is needed:
+		const study = caseStudies[i + 1];
 
-		const perfPlusDueToInstrumentation = Math.max(0, withInstPerfValue - noInstPerfValue);
-		const noInstPerfDiffToBase = noInstPerfValue - basePerfValue;
-		const withInstPerfDiffToBase = withInstPerfValue - basePerfValue;
-
-		const ifZeroElse = (valueInCaseOfZero, toCheck) => {
-			if (toCheck === 0) {
-				return valueInCaseOfZero;
+		// We only trigger a violation if the time needed for the study itself is larger than 2s
+		if ('maxNormTimeFraction' in study && runtimeResult.timeWithInstNormalized > 2) {
+			const maxValue = study.maxNormTimeFraction;
+			if (runtimeResult.timeNormalizedFraction > maxValue) {
+				console.error(
+					`Time overhead added by the instrumentation was too high! ${runtimeResult.timeNormalizedFraction} > ${maxValue}`,
+					study.name
+				);
+				process.exit(6);
 			}
-			return toCheck;
 		}
 
-		const result = {};
-		result[perfType + 'Base'] = basePerfValue;
-		result[perfType + 'WithInstAbs'] = withInstPerfValue;
-		result[perfType + 'NoInstAbs'] = noInstPerfValue;
-		result[perfType + 'AbsPlusDueToInst'] = perfPlusDueToInstrumentation;
-		result[perfType + 'InstNoInstFraction'] = withInstPerfValue / noInstPerfValue;
-		result[perfType + 'WithInstNormalized'] = withInstPerfDiffToBase;
-		result[perfType + 'NoInstNormalized'] = noInstPerfDiffToBase;
-		result[perfType + 'NormalizedDelta'] = withInstPerfDiffToBase - noInstPerfDiffToBase;
-		result[perfType + 'NormalizedFraction'] = withInstPerfDiffToBase / noInstPerfDiffToBase;
-		result[perfType + 'NormalizedFraction' + String(fractionFactor)] = Math.round(withInstPerfDiffToBase / fractionFactor) / ifZeroElse(1, Math.round(noInstPerfDiffToBase / fractionFactor));
-		result[perfType + 'NormalizedFraction'] = withInstPerfDiffToBase / noInstPerfDiffToBase / fractionFactor;
-		return result;
-	};
-
-	const computePerfStats = (study, perfType, valueKey, fractionFactor, valueTransformer) => {
-		const baselinePerf = perfMeasuresByStudy[BASELINE_STUDY][KEY_PERF_TESTING_NO_INSTRUMENTATION];
-		const withInstRuntimePerf = perfMeasuresByStudy[study.name][KEY_PERF_INSTRUMENTATION];
-		const withoutInstRuntimePerf = perfMeasuresByStudy[study.name][KEY_PERF_TESTING_NO_INSTRUMENTATION];
-
-		const basePerfValue = valueTransformer(baselinePerf[valueKey]);
-		const noInstRuntimeMemory = valueTransformer(withoutInstRuntimePerf[valueKey]);
-		const withInstRuntimeMemory = valueTransformer(withInstRuntimePerf[valueKey]);
-
-		return computeStats(perfType, noInstRuntimeMemory, withInstRuntimeMemory, basePerfValue, fractionFactor);
-	};
-
-	const aggregatePerformanceResults = () => {
-		const results = [];
-		for (const study of caseStudies) {
-			if (study.name === BASELINE_STUDY) {
-				continue;
-			}
-
-			results.push({
-				'study': study.name,
-				...computePerfStats(study, 'memory', 'memory_mb_peak', 100, (value) => Math.ceil(value)),
-				...computePerfStats(study, 'time', 'duration_secs', 1, (value) => Number(value.toPrecision(2)))
-			});
-		}
-		return results;
-	}
-
-	const checkPerformanceMeasures = (runtimeResults) => {
-		for (let i=0; i<runtimeResults.length; i++) {
-			const runtimeResult = runtimeResults[i];
-			// The baseline study is skipped, that is, a +1 is needed:
-			const study = caseStudies[i+1];
-
-			// We only trigger a violation if the time needed for the study itself is larger than 2s
-			if ('maxNormTimeFraction' in study && runtimeResult.timeWithInstNormalized > 2) {
-				const maxValue = study.maxNormTimeFraction;
-				if (runtimeResult.timeNormalizedFraction > maxValue) {
-					console.error(`Time overhead added by the instrumentation was too high! ${runtimeResult.timeNormalizedFraction} > ${maxValue}`, study.name);
-					process.exit(6);
-				}
-			}
-
-			// We only trigger a violation if the memory needed for the study itself is larger than 200MB
-			if ('maxNormMemoryFraction100' in study && runtimeResult.memoryNormalizedFraction100 > 2) {
-				const maxValue = study.maxNormMemoryFraction100;
-				if (runtimeResult.memoryNormalizedFraction > maxValue) {
-					console.error(`Memory overhead added by the instrumentation was too high! ${runtimeResult.memoryNormalizedFraction} > ${maxValue}`, study.name);
-					process.exit(7);
-				}
+		// We only trigger a violation if the memory needed for the study itself is larger than 200MB
+		if ('maxNormMemoryFraction100' in study && runtimeResult.memoryNormalizedFraction100 > 2) {
+			const maxValue = study.maxNormMemoryFraction100;
+			if (runtimeResult.memoryNormalizedFraction > maxValue) {
+				console.error(
+					`Memory overhead added by the instrumentation was too high! ${runtimeResult.memoryNormalizedFraction} > ${maxValue}`,
+					study.name
+				);
+				process.exit(7);
 			}
 		}
 	}
-
-	const runtimeResults = aggregatePerformanceResults();
-	console.log(runtimeResults);
-	checkPerformanceMeasures(runtimeResults);
 }
 
 function averagePerformance(samples) {
@@ -588,7 +530,9 @@ await (async function runSystemTest() {
 		}
 	}
 
-	summarizePerformanceMeasures(perfStore);
+	const runtimeResults = PerformanceAggregator.aggregatePerformanceResults(perfStore);
+	console.log(runtimeResults);
+	checkPerformanceMeasures(runtimeResults);
 
 	process.exit(0);
 })();

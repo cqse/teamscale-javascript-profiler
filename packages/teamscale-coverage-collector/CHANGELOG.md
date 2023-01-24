@@ -2,6 +2,8 @@ We use [Semantic Versioning](https://semver.org/).
 
 # New Release
 
+# 0.0.1-beta.44
+
 - [feature] Upload reports to Artifactory is now supported.
 - [fix] Library `source-map` upgraded to address https://github.com/mozilla/source-map/issues/432
 

@@ -24,9 +24,6 @@ export class App {
 		const parser: ArgumentParser = this.buildParser();
 		const config: ConfigurationParameters = parser.parse_args();
 
-		// Postprocess config parameter
-		this.postprocessConfig(config);
-
 		// Build the logger
 		const logger = this.buildLogger(config);
 
@@ -148,6 +145,8 @@ export class App {
 	 * @param logger - The logger to use.
 	 */
 	public static runForConfigArguments(config: ConfigurationParameters, logger?: Logger): Promise<TaskResult> {
+		this.postprocessConfig(config);
+
 		const task: InstrumentationTask = this.createInstrumentationTask(config);
 		Contract.require(task.elements.length > 0, 'The instrumentation task must not be empty.');
 

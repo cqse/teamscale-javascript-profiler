@@ -8,6 +8,7 @@ import { version } from '../package.json';
 import { existsSync } from 'fs';
 import mkdirp from 'mkdirp';
 import Logger from 'bunyan';
+import {Config} from "prettier";
 
 /**
  * Entry points of the instrumenter, including command line argument parsing.
@@ -21,13 +22,43 @@ export class App {
 		// Parsing of command line arguments:
 		// Build the configuration object from the command line arguments.
 		const parser: ArgumentParser = this.buildParser();
-		const config = parser.parse_args();
+		const config: ConfigurationParameters = parser.parse_args();
+
+		// Postprocess config parameter
+		this.postprocessConfig(config);
 
 		// Build the logger
 		const logger = this.buildLogger(config);
 
 		// Run the instrumenter with the given configuration.
 		return this.runForConfigArguments(config, logger);
+	}
+
+	/**
+	 * Sometimes we get inputs from shell environments where the strings are
+	 * still quoted. We remove those here.
+	 */
+	private static postprocessConfig(config: ConfigurationParameters): void {
+		function unquoteString(originalString: string|undefined): string|undefined {
+			if (originalString === undefined) {
+				return originalString;
+			}
+			return originalString.replace(/^["'](.+(?=["']$))["']$/, '$1');
+		}
+
+		function unquoteStringElements(originalArray: string[]|undefined): string[]|undefined {
+			if (originalArray === undefined) {
+				return undefined;
+			}
+			return originalArray.map(s => unquoteString(s) ?? "");
+
+		}
+
+		config.source_map = unquoteString(config.source_map);
+		config.inputs = unquoteStringElements(config.inputs);
+		config.exclude_origin = unquoteStringElements(config.exclude_origin);
+		config.include_origin = unquoteStringElements(config.include_origin);
+		config.collector = unquoteString(config.collector) ?? "";
 	}
 
 	/**
@@ -48,7 +79,7 @@ export class App {
 			help: 'Path (directory or file name) to write the instrumented version to.'
 		});
 		parser.add_argument('-s', '--source-map', {
-			help: 'External location of source-map files to consider.'
+			help: 'External location of source-map files to consider.',
 		});
 		parser.add_argument('-c', '--collector', {
 			help: 'The collector (`host:port` or `wss://host:port/` or `ws://host:port/`) to send coverage information to.',

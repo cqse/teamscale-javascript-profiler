@@ -2,6 +2,8 @@ We use [Semantic Versioning](https://semver.org/).
 
 # New Release
 
+- [fix] Removing quotes from all command line argument strings. This makes the instrumenter more robust.
+
 # 0.0.1-beta.44
 
 - [fix] Library `source-map` upgraded to address https://github.com/mozilla/source-map/issues/432

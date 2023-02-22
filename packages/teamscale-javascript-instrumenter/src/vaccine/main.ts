@@ -4,7 +4,7 @@ import DataWorker from './worker/vaccine.worker.ts';
 import * as unload from 'unload';
 import { getWindow, universe, hasWindow, universeAttribute } from './utils';
 import { ProtocolMessageTypes } from './protocol';
-import { BRANCH_COVERAGE_ID, IstanbulCoverageStore, STATEMENT_COVERAGE_ID } from './types';
+import { IstanbulCoverageStore } from './types';
 
 // Prepare our global JavaScript object. This will hold
 // a reference to the WebWorker thread.
@@ -27,23 +27,77 @@ function setWorker(worker: DataWorker): DataWorker {
 
 const interceptedStores: Set<string> = new Set<string>();
 
-/**
- * Signal the coverage of a particular statement.
- */
-universe()._$stmtCov = function (fileId: string, statementId: number): void {
-	getWorker().postMessage(
-		`${ProtocolMessageTypes.UNRESOLVED_CODE_ENTITY} ${fileId} ${STATEMENT_COVERAGE_ID} ${statementId}`
-	);
-};
+type FileCoverageBuffer = { branches: Map<number, number>, statements: Set<number> };
+
+const coverageBuffer = (() => {
+
+	const buffer: Map<string, FileCoverageBuffer> = new Map();
+
+	const branchBufferRefs: Map<string, Map<number, number>> = new Map();
+
+	const statementBufferRefs: Map<string, Set<number>> = new Map();
+
+	function getBufferFor(fileId: string): FileCoverageBuffer {
+		let fileBuffer = buffer.get(fileId);
+		if (fileBuffer) {
+			return fileBuffer;
+		}
+
+		fileBuffer = { branches: new Map(), statements: new Set() };
+		buffer.set(fileId, fileBuffer);
+		return fileBuffer;
+	}
+
+	function getBranchBufferFor(fileId: string): Map<number, number> {
+		let result = branchBufferRefs.get(fileId);
+		if (!result) {
+			result = getBufferFor(fileId).branches;
+			branchBufferRefs.set(fileId, result);
+		}
+		return result;
+	}
+
+	function getStatementBufferFor(fileId: string): Set<number> {
+		let result = statementBufferRefs.get(fileId);
+		if (!result) {
+			result = getBufferFor(fileId).statements;
+			statementBufferRefs.set(fileId, result);
+		}
+		return result;
+	}
+
+	function putBranchCoverage(fileId: string, branchId: number, locationId: number) {
+		getBranchBufferFor(fileId).set(branchId, locationId);
+	}
+
+	function putStatementCoverage(fileId: string, statementId: number) {
+		getStatementBufferFor(fileId).add(statementId);
+	}
+
+	function flush() {
+		for (const fileEntry of buffer.entries()) {
+			getWorker().postMessage(fileEntry);
+		}
+		buffer.clear();
+		branchBufferRefs.clear();
+		statementBufferRefs.clear();
+	}
+
+	setInterval(() => flush(), 500);
+
+	return { putBranchCoverage, putStatementCoverage, flush };
+})();
+
 
 /**
  * Signal the coverage of a particular statement.
  */
-universe()._$brCov = function (fileId: string, branchId: number, locationId: number): void {
-	getWorker().postMessage(
-		`${ProtocolMessageTypes.UNRESOLVED_CODE_ENTITY} ${fileId} ${BRANCH_COVERAGE_ID} ${branchId} ${locationId}`
-	);
-};
+universe()._$stmtCov = coverageBuffer.putStatementCoverage;
+
+/**
+ * Signal the coverage of a particular statement.
+ */
+universe()._$brCov = coverageBuffer.putBranchCoverage;
 
 /**
  * The function that intercepts changes to the Istanbul code coverage.
@@ -96,7 +150,10 @@ universe()._$registerCoverageObject = function (coverage: IstanbulCoverageStore)
 			protectWindowEvent('onunload');
 			protectWindowEvent('onbeforeunload');
 
-			unload.add(() => worker.postMessage('unload'));
+			unload.add(() => {
+				coverageBuffer.flush();
+				worker.postMessage('unload');
+			});
 		})();
 	}
 

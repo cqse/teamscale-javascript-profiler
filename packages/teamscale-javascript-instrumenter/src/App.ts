@@ -8,7 +8,6 @@ import { version } from '../package.json';
 import { existsSync } from 'fs';
 import mkdirp from 'mkdirp';
 import Logger from 'bunyan';
-import {Config} from "prettier";
 
 /**
  * Entry points of the instrumenter, including command line argument parsing.
@@ -35,7 +34,7 @@ export class App {
 	 * Sometimes we get inputs from shell environments where the strings are
 	 * still quoted. We remove those here.
 	 */
-	private static postprocessConfig(config: ConfigurationParameters): void {
+	public static postprocessConfig(config: ConfigurationParameters): void {
 		function unquoteString(originalString: string|undefined): string|undefined {
 			if (originalString === undefined) {
 				return originalString;
@@ -43,19 +42,32 @@ export class App {
 			return originalString.replace(/^["'](.+(?=["']$))["']$/, '$1');
 		}
 
-		function unquoteStringElements(originalArray: string[]|undefined): string[]|undefined {
+		function unquoteStringElements(originalArray: unknown[]|undefined): unknown[]|undefined {
 			if (originalArray === undefined) {
 				return undefined;
 			}
-			return originalArray.map(s => unquoteString(s) ?? "");
+
+			return originalArray.map(s => {
+				if (typeof s === 'string') {
+					return unquoteString(s);
+				} else {
+					return s;
+				}
+			});
 
 		}
 
-		config.source_map = unquoteString(config.source_map);
-		config.inputs = unquoteStringElements(config.inputs);
-		config.exclude_origin = unquoteStringElements(config.exclude_origin);
-		config.include_origin = unquoteStringElements(config.include_origin);
-		config.collector = unquoteString(config.collector) ?? "";
+		for (const [property, value] of Object.entries(config)) {
+			if (value === undefined) {
+				// In case the value is 'undefined' we can ignore this.
+			} else if (typeof value === 'string') {
+				// eslint-disable-next-line  @typescript-eslint/no-explicit-any
+				(config as any)[property] = unquoteString(value);
+			} else if (Array.isArray(value)) {
+				// eslint-disable-next-line  @typescript-eslint/no-explicit-any
+				(config as any)[property] = unquoteStringElements(value);
+			}
+		}
 	}
 
 	/**

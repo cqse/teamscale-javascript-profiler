@@ -32,7 +32,6 @@
     "@types/glob": "^8.1.0",
     "@types/istanbul-lib-instrument": "^1.7.4",
     "@types/jest": "^29.4.0",
-    "@types/mkdirp": "^2.0.0",
     "@types/node": "^18.14.1",
     "@types/source-map": "^0.5.7",
     "@types/ws": "^8.5.4",

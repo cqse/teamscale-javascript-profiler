@@ -5,7 +5,7 @@ import { WebSocketCollectingServer } from './receiver/CollectingServer';
 import 'dotenv/config';
 import * as fs from 'fs';
 import { buildParameterParser, ConfigParameters } from './utils/ConfigParameters';
-import mkdirp from 'mkdirp';
+import { mkdirp } from 'mkdirp';
 import path from 'path';
 import { StdConsoleLogger } from './utils/StdConsoleLogger';
 import { PrettyFileLogger } from './utils/PrettyFileLogger';

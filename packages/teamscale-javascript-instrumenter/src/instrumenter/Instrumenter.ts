@@ -11,7 +11,7 @@ import { Contract, IllegalArgumentException } from '@cqse/commons';
 import { Position, RawSourceMap, SourceMapConsumer } from 'source-map';
 import * as istanbul from 'istanbul-lib-instrument';
 import * as fs from 'fs';
-import * as mkdirp from 'mkdirp';
+import { mkdirp } from 'mkdirp';
 import * as path from 'path';
 import * as convertSourceMap from 'convert-source-map';
 import { cleanSourceCode } from './Postprocessor';

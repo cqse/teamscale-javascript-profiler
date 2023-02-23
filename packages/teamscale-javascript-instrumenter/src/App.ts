@@ -6,7 +6,7 @@ import { ConfigurationParameters, TaskBuilder } from './instrumenter/TaskBuilder
 import * as path from 'path';
 import { version } from '../package.json';
 import { existsSync } from 'fs';
-import mkdirp from 'mkdirp';
+import { mkdirp } from 'mkdirp';
 import Logger from 'bunyan';
 
 /**

@@ -37,6 +37,19 @@ test('Instrumentation: React App. Vendor.js', () => {
 	).resolves.toHaveProperty('translated', 1);
 });
 
+test('Instrumentation: React App. Vendor.js. Skip its instrumentation based on pattern.', () => {
+	const outputDir = path.join(__dirname, '..', '..', 'outputs');
+	return expect(
+		App.runForConfigArguments({
+			inputs: [path.join(__dirname, 'inputs', 'vite-react-vendor.js')],
+			in_place: false,
+			exclude_bundle: ['**/*-vendor.js'],
+			collector: 'localhost:54321',
+			to: outputDir
+		})
+	).resolves.toHaveProperty('excluded', 1);
+});
+
 test('Instrumentation: React App. Vendor.js; single quoted collector config; TS-33372', () => {
 	const outputDir = path.join(__dirname, '..', '..', 'outputs');
 	return expect(

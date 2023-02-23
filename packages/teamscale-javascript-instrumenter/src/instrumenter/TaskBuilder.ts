@@ -1,5 +1,5 @@
 import {
-	CollectorSpecifier,
+	CollectorSpecifier, FileExcludePattern,
 	InstrumentationTask,
 	OriginSourcePattern,
 	SourceMapFileReference,
@@ -25,6 +25,8 @@ export type ConfigurationParameters = {
 	include_origin?: string[];
 	// eslint-disable-next-line camelcase
 	exclude_origin?: string[];
+	// eslint-disable-next-line camelcase
+	exclude_bundle?: string[];
 	// eslint-disable-next-line camelcase
 	dump_origins_to?: string;
 };
@@ -55,11 +57,14 @@ export class TaskBuilder {
 	/** The collector to send the coverage to. */
 	private collector: CollectorSpecifier | null;
 
-	/** An include pattern. */
+	/** Origin include patterns. */
 	private originSourceIncludePatterns: string[] | undefined;
 
-	/** An exclude pattern. */
+	/** Origin exclude patters. */
 	private originSourceExcludePatterns: string[] | undefined;
+
+	/** Bundle exclude patters. */
+	private bundleFileExcludePatterns: string[] | undefined;
 
 	/** File path where all origins from the source map should be dumped in json format, or undefined if no origins should be dumped */
 	private dumpOriginsFile: string | undefined;
@@ -76,15 +81,21 @@ export class TaskBuilder {
 		return this;
 	}
 
-	/** Set the include pattern. If multiple patterns are present, concatenates them via the OR operator.  */
+	/** Set the origin include pattern. If multiple patterns are present, concatenates them via the OR operator.  */
 	setOriginSourceIncludePatterns(patterns: string[] | undefined): this {
 		this.originSourceIncludePatterns = patterns;
 		return this;
 	}
 
-	/** Set the exclude pattern(s). If multiple patterns are present, concatenates them via the OR operator. */
+	/** Set the origin exclude pattern(s). If multiple patterns are present, concatenates them via the OR operator. */
 	setOriginSourceExcludePatterns(patterns: string[] | undefined): this {
 		this.originSourceExcludePatterns = patterns;
+		return this;
+	}
+
+	/** Sets the file bundle exclude pattern. If multiple patterns are present, concatenates them via the OR operator. */
+	setBundleExcludePatterns(patterns: string[] | undefined): this {
+		this.bundleFileExcludePatterns = patterns;
 		return this;
 	}
 
@@ -108,11 +119,12 @@ export class TaskBuilder {
 		this.setCollectorFromString(config.collector);
 		this.setOriginSourceIncludePatterns(config.include_origin);
 		this.setOriginSourceExcludePatterns(config.exclude_origin);
+		this.setBundleExcludePatterns(config.exclude_bundle);
 
 		// Handle an explicitly specified source map
 		const sourceMapInfo = loadSourceMap(sourceMap);
 
-		// Depending on whether or not an in place instrumentation is needed
+		// If an in place instrumentation is needed
 		// the task has to be built differently and different invariants
 		// have to be satisfied by the passed configuration.
 		if (inPlace) {
@@ -194,11 +206,11 @@ export class TaskBuilder {
 	 * Build the instrumentation task.
 	 */
 	public build(): InstrumentationTask {
-		const pattern = new OriginSourcePattern(this.originSourceIncludePatterns, this.originSourceExcludePatterns);
 		return new InstrumentationTask(
 			Contract.requireDefined(this.collector),
 			this.elements,
-			pattern,
+			new FileExcludePattern(this.bundleFileExcludePatterns),
+			new OriginSourcePattern(this.originSourceIncludePatterns, this.originSourceExcludePatterns),
 			this.dumpOriginsFile
 		);
 	}
@@ -212,7 +224,7 @@ function isPattern(text: string): boolean {
 }
 
 /**
- * Expand the given Glob pattern and check whether or not files matched.
+ * Expand the given Glob pattern and check if files matched.
  * Raises an exception is the result is empty.
  *
  * @param pattern - The Glob pattern used for matching.

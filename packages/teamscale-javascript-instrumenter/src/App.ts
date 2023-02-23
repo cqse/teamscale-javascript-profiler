@@ -102,7 +102,7 @@ export class App {
 			nargs: '*',
 			help: 'Glob pattern(s) of files in the source origin to produce coverage for. Multiple patterns can be separated by space.'
 		});
-		parser.add_argument('-x', '--exclude-bundle', {
+		parser.add_argument('-e', '--exclude-bundle', {
 			nargs: '*',
 			help: 'Glob pattern(s) of input (bundle) files to keep unchanged (to not instrument).'
 		});

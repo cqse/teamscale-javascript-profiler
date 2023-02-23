@@ -3,6 +3,7 @@ We use [Semantic Versioning](https://semver.org/).
 # New Release
 
 - [fix] Removing quotes from all command line argument strings. This makes the instrumenter more robust.
+- [feature] A new parameter `--exclude-bundle` allows for skipping the instrumentation of specified input files.
 
 # 0.0.1-beta.44
 

@@ -1,5 +1,5 @@
 import {
-	CollectorSpecifier,
+	CollectorSpecifier, FileExcludePattern,
 	InstrumentationTask,
 	OriginSourcePattern,
 	SourceMapFileReference,
@@ -8,7 +8,7 @@ import {
 	TaskResult
 } from './Task';
 import { Contract, IllegalArgumentException } from '@cqse/commons';
-import { Position, RawSourceMap, SourceMapConsumer } from 'source-map';
+import { RawSourceMap, SourceMapConsumer } from 'source-map';
 import * as istanbul from 'istanbul-lib-instrument';
 import * as fs from 'fs';
 import * as mkdirp from 'mkdirp';
@@ -71,6 +71,7 @@ export class IstanbulInstrumenter implements IInstrumenter {
 				return await this.instrumentOne(
 					task.collector,
 					taskElement,
+					task.excludeFilesPattern,
 					task.originSourcePattern,
 					task.dumpOriginsFile
 				);
@@ -93,6 +94,7 @@ export class IstanbulInstrumenter implements IInstrumenter {
 	async instrumentOne(
 		collector: CollectorSpecifier,
 		taskElement: TaskElement,
+		excludeBundles: FileExcludePattern,
 		sourcePattern: OriginSourcePattern,
 		dumpOriginsFile: string | undefined
 	): Promise<TaskResult> {
@@ -104,6 +106,14 @@ export class IstanbulInstrumenter implements IInstrumenter {
 				writeToFile(taskElement.toFile, inputFileSource);
 			}
 			return new TaskResult(0, 0, 0, 1, 0, 0, 0);
+		}
+
+		// We might want to skip the instrumentation of the file
+		if (excludeBundles.isExcluded(taskElement.fromFile)) {
+			if (!taskElement.isInPlace()) {
+				writeToFile(taskElement.toFile, inputFileSource);
+			}
+			return new TaskResult(0, 1, 0, 0, 0, 0, 0);
 		}
 
 		// Not all file types are supported by the instrumenter

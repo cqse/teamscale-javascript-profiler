@@ -79,8 +79,13 @@ export class WebSocketCollectingServer {
 
 			// Handle incoming messages
 			webSocket.on('message', async (message: WebSocket.Data) => {
-				if (session && typeof message === 'string') {
-					await this.handleMessage(session, message);
+				if (session) {
+					if (typeof message === 'object' && message.constructor.name === "Buffer") {
+						message = message.toString();
+					}
+					if (typeof message === 'string') {
+						await this.handleMessage(session, message);
+					}
 				}
 			});
 

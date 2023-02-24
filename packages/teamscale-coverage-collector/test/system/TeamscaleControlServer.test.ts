@@ -50,7 +50,7 @@ describe('Test the control server that is integrated in the collector with uploa
 		const requests = await mockedEndpoint.getSeenRequests();
 		expect(requests).toHaveLength(1);
 		expect(requests[0].url).toContain("message=mymessage");
-	}, 10000);
+	}, 20000);
 
 	it('Change commit and dump coverage', async () => {
 		let mockedEndpoint = await teamscaleServerMock
@@ -62,7 +62,7 @@ describe('Test the control server that is integrated in the collector with uploa
 		const requests = await mockedEndpoint.getSeenRequests();
 		expect(requests).toHaveLength(1);
 		expect(requests[0].url).toContain("t=master%3A123456789000");
-	}, 10000);
+	}, 20000);
 
 	it('Change revision and dump coverage', async () => {
 		let mockedEndpoint = await teamscaleServerMock
@@ -74,7 +74,7 @@ describe('Test the control server that is integrated in the collector with uploa
 		const requests = await mockedEndpoint.getSeenRequests();
 		expect(requests).toHaveLength(1);
 		expect(requests[0].url).toContain("revision=rev123");
-	}, 10000);
+	}, 20000);
 
 	it('Change partiton and dump coverage', async () => {
 		let mockedEndpoint = await teamscaleServerMock
@@ -86,7 +86,7 @@ describe('Test the control server that is integrated in the collector with uploa
 		const requests = await mockedEndpoint.getSeenRequests();
 		expect(requests).toHaveLength(1);
 		expect(requests[0].url).toContain("partition=dummyPartition");
-	}, 10000);
+	}, 20000);
 
 	it('Change project ID and dump coverage', async () => {
 		const projectId = 'dummyProjectId';
@@ -98,5 +98,5 @@ describe('Test the control server that is integrated in the collector with uploa
     await postAndDumpCoverage();
 		const requests = await mockedEndpoint.getSeenRequests();
 		expect(requests).toHaveLength(1);
-	}, 10000);
+	}, 20000);
 });

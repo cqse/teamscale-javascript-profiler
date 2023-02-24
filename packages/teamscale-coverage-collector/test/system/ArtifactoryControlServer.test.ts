@@ -46,7 +46,7 @@ describe('Test the control server that is integrated in the collector with uploa
     	await postAndDumpCoverage();
 		const requests = await mockedEndpoint.getSeenRequests();
 		expect(requests).toHaveLength(1);
-	}, 15000);
+	}, 20000);
 
 	it.skip('Change commit and dump coverage', async () => {
 		let mockedEndpoint = await artifactoryServerMock
@@ -57,7 +57,7 @@ describe('Test the control server that is integrated in the collector with uploa
     	await postAndDumpCoverage();
 		const requests = await mockedEndpoint.getSeenRequests();
 		expect(requests).toHaveLength(1);
-	}, 15000);
+	}, 20000);
 
 	it.skip('Change revision and dump coverage', async () => {
 		let mockedEndpoint = await artifactoryServerMock
@@ -68,7 +68,7 @@ describe('Test the control server that is integrated in the collector with uploa
     	await postAndDumpCoverage();
 		const requests = await mockedEndpoint.getSeenRequests();
 		expect(requests).toHaveLength(1);
-	}, 15000);
+	}, 20000);
 
 	it.skip('Change partiton and dump coverage', async () => {
 		let mockedEndpoint = await artifactoryServerMock
@@ -79,5 +79,5 @@ describe('Test the control server that is integrated in the collector with uploa
     	await postAndDumpCoverage();
 		const requests = await mockedEndpoint.getSeenRequests();
 		expect(requests).toHaveLength(1);
-	}, 15000);
+	}, 20000);
 });

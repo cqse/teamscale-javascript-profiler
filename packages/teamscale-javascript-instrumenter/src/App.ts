@@ -21,13 +21,53 @@ export class App {
 		// Parsing of command line arguments:
 		// Build the configuration object from the command line arguments.
 		const parser: ArgumentParser = this.buildParser();
-		const config = parser.parse_args();
+		const config: ConfigurationParameters = parser.parse_args();
 
 		// Build the logger
 		const logger = this.buildLogger(config);
 
 		// Run the instrumenter with the given configuration.
 		return this.runForConfigArguments(config, logger);
+	}
+
+	/**
+	 * Sometimes we get inputs from shell environments where the strings are
+	 * still quoted. We remove those here.
+	 */
+	public static postprocessConfig(config: ConfigurationParameters): void {
+		function unquoteString(originalString: string|undefined): string|undefined {
+			if (originalString === undefined) {
+				return originalString;
+			}
+			return originalString.replace(/^["'](.+(?=["']$))["']$/, '$1');
+		}
+
+		function unquoteStringElements(originalArray: unknown[]|undefined): unknown[]|undefined {
+			if (originalArray === undefined) {
+				return undefined;
+			}
+
+			return originalArray.map(s => {
+				if (typeof s === 'string') {
+					return unquoteString(s);
+				} else {
+					return s;
+				}
+			});
+
+		}
+
+		for (const [property, value] of Object.entries(config)) {
+			if (value === undefined) {
+				// In case the value is 'undefined' we can ignore this.
+			} else if (typeof value === 'string') {
+				// eslint-disable-next-line  @typescript-eslint/no-explicit-any
+				(config as any)[property] = unquoteString(value);
+			} else if (Array.isArray(value)) {
+				// eslint-disable-next-line  @typescript-eslint/no-explicit-any
+				(config as any)[property] = unquoteStringElements(value);
+			}
+		}
 	}
 
 	/**
@@ -48,7 +88,7 @@ export class App {
 			help: 'Path (directory or file name) to write the instrumented version to.'
 		});
 		parser.add_argument('-s', '--source-map', {
-			help: 'External location of source-map files to consider.'
+			help: 'External location of source-map files to consider.',
 		});
 		parser.add_argument('-c', '--collector', {
 			help: 'The collector (`host:port` or `wss://host:port/` or `ws://host:port/`) to send coverage information to.',
@@ -61,6 +101,10 @@ export class App {
 		parser.add_argument('-k', '--include-origin', {
 			nargs: '*',
 			help: 'Glob pattern(s) of files in the source origin to produce coverage for. Multiple patterns can be separated by space.'
+		});
+		parser.add_argument('-e', '--exclude-bundle', {
+			nargs: '*',
+			help: 'Glob pattern(s) of input (bundle) files to keep unchanged (to not instrument).'
 		});
 		parser.add_argument('-p', '--dump-origins-to', {
 			help: 'Optional location specifying where to dump possible origins from the source map as a json file'
@@ -117,6 +161,8 @@ export class App {
 	 * @param logger - The logger to use.
 	 */
 	public static runForConfigArguments(config: ConfigurationParameters, logger?: Logger): Promise<TaskResult> {
+		this.postprocessConfig(config);
+
 		const task: InstrumentationTask = this.createInstrumentationTask(config);
 		Contract.require(task.elements.length > 0, 'The instrumentation task must not be empty.');
 

@@ -373,7 +373,13 @@ export function sourceMapFromCodeComment(sourcecode: string, sourceFilePath: str
 					result = convertSourceMap.fromComment(sourceMapComment).toObject();
 				} else {
 					result = convertSourceMap
-						.fromMapFileComment(sourceMapComment, path.dirname(sourceFilePath))
+						.fromMapFileComment(sourceMapComment, (filename) => {
+							if (!fs.existsSync(filename)) {
+								filename = path.join(path.dirname(sourceFilePath), path.basename(filename));
+							}
+							const result = fs.readFileSync(filename);
+							return result.toString();
+						})
 						.toObject();
 				}
 			} catch (e) {

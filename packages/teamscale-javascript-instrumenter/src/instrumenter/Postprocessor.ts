@@ -14,9 +14,7 @@ import {
 	StringLiteral,
 	isVariableDeclaration,
 	VariableDeclaration,
-	VariableDeclarator,
 	isFunctionDeclaration,
-	ExpressionStatement,
 	isSequenceExpression,
 	SequenceExpression,
 	isUpdateExpression
@@ -149,7 +147,7 @@ function createPartialInstrumentationHandler(
 				}
 
 				const insertAsExpression = isSequenceExpression(path.parent);
-				insertNodeBefore(path, newCoverageIncrementNode(fileIdVarName, increment, insertAsExpression));
+				insertNodeBefore(path as NodePath<Node>, newCoverageIncrementNode(fileIdVarName, increment, insertAsExpression));
 			}
 
 			// Remove the existing coverage increment node
@@ -191,9 +189,9 @@ export function cleanSourceCode(
  */
 function insertNodeBefore(path: NodePath<Node>, toInsert: Node): void {
 	if (isSequenceExpression(path.parent)) {
-		(path.parentPath as NodePath<SequenceExpression>).unshiftContainer('expressions', [toInsert]);
+		(path.parentPath as NodePath<SequenceExpression>).unshiftContainer('expressions', [toInsert as any]);
 	} else {
-		path.insertBefore(toInsert);
+		path.insertBefore(toInsert as any);
 	}
 }
 

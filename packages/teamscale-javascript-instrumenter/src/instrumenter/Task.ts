@@ -77,26 +77,8 @@ export class OriginSourcePattern {
 	private readonly exclude: string[] | undefined;
 
 	constructor(include: string[] | undefined, exclude: string[] | undefined) {
-		this.include = this.normalizePatterns(include);
-		this.exclude = this.normalizePatterns(exclude);
-	}
-
-	/**
-	 * Normalizes all patterns (normally either include or exclude patterns), and returns all
-	 * valid normalized patterns. Returns undefined if the patterns list is undefined, or all
-	 * items inside the list are undefined.
-	 */
-	private normalizePatterns(patterns: string[] | undefined): string[] | undefined {
-		if (patterns === undefined || patterns.length === 0) {
-			return undefined;
-		}
-		const normalizedPatterns = patterns
-			.map(pattern => OriginSourcePattern.normalizeGlobPattern(pattern))
-			.filter(pattern => pattern !== undefined) as string[];
-		if (patterns.length === 0) {
-			return undefined;
-		}
-		return normalizedPatterns;
+		this.include = normalizePatterns(include);
+		this.exclude = normalizePatterns(exclude);
 	}
 
 	/**
@@ -116,7 +98,7 @@ export class OriginSourcePattern {
 			return true;
 		}
 
-		const normalizedOriginFiles = originFiles.map(OriginSourcePattern.normalizePath);
+		const normalizedOriginFiles = originFiles.map(normalizePath);
 		if (this.exclude) {
 			const matchedToExclude = matching(normalizedOriginFiles, this.exclude);
 			if (originFiles.length === matchedToExclude.length) {
@@ -132,31 +114,72 @@ export class OriginSourcePattern {
 		return true;
 	}
 
-	private static normalizeGlobPattern(pattern: string | undefined): string | undefined {
-		if (!pattern) {
-			return pattern;
-		}
+}
 
-		return OriginSourcePattern.removeTrailingCurrentWorkingDir(pattern);
+/**
+ * Pattern describing files (bundles) to not instrument.
+ */
+export class FileExcludePattern {
+
+	/**
+	 * Glob pattern describing a set of files to be excluded in the instrumentation process.
+	 */
+	private readonly exclude: string[];
+
+	constructor(exclude: string[] | undefined) {
+		this.exclude = normalizePatterns(exclude) ?? [];
 	}
 
-	private static normalizePath(toNormalize: string): string {
-		return OriginSourcePattern.removeTrailingCurrentWorkingDir(toNormalize);
+	/**
+	 * Return `true` if the given `filePath` is matched by any of the patterns in `exclude`.
+	 */
+	public isExcluded(filePath: string): boolean {
+		return matching([filePath], this.exclude).length === 1;
+	}
+}
+
+/**
+ * Normalizes all patterns (normally either include or exclude patterns), and returns all
+ * valid normalized patterns. Returns undefined if the patterns list is undefined, or all
+ * items inside the list are undefined.
+ */
+function normalizePatterns(patterns: string[] | undefined): string[] | undefined {
+	if (patterns === undefined || patterns.length === 0) {
+		return undefined;
+	}
+	const normalizedPatterns = patterns
+		.map(pattern => normalizeGlobPattern(pattern))
+		.filter(pattern => pattern !== undefined) as string[];
+	if (patterns.length === 0) {
+		return undefined;
+	}
+	return normalizedPatterns;
+}
+
+function normalizeGlobPattern(pattern: string | undefined): string | undefined {
+	if (!pattern) {
+		return pattern;
 	}
 
-	private static removeTrailingCurrentWorkingDir(removeFrom: string): string {
-		return OriginSourcePattern.removePrefix(
-			'webpack:///',
-			OriginSourcePattern.removePrefix('.' + path.sep, removeFrom)
-		);
-	}
+	return removeTrailingCurrentWorkingDir(pattern);
+}
 
-	private static removePrefix(prefix: string, removeFrom: string): string {
-		if (removeFrom.startsWith(prefix)) {
-			return removeFrom.substring(prefix.length);
-		}
-		return removeFrom;
+function normalizePath(toNormalize: string): string {
+	return removeTrailingCurrentWorkingDir(toNormalize);
+}
+
+function removeTrailingCurrentWorkingDir(removeFrom: string): string {
+	return removePrefix(
+		'webpack:///',
+		removePrefix('.' + path.sep, removeFrom)
+	);
+}
+
+function removePrefix(prefix: string, removeFrom: string): string {
+	if (removeFrom.startsWith(prefix)) {
+		return removeFrom.substring(prefix.length);
 	}
+	return removeFrom;
 }
 
 /**
@@ -179,15 +202,26 @@ export class InstrumentationTask {
 	 */
 	public readonly originSourcePattern: OriginSourcePattern;
 
+	/**
+	 * A pattern describing the set of files to not instrument but to output
+	 * without adding instrumentations.
+	 */
+	public readonly excludeFilesPattern: FileExcludePattern;
+
+	/**
+	 * File to write the file-origin-mapping to.
+	 */
 	public readonly dumpOriginsFile: string | undefined;
 
 	constructor(
 		collector: CollectorSpecifier,
 		elements: TaskElement[],
+		excludeFilesPattern: FileExcludePattern,
 		originSourcePattern: OriginSourcePattern,
 		dumpOriginsFile: string | undefined
 	) {
 		this.collector = Contract.requireDefined(collector);
+		this.excludeFilesPattern = Contract.requireDefined(excludeFilesPattern);
 		this.originSourcePattern = Contract.requireDefined(originSourcePattern);
 		this._elements = Contract.requireDefined(elements).slice();
 		this.dumpOriginsFile = dumpOriginsFile;

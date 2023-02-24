@@ -131,7 +131,7 @@ export class FileExcludePattern {
 	}
 
 	/**
-	 * Return `true` if the given `fiePath` is matched by any of the patterns in `exclude`.
+	 * Return `true` if the given `filePath` is matched by any of the patterns in `exclude`.
 	 */
 	public isExcluded(filePath: string): boolean {
 		return matching([filePath], this.exclude).length === 1;

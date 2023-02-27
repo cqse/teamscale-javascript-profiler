@@ -5,6 +5,7 @@ import * as unload from 'unload';
 import { getWindow, universe, hasWindow, universeAttribute } from './utils';
 import { ProtocolMessageTypes } from './protocol';
 import { IstanbulCoverageStore } from './types';
+import {createCoverageBuffer, FileCoverageBuffer} from "./buffer";
 
 // Prepare our global JavaScript object. This will hold
 // a reference to the WebWorker thread.
@@ -25,85 +26,23 @@ function setWorker(worker: DataWorker): DataWorker {
 	return worker;
 }
 
-const interceptedStores: Set<string> = new Set<string>();
-
-type FileCoverageBuffer = { branches: Map<number, number>, statements: Set<number> };
-
-const coverageBuffer = (() => {
-
-	const buffer: Map<string, FileCoverageBuffer> = new Map();
-
-	const branchBufferRefs: Map<string, Map<number, number>> = new Map();
-
-	const statementBufferRefs: Map<string, Set<number>> = new Map();
-
-	function getBufferFor(fileId: string): FileCoverageBuffer {
-		let fileBuffer = buffer.get(fileId);
-		if (fileBuffer) {
-			return fileBuffer;
-		}
-
-		fileBuffer = { branches: new Map(), statements: new Set() };
-		buffer.set(fileId, fileBuffer);
-		return fileBuffer;
+// Create a coverage buffer on the main window side.
+const coverageBuffer = createCoverageBuffer(500,(buffer: Map<string, FileCoverageBuffer>) => {
+	for (const fileEntry of buffer.entries()) {
+		getWorker().postMessage(fileEntry);
 	}
+});
 
-	function getBranchBufferFor(fileId: string): Map<number, number> {
-		let result = branchBufferRefs.get(fileId);
-		if (!result) {
-			result = getBufferFor(fileId).branches;
-			branchBufferRefs.set(fileId, result);
-		}
-		return result;
-	}
+// Sets the handler for signaling the coverage of a particular function.
+universe()._$fnCov = function (fileId: string, functionId: number): void {};
 
-	function getStatementBufferFor(fileId: string): Set<number> {
-		let result = statementBufferRefs.get(fileId);
-		if (!result) {
-			result = getBufferFor(fileId).statements;
-			statementBufferRefs.set(fileId, result);
-		}
-		return result;
-	}
-
-	function putBranchCoverage(fileId: string, branchId: number, locationId: number) {
-		getBranchBufferFor(fileId).set(branchId, locationId);
-	}
-
-	function putStatementCoverage(fileId: string, statementId: number) {
-		getStatementBufferFor(fileId).add(statementId);
-	}
-
-	function flush() {
-		for (const fileEntry of buffer.entries()) {
-			getWorker().postMessage(fileEntry);
-		}
-		buffer.clear();
-		branchBufferRefs.clear();
-		statementBufferRefs.clear();
-	}
-
-	setInterval(() => flush(), 500);
-
-	return { putBranchCoverage, putStatementCoverage, flush };
-})();
-
-
-/**
- * Signal the coverage of a particular function.
- */
-universe()._$fnCov = function (fileId: string, functionId: number): void {
-};
-
-/**
- * Signal the coverage of a particular statement.
- */
+// Signal the coverage of a particular statement.
 universe()._$stmtCov = coverageBuffer.putStatementCoverage;
 
-/**
- * Signal the coverage of a particular statement.
- */
+// Sets the handler for signaling the coverage of a particular branch.
 universe()._$brCov = coverageBuffer.putBranchCoverage;
+
+const interceptedStores: Set<string> = new Set<string>();
 
 /**
  * The function that intercepts changes to the Istanbul code coverage.

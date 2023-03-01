@@ -47,13 +47,15 @@ async function performArtifactoryUpload(config: ConfigParameters, form: FormData
 }
 
 function prepareArtifactoryConfig(config: ConfigParameters, form: FormData): AxiosRequestConfig<FormData> {
+	const proxyConfig = (config.proxy_url && config.proxy_port) ? {host: config.proxy_url, port: config.proxy_port} : undefined
 	if (config.artifactory_access_token) {
 		return {
 			headers: {
 				Accept: '*/*',
 				'X-JFrog-Art-Api': config.artifactory_access_token,
 				'Content-Type': `multipart/form-data; boundary=${form.getBoundary()}`
-			}
+			},
+			proxy: proxyConfig
 		};
 	}
 	return {
@@ -64,6 +66,7 @@ function prepareArtifactoryConfig(config: ConfigParameters, form: FormData): Axi
 		headers: {
 			Accept: '*/*',
 			'Content-Type': `multipart/form-data; boundary=${form.getBoundary()}`
-		}
+		},
+		proxy: proxyConfig
 	};
 }

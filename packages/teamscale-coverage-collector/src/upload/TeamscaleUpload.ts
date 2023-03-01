@@ -4,6 +4,7 @@ import QueryParameters from '../utils/QueryParameters';
 import FormData from 'form-data';
 import { prepareFormData, performUpload, UploadError } from './CommonUpload';
 import axios, { AxiosRequestConfig } from 'axios';
+import {addProxyOptions} from "@src/upload/ProxyUpload";
 
 /**
  * Uploads a coverage file to Teamscale with the provided configuration.
@@ -67,6 +68,6 @@ function prepareTeamscaleConfig(config: ConfigParameters, form: FormData): Axios
 			Accept: '*/*',
 			'Content-Type': `multipart/form-data; boundary=${form.getBoundary()}`
 		},
-		proxy: (config.proxy_url && config.proxy_port) ? {host: config.proxy_url, port: config.proxy_port} : undefined
+		proxy: addProxyOptions(config)
 	};
 }

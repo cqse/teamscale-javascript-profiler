@@ -55,6 +55,10 @@ export type ConfigParameters = {
 	proxy_url?: string;
 	// eslint-disable-next-line camelcase
 	proxy_port?: number;
+	// eslint-disable-next-line camelcase
+	proxy_user?: string;
+	// eslint-disable-next-line camelcase
+	proxy_password?: string;
 };
 
 /**
@@ -160,8 +164,14 @@ export function buildParameterParser(): ArgumentParser {
 	});
 	parser.add_argument('--proxy-port', {
 		help: '(optional): The port of the proxy server to initially route the request to.',
-		default: 3000
+		default: 0
 	});
+	parser.add_argument('--proxy-user', {
+		help: '(optional) The username for the proxy server.'
+	});
+	parser.add_argument('--proxy-password', {
+		help: '(optional) The password for the proxy server.'
+	})
 
 	return parser;
 }

@@ -160,17 +160,19 @@ export function buildParameterParser(): ArgumentParser {
 	});
 	parser.add_argument('--proxy-url', {
 		help: '(optional): The url of the proxy server to initially route the request to.',
-		default: ''
+		default: process.env.PROXY_URL
 	});
 	parser.add_argument('--proxy-port', {
 		help: '(optional): The port of the proxy server to initially route the request to.',
-		default: 0
+		default: process.env.PROXY_PORT
 	});
 	parser.add_argument('--proxy-user', {
-		help: '(optional) The username for the proxy server.'
+		help: '(optional) The username for the proxy server.',
+		default: process.env.PROXY_USER
 	});
 	parser.add_argument('--proxy-password', {
-		help: '(optional) The password for the proxy server.'
+		help: '(optional) The password for the proxy server.',
+		default: process.env.PROXY_PASSWORD
 	})
 
 	return parser;

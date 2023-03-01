@@ -51,6 +51,10 @@ export type ConfigParameters = {
 	artifactory_path_suffix?: string;
 	// eslint-disable-next-line camelcase
 	enable_control_port?: number;
+	// eslint-disable-next-line camelcase
+	proxy_url?: string;
+	// eslint-disable-next-line camelcase
+	proxy_port?: number;
 };
 
 /**
@@ -149,6 +153,14 @@ export function buildParameterParser(): ArgumentParser {
 	parser.add_argument('--artifactory-path-suffix', {
 		help: '(optional): The path within the storage location between the default path and the uploaded artifact.',
 		default: process.env.ARTIFACTORY_PATH_SUFFIX
+	});
+	parser.add_argument('--proxy-url', {
+		help: '(optional): The url of the proxy server to initially route the request to.',
+		default: ''
+	});
+	parser.add_argument('--proxy-port', {
+		help: '(optional): The port of the proxy server to initially route the request to.',
+		default: 3000
 	});
 
 	return parser;

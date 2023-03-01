@@ -66,6 +66,7 @@ function prepareTeamscaleConfig(config: ConfigParameters, form: FormData): Axios
 		headers: {
 			Accept: '*/*',
 			'Content-Type': `multipart/form-data; boundary=${form.getBoundary()}`
-		}
+		},
+		proxy: (config.proxy_url && config.proxy_port) ? {host: config.proxy_url, port: config.proxy_port} : undefined
 	};
 }

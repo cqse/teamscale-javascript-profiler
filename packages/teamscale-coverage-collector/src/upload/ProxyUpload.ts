@@ -1,6 +1,9 @@
 import {ConfigParameters} from "@src/utils/ConfigParameters";
 import {AxiosProxyConfig} from "axios";
 
+/**
+ * Creates an AxiosProxyConfig object if proxy variables are provided.
+ */
 export function addProxyOptions(config: ConfigParameters): AxiosProxyConfig | undefined {
     if (config.proxy_url && config.proxy_port) {
         const proxyConfig: AxiosProxyConfig = {

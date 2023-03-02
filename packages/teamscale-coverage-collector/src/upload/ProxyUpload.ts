@@ -1,4 +1,4 @@
-import {ConfigParameters} from "@src/utils/ConfigParameters";
+import {ConfigParameters} from "../utils/ConfigParameters";
 import {AxiosProxyConfig} from "axios";
 
 /**

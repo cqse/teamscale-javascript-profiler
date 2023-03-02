@@ -4,7 +4,7 @@ import QueryParameters from '../utils/QueryParameters';
 import FormData from 'form-data';
 import { prepareFormData, performUpload, UploadError } from './CommonUpload';
 import axios, { AxiosRequestConfig } from 'axios';
-import {addProxyOptions} from "@src/upload/ProxyUpload";
+import {addProxyOptions} from "./ProxyUpload";
 
 /**
  * Uploads a coverage file to Teamscale with the provided configuration.

@@ -53,8 +53,6 @@ export type ConfigParameters = {
 	enable_control_port?: number;
 	// eslint-disable-next-line camelcase
 	http_proxy?: string;
-	// eslint-disable-next-line camelcase
-	https_proxy?: string;
 };
 
 /**
@@ -155,12 +153,8 @@ export function buildParameterParser(): ArgumentParser {
 		default: process.env.ARTIFACTORY_PATH_SUFFIX
 	});
 	parser.add_argument('--http-proxy', {
-		help: '(optional): The HTTP proxy address that should be used in the format: http://host:port/.',
+		help: '(optional): The HTTP proxy address that should be used in the format: http://host:port/ or http://username:password@host:port/.',
 		default: process.env.HTTP_PROXY
-	});
-	parser.add_argument('--https-proxy', {
-		help: '(optional): The HTTPS proxy address that should be used in the format: http://username:password@host:port/',
-		default: process.env.HTTPS_PROXY
 	});
 
 	return parser;

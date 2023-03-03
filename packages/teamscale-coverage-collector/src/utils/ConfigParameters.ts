@@ -52,13 +52,9 @@ export type ConfigParameters = {
 	// eslint-disable-next-line camelcase
 	enable_control_port?: number;
 	// eslint-disable-next-line camelcase
-	proxy_url?: string;
+	http_proxy?: string;
 	// eslint-disable-next-line camelcase
-	proxy_port?: number;
-	// eslint-disable-next-line camelcase
-	proxy_user?: string;
-	// eslint-disable-next-line camelcase
-	proxy_password?: string;
+	https_proxy?: string;
 };
 
 /**
@@ -158,22 +154,12 @@ export function buildParameterParser(): ArgumentParser {
 		help: '(optional): The path within the storage location between the default path and the uploaded artifact.',
 		default: process.env.ARTIFACTORY_PATH_SUFFIX
 	});
-	parser.add_argument('--proxy-url', {
-		help: '(optional): The url of the proxy server to initially route the request to.',
-		default: process.env.PROXY_URL
+	parser.add_argument('--http-proxy', {
+		help: '(optional): The HTTP proxy address that should be used in the format: http://host:port/.'
 	});
-	parser.add_argument('--proxy-port', {
-		help: '(optional): The port of the proxy server to initially route the request to.',
-		default: process.env.PROXY_PORT
+	parser.add_argument('--https-proxy', {
+		help: '(optional): The HTTPS proxy address that should be used in the format: http://username:password@host:port/'
 	});
-	parser.add_argument('--proxy-user', {
-		help: '(optional) The username for the proxy server.',
-		default: process.env.PROXY_USER
-	});
-	parser.add_argument('--proxy-password', {
-		help: '(optional) The password for the proxy server.',
-		default: process.env.PROXY_PASSWORD
-	})
 
 	return parser;
 }

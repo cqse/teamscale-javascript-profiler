@@ -11,6 +11,7 @@ export function extractProxyOptions(config: ConfigParameters): AxiosProxyConfig 
         // See https://nodejs.org/api/url.html#url-strings-and-url-objects for URL parsing
         const proxyAddress = new url.URL(config.http_proxy);
         const proxyConfig: AxiosProxyConfig = {
+            protocol: proxyAddress.protocol.replace(':', ''),
             host: proxyAddress.hostname,
             port: +proxyAddress.port,
         };

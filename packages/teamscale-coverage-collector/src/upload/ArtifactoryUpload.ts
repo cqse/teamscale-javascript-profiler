@@ -3,7 +3,7 @@ import Logger from 'bunyan';
 import { performUpload, prepareFormData, UploadError } from './CommonUpload';
 import FormData from 'form-data';
 import axios, { AxiosRequestConfig } from 'axios';
-import {addProxyOptions} from "./ProxyUpload";
+import {extractProxyOptions} from "./ProxyUpload";
 
 /**
  * Uploads a coverage file to artifactory with the provided configuration.
@@ -48,7 +48,7 @@ async function performArtifactoryUpload(config: ConfigParameters, form: FormData
 }
 
 function prepareArtifactoryConfig(config: ConfigParameters, form: FormData): AxiosRequestConfig<FormData> {
-	const proxyConfig = addProxyOptions(config);
+	const proxyConfig = extractProxyOptions(config);
 	if (config.artifactory_access_token) {
 		return {
 			headers: {

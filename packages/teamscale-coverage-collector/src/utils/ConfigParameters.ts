@@ -153,7 +153,7 @@ export function buildParameterParser(): ArgumentParser {
 		default: process.env.ARTIFACTORY_PATH_SUFFIX
 	});
 	parser.add_argument('--http-proxy', {
-		help: '(optional): The HTTP proxy address that should be used in the format: http://host:port/ or http://username:password@host:port/.',
+		help: '(optional): The HTTP/HTTPS proxy address that should be used in the format: http://host:port/ or http://username:password@host:port/.',
 		default: process.env.HTTP_PROXY
 	});
 

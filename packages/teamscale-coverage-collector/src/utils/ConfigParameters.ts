@@ -51,6 +51,8 @@ export type ConfigParameters = {
 	artifactory_path_suffix?: string;
 	// eslint-disable-next-line camelcase
 	enable_control_port?: number;
+	// eslint-disable-next-line camelcase
+	http_proxy?: string;
 };
 
 /**
@@ -149,6 +151,10 @@ export function buildParameterParser(): ArgumentParser {
 	parser.add_argument('--artifactory-path-suffix', {
 		help: '(optional): The path within the storage location between the default path and the uploaded artifact.',
 		default: process.env.ARTIFACTORY_PATH_SUFFIX
+	});
+	parser.add_argument('--http-proxy', {
+		help: '(optional): The HTTP/HTTPS proxy address that should be used in the format: http://host:port/ or http://username:password@host:port/.',
+		default: process.env.HTTP_PROXY
 	});
 
 	return parser;

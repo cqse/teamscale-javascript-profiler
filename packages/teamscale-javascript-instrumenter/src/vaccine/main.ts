@@ -1,7 +1,6 @@
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-ignore: DataWorker import is handled by Esbuild---see `esbuild.mjs` and `workers.d.ts`
 import DataWorker from './worker/vaccine.worker.ts';
-import * as unload from 'unload';
 import { getWindow, universe, hasWindow, universeAttribute } from './utils';
 import { ProtocolMessageTypes } from './protocol';
 import { IstanbulCoverageStore } from './types';
@@ -27,7 +26,7 @@ function setWorker(worker: DataWorker): DataWorker {
 }
 
 // Create a coverage buffer on the main window side.
-const coverageBuffer = createCoverageBuffer(500,(buffer: Map<string, FileCoverageBuffer>) => {
+const coverageBuffer = createCoverageBuffer(250,(buffer: Map<string, FileCoverageBuffer>) => {
 	for (const fileEntry of buffer.entries()) {
 		getWorker().postMessage(fileEntry);
 	}
@@ -67,38 +66,24 @@ universe()._$registerCoverageObject = function (coverage: IstanbulCoverageStore)
 		const worker = setWorker(new DataWorker());
 
 		(function handleUnloading() {
-			const protectWindowEvent = function (name: 'onunload' | 'onbeforeunload') {
-				// Save the existing handler, wrap it in our handler
-				let wrappedHandler = (getWindow() as Window)[name];
-
-				getWindow()[name] = function (...args) {
-					// Ask the worker to send all remaining coverage infos
-					worker.postMessage('unload'); // The string "unload" is by accident the same as the window event
-					if (wrappedHandler) {
-						return wrappedHandler.apply(this, args);
-					}
-				};
-
-				// Define a proxy that prevents overwriting
-				if (hasWindow()) {
-					Object.defineProperty(getWindow(), name, {
-						get: function () {
-							return wrappedHandler;
-						},
-						set: function (newHandler: never) {
-							wrappedHandler = newHandler;
-						}
-					});
-				}
-			};
-
-			protectWindowEvent('onunload');
-			protectWindowEvent('onbeforeunload');
-
-			unload.add(() => {
+			const vaccineUnloadHandler = () => {
 				coverageBuffer.flush();
 				worker.postMessage('unload');
-			});
+			};
+
+			const addVaccineUnloadHandler = function (
+				eventName: 'unload' | 'beforeunload' | 'visibilitychange', toObject: EventTarget | undefined) {
+				if (!toObject) {
+					return;
+				}
+
+				// The newer way of handling events (doing it both the new and the old way is fine here)
+				toObject.addEventListener(eventName, vaccineUnloadHandler, { capture: true });
+			};
+
+			addVaccineUnloadHandler('unload', getWindow());
+			addVaccineUnloadHandler('visibilitychange', getWindow());
+			addVaccineUnloadHandler('beforeunload', getWindow());
 		})();
 	}
 

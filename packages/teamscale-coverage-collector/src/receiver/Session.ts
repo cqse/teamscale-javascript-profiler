@@ -4,7 +4,6 @@ import { Position, BasicSourceMapConsumer, NullableMappedPosition } from 'source
 import { IDataStorage } from '../storage/DataStorage';
 import { Contract } from '@cqse/commons';
 import Logger from 'bunyan';
-import {file} from "tmp";
 
 /** The type of sourcemap consumer we use. */
 type SourceMapConsumer = BasicSourceMapConsumer;

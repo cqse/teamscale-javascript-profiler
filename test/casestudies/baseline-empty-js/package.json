@@ -5,7 +5,7 @@
   "main": "index.js",
   "scripts": {
     "test": "exit 0",
-    "build": "npx mkdirp dist && npx touch dist/main.js",
+    "build": "npx mkdirp dist && npx touch dist/main.js && copyfiles index.html ./dist/",
     "clean": "npx rimraf dist"
   },
   "author": "",
@@ -14,5 +14,8 @@
     "mkdirp": "^1.0.4",
     "rimraf": "^3.0.2",
     "touch": "^3.1.0"
+  },
+  "devDependencies": {
+    "copyfiles": "^2.4.1"
   }
 }

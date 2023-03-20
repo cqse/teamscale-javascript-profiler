@@ -8,9 +8,8 @@ export function isWebWorker(): boolean {
 /**
  * Return the global universe object (in a Web browser: The window object).
  */
-export function universe(): Record<string, unknown> {
-	// eslint-disable-next-line @typescript-eslint/ban-types
-	return getWindow() as {};
+export function universe(): {[k: string]: any} {
+	return getWindow();
 }
 
 /**
@@ -23,7 +22,7 @@ export function hasWindow(): boolean {
 /**
  * Returns the window object.
  */
-export function getWindow(): Window {
+export function getWindow(): {[k: string]: any} & EventTarget {
 	return window;
 }
 

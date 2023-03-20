@@ -18,5 +18,6 @@ describe('Tour of Heroes (with excludes)', () => {
 		cy.get('.clear').click();
 		cy.get('#search-box').click();
 		cy.get('#search-box').type('Foo');
+		cy.document().trigger('visibilitychange');
 	});
 });

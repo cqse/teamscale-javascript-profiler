@@ -12,6 +12,8 @@ import treeKill from 'tree-kill';
  */
 const BASELINE_STUDY = 'baseline-empty-js';
 
+const NUM_PERF_MEASURE_RUNS = 2;
+
 const KEY_PERF_TESTING_NO_INSTRUMENTATION = 'testingUninstrumented';
 const KEY_PERF_TESTING_WITH_INSTRUMENTATION = 'testingInstrumented';
 const KEY_PERF_INSTRUMENTATION = 'Instrumentation';
@@ -40,18 +42,6 @@ const caseStudies = [
 		includeOrigins: []
 	},
 	{
-		name: 'vite-react-ts-coverable-app',
-		rootDir: 'test/casestudies/vite-react-ts-coverable-app',
-		distDir: 'dist',
-		expectCoveredLines: {
-			'../../src/App.tsx': [6, 11, 23, 27, 32, 33, 34]
-		},
-		expectUncoveredLines: {},
-		excludeOrigins: [],
-		includeOrigins: [`'../../src/**/*.*'`],
-		maxNormTimeFraction: 1.5
-	},
-	{
 		name: 'vite-react-app',
 		rootDir: 'test/casestudies/vite-react-app',
 		distDir: 'dist',
@@ -62,6 +52,18 @@ const caseStudies = [
 		excludeOrigins: [],
 		includeOrigins: [`'../../src/**/*.*'`],
 		maxNormTimeFraction: 1.1
+	},
+	{
+		name: 'vite-react-ts-coverable-app',
+		rootDir: 'test/casestudies/vite-react-ts-coverable-app',
+		distDir: 'dist',
+		expectCoveredLines: {
+			'../../src/App.tsx': [6, 11, 23, 27, 32, 33, 34]
+		},
+		expectUncoveredLines: {},
+		excludeOrigins: [],
+		includeOrigins: [`'../../src/**/*.*'`],
+		maxNormTimeFraction: 1.5
 	},
 	{
 		name: 'angular-hero-app',
@@ -426,7 +428,7 @@ function profileTestingInBrowser(studyName) {
 
 	// The actual runs to determine the best performance.
 	const runResults = [];
-	let remainingRuns = 3;
+	let remainingRuns = NUM_PERF_MEASURE_RUNS;
 	while (remainingRuns > 0) {
 		runResults.push(runTestsOnSubjectInBrowser(studyName));
 		remainingRuns--;

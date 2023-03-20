@@ -1955,7 +1955,6 @@ __metadata:
     jest: ^27.2.0
     micromatch: 4.0.4
     mkdirp: ^1.0.4
-    page-lifecycle: ^0.1.2
     rimraf: ^3.0.2
     source-map: 0.7.4
     ts-jest: ^27.0.5
@@ -8712,13 +8711,6 @@ __metadata:
     ip: ^1.1.5
     netmask: ^2.0.2
   checksum: e3bd8aada70d173cd4cec1ac810fb56161678b7a597060a740c4a31d9c5f8cd95687b2d0fd90b69c0cafe5ef787404074f38042ba08c8d378fed48973f58e493
-  languageName: node
-  linkType: hard
-
-"page-lifecycle@npm:^0.1.2":
-  version: 0.1.2
-  resolution: "page-lifecycle@npm:0.1.2"
-  checksum: 082359f37dad4f5a55a8db814d968675dd5d707ef9c8279ab3a3627535846cd825530ca8fdae6cf5a2bade5bbf1546fe443aabd0950671d7a6c93003f9004070
   languageName: node
   linkType: hard
 

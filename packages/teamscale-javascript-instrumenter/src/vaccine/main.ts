@@ -69,18 +69,19 @@ universe()._$registerCoverageObject = function (coverage: IstanbulCoverageStore)
 			};
 
 			const addVaccineUnloadHandler = function (
-				eventName: 'unload' | 'beforeunload' | 'visibilitychange', toObject: EventTarget | undefined) {
+				eventName: 'blur' | 'unload' | 'beforeunload' | 'visibilitychange', toObject: EventTarget | undefined) {
 				if (!toObject) {
 					return;
 				}
 
-				// The newer way of handling events (doing it both the new and the old way is fine here)
 				toObject.addEventListener(eventName, vaccineUnloadHandler, { capture: true });
 			};
 
-			addVaccineUnloadHandler('unload', getWindow());
-			addVaccineUnloadHandler('visibilitychange', getWindow());
-			addVaccineUnloadHandler('beforeunload', getWindow());
+			const win = getWindow();
+			addVaccineUnloadHandler('blur', win);
+			addVaccineUnloadHandler('unload', win);
+			addVaccineUnloadHandler('visibilitychange', win);
+			addVaccineUnloadHandler('beforeunload', win);
 		})();
 	}
 

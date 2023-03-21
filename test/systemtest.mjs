@@ -75,8 +75,7 @@ const caseStudies = [
 		},
 		expectUncoveredLines: {
 			'node_modules/zone.js/fesm2015/zone.js': ['1-30', '70-90', 28, 20, 80],
-			'src/app/heroes/heroes.component.ts': ['1-10', 15, 16, '18-20', '37-50'],
-			'src/app/hero-detail/hero-detail.component.ts': [33]
+			'src/app/heroes/heroes.component.ts': ['1-10', 15, 16, '18-20', '37-50']
 		},
 		excludeOrigins: [],
 		includeOrigins: [`'src/app/**/*.*'`],

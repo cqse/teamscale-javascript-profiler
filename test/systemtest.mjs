@@ -512,7 +512,7 @@ async function clearStudyOutputs(study, sessionId) {
 	if (fs.existsSync(coverageFolder)) {
 		fs.rmSync(coverageFolder, { recursive: true });
 	}
-	fs.mkdirSync(coverageFolder);
+	fs.mkdirSync(coverageFolder, { recursive: true });
 	if (fs.existsSync(logTargetFile)) {
 		await fsp.unlink(logTargetFile);
 	}

@@ -68,6 +68,8 @@ universe()._$registerCoverageObject = function (coverage: IstanbulCoverageStore)
 		(function handleUnloading() {
 			const vaccineUnloadHandler = () => {
 				coverageBuffer.flush();
+				// Attention: the following 'unload' string does not correspond to the event name
+				// but to the message that is handled by the worker.
 				worker.postMessage('unload');
 			};
 

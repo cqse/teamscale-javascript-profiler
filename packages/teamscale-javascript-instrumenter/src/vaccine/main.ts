@@ -1,7 +1,7 @@
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-ignore: DataWorker import is handled by Esbuild---see `esbuild.mjs` and `workers.d.ts`
 import DataWorker from './worker/vaccine.worker.ts';
-import { getWindow, universe, hasWindow, universeAttribute } from './utils';
+import { getWindow, universe, universeAttribute } from './utils';
 import { ProtocolMessageTypes } from './protocol';
 import { IstanbulCoverageStore } from './types';
 import {createCoverageBuffer, FileCoverageBuffer} from "./buffer";

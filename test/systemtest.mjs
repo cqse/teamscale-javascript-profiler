@@ -106,7 +106,7 @@ async function identifyNextAvailablePort() {
 		const srv = net.createServer();
 		srv.listen(0, () => {
 			const port = srv.address().port;
-			srv.close((err) => res(port))
+			srv.close(_ => res(port))
 		});
 	})
 }

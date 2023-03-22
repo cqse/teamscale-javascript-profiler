@@ -34,10 +34,6 @@ export function createCoverageBuffer(flushAfterMillis: number, onFlush: FlushFun
 
     const buffer: Map<string, FileCoverageBuffer> = new Map();
 
-    const branchBufferRefs: Map<string, Map<number, number>> = new Map();
-
-    const statementBufferRefs: Map<string, Set<number>> = new Map();
-
     function getBufferFor(fileId: string): FileCoverageBuffer {
         let fileBuffer = buffer.get(fileId);
         if (fileBuffer) {
@@ -49,38 +45,18 @@ export function createCoverageBuffer(flushAfterMillis: number, onFlush: FlushFun
         return fileBuffer;
     }
 
-    function getBranchBufferFor(fileId: string): Map<number, number> {
-        let result = branchBufferRefs.get(fileId);
-        if (!result) {
-            result = getBufferFor(fileId).branches;
-            branchBufferRefs.set(fileId, result);
-        }
-        return result;
-    }
-
-    function getStatementBufferFor(fileId: string): Set<number> {
-        let result = statementBufferRefs.get(fileId);
-        if (!result) {
-            result = getBufferFor(fileId).statements;
-            statementBufferRefs.set(fileId, result);
-        }
-        return result;
-    }
-
     function putBranchCoverage(fileId: string, branchId: number, locationId: number): void {
-        getBranchBufferFor(fileId).set(branchId, locationId);
+        getBufferFor(fileId).branches.set(branchId, locationId);
     }
 
     function putStatementCoverage(fileId: string, statementId: number): void {
-        getStatementBufferFor(fileId).add(statementId);
+        getBufferFor(fileId).statements.add(statementId);
     }
 
     function flush(): void {
         onFlush(buffer);
 
         buffer.clear();
-        branchBufferRefs.clear();
-        statementBufferRefs.clear();
     }
 
     setInterval(() => flush(), flushAfterMillis);

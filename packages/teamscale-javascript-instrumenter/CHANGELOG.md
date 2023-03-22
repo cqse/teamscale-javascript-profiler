@@ -2,6 +2,10 @@ We use [Semantic Versioning](https://semver.org/).
 
 # New Release
 
+# 0.0.1-beta.49
+
+- [fix] Coverage instrumentation led to tab crashes for complex applications.
+
 # 0.0.1-beta.46
 
 - [fix] Removing quotes from all command line argument strings. This makes the instrumenter more robust.

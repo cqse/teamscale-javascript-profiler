@@ -3,6 +3,7 @@ import Logger from 'bunyan';
 import { performUpload, prepareFormData, UploadError } from './CommonUpload';
 import FormData from 'form-data';
 import axios, { AxiosRequestConfig } from 'axios';
+import {extractProxyOptions} from "./ProxyUpload";
 
 /**
  * Uploads a coverage file to artifactory with the provided configuration.
@@ -47,13 +48,15 @@ async function performArtifactoryUpload(config: ConfigParameters, form: FormData
 }
 
 function prepareArtifactoryConfig(config: ConfigParameters, form: FormData): AxiosRequestConfig<FormData> {
+	const proxyConfig = extractProxyOptions(config);
 	if (config.artifactory_access_token) {
 		return {
 			headers: {
 				Accept: '*/*',
 				'X-JFrog-Art-Api': config.artifactory_access_token,
 				'Content-Type': `multipart/form-data; boundary=${form.getBoundary()}`
-			}
+			},
+			proxy: proxyConfig
 		};
 	}
 	return {
@@ -64,6 +67,7 @@ function prepareArtifactoryConfig(config: ConfigParameters, form: FormData): Axi
 		headers: {
 			Accept: '*/*',
 			'Content-Type': `multipart/form-data; boundary=${form.getBoundary()}`
-		}
+		},
+		proxy: proxyConfig
 	};
 }

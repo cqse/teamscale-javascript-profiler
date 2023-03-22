@@ -1,10 +1,10 @@
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-ignore: DataWorker import is handled by Esbuild---see `esbuild.mjs` and `workers.d.ts`
 import DataWorker from './worker/vaccine.worker.ts';
-import * as unload from 'unload';
-import { getWindow, universe, hasWindow, universeAttribute } from './utils';
+import { getWindow, universe, universeAttribute } from './utils';
 import { ProtocolMessageTypes } from './protocol';
-import { BRANCH_COVERAGE_ID, IstanbulCoverageStore, STATEMENT_COVERAGE_ID } from './types';
+import { IstanbulCoverageStore } from './types';
+import {createCoverageBuffer, FileCoverageBuffer} from "./buffer";
 
 // Prepare our global JavaScript object. This will hold
 // a reference to the WebWorker thread.
@@ -25,25 +25,20 @@ function setWorker(worker: DataWorker): DataWorker {
 	return worker;
 }
 
+// Create a coverage buffer on the main window side.
+const coverageBuffer = createCoverageBuffer(250,(buffer: Map<string, FileCoverageBuffer>) => {
+	for (const fileEntry of buffer.entries()) {
+		getWorker().postMessage(fileEntry);
+	}
+});
+
+// Sets the handler for signaling the coverage of a particular statement.
+universe()._$stmtCov = coverageBuffer.putStatementCoverage;
+
+// Sets the handler for signaling the coverage of a particular branch.
+universe()._$brCov = coverageBuffer.putBranchCoverage;
+
 const interceptedStores: Set<string> = new Set<string>();
-
-/**
- * Signal the coverage of a particular statement.
- */
-universe()._$stmtCov = function (fileId: string, statementId: number): void {
-	getWorker().postMessage(
-		`${ProtocolMessageTypes.UNRESOLVED_CODE_ENTITY} ${fileId} ${STATEMENT_COVERAGE_ID} ${statementId}`
-	);
-};
-
-/**
- * Signal the coverage of a particular statement.
- */
-universe()._$brCov = function (fileId: string, branchId: number, locationId: number): void {
-	getWorker().postMessage(
-		`${ProtocolMessageTypes.UNRESOLVED_CODE_ENTITY} ${fileId} ${BRANCH_COVERAGE_ID} ${branchId} ${locationId}`
-	);
-};
 
 /**
  * The function that intercepts changes to the Istanbul code coverage.
@@ -68,35 +63,27 @@ universe()._$registerCoverageObject = function (coverage: IstanbulCoverageStore)
 		const worker = setWorker(new DataWorker());
 
 		(function handleUnloading() {
-			const protectWindowEvent = function (name: 'onunload' | 'onbeforeunload') {
-				// Save the existing handler, wrap it in our handler
-				let wrappedHandler = (getWindow() as Window)[name];
-
-				getWindow()[name] = function (...args) {
-					// Ask the worker to send all remaining coverage infos
-					worker.postMessage('unload'); // The string "unload" is by accident the same as the window event
-					if (wrappedHandler) {
-						return wrappedHandler.apply(this, args);
-					}
-				};
-
-				// Define a proxy that prevents overwriting
-				if (hasWindow()) {
-					Object.defineProperty(getWindow(), name, {
-						get: function () {
-							return wrappedHandler;
-						},
-						set: function (newHandler: never) {
-							wrappedHandler = newHandler;
-						}
-					});
-				}
+			const vaccineUnloadHandler = () => {
+				coverageBuffer.flush();
+				// Attention: the following 'unload' string does not correspond to the event name
+				// but to the message that is handled by the worker.
+				worker.postMessage('unload');
 			};
 
-			protectWindowEvent('onunload');
-			protectWindowEvent('onbeforeunload');
+			const addVaccineUnloadHandler = function (
+				eventName: 'blur' | 'unload' | 'beforeunload' | 'visibilitychange', toObject: EventTarget | undefined) {
+				if (!toObject) {
+					return;
+				}
 
-			unload.add(() => worker.postMessage('unload'));
+				toObject.addEventListener(eventName, vaccineUnloadHandler, { capture: true });
+			};
+
+			const win = getWindow();
+			addVaccineUnloadHandler('blur', win);
+			addVaccineUnloadHandler('unload', win);
+			addVaccineUnloadHandler('visibilitychange', win);
+			addVaccineUnloadHandler('beforeunload', win);
 		})();
 	}
 

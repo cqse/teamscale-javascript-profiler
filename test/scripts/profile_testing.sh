@@ -45,12 +45,13 @@ fi
 # Run the test with the memory profiler attached
 /usr/bin/time -o "$PROFILING_RESULTS_FILE"  -f "%M %e" \
     npx cypress run \
-        --config-file "cypress.json" \
+        --e2e \
         --reporter "junit" \
         --browser "chrome" \
         --headless \
         --quiet \
-        --config "{ \"baseUrl\": \"${BASE_URL}\", \"video\": false, \"integrationFolder\": \"${INTEGRATION_FOLDER}\" }"
+        --spec "${INTEGRATION_FOLDER}*.spec.js" \
+        --config baseUrl="${BASE_URL}",specPattern="${INTEGRATION_FOLDER}*.spec.js"
 
 # Collect and compute the results
 DURATION_SECS=$(cut -f2 -d" " < $PROFILING_RESULTS_FILE)

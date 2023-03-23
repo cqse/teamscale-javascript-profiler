@@ -108,17 +108,17 @@ export class IstanbulInstrumenter implements IInstrumenter {
 			return new TaskResult(0, 0, 0, 1, 0, 0, 0);
 		}
 
+		// Not all file types are supported by the instrumenter
+		if (!this.isFileTypeSupported(taskElement.fromFile)) {
+			return new TaskResult(0, 0, 0, 0, 1, 0, 0);
+		}
+
 		// We might want to skip the instrumentation of the file
 		if (excludeBundles.isExcluded(taskElement.fromFile)) {
 			if (!taskElement.isInPlace()) {
 				writeToFile(taskElement.toFile, inputFileSource);
 			}
 			return new TaskResult(0, 1, 0, 0, 0, 0, 0);
-		}
-
-		// Not all file types are supported by the instrumenter
-		if (!this.isFileTypeSupported(taskElement.fromFile)) {
-			return new TaskResult(0, 0, 0, 0, 1, 0, 0);
 		}
 
 		// Report progress

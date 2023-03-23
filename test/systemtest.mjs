@@ -1,5 +1,5 @@
 import tempfile from 'tempfile';
-import { execSync, spawn } from 'child_process';
+import { exec, execSync, spawn } from 'child_process';
 import path from 'path';
 import * as fs from 'fs';
 import * as fsp from 'fs/promises';
@@ -30,14 +30,18 @@ const TEAMSCALE_MOCK_PORT = 10088;
  * the expected coverage produced by our tool chain.
  */
 const caseStudies = [
+
 	{
-		name: BASELINE_STUDY,
-		rootDir: 'test/casestudies/baseline-empty-js',
+		name: 'generated-vite-react-app',
+		rootDir: 'test/casestudies/generated-vite-react-app',
 		distDir: 'dist',
-		expectCoveredLines: {},
+		expectCoveredLines: {
+			'../../src/App.tsx': [6, 14]
+		},
 		expectUncoveredLines: {},
 		excludeOrigins: [],
-		includeOrigins: []
+		includeOrigins: [`'../../src/**/*.*'`],
+		maxNormTimeFraction: 1.1
 	},
 	{
 		name: 'vite-react-ts-coverable-app',
@@ -415,7 +419,7 @@ function averagePerformance(samples) {
 function profileTestingInBrowser(studyName) {
 	const runTestsOnSubjectInBrowser = (studyName) => {
 		const browserPerformanceFile = tempfile('.json');
-		console.log('## Running Cypress tests on the subject');
+		console.log(`## Running Cypress tests on ${studyName}`);
 		const command = `${path.join(PROFILER_ROOT_DIR, 'test', 'scripts', 'profile_testing.sh')} ${studyName} ${SERVER_PORT} ${browserPerformanceFile}`;
 		execSync(command, { cwd: PROFILER_ROOT_DIR, stdio: 'inherit' });
 		return JSON.parse(fs.readFileSync(browserPerformanceFile));

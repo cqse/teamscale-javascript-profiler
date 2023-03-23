@@ -8,7 +8,8 @@
     "build": "yarn workspaces foreach run build",
     "test": "yarn workspaces foreach run test",
     "systemtest": "yarn build && node ./test/systemtest.mjs",
-    "lint": "yarn run eslint . --ext .ts"
+    "lint": "yarn run eslint . --ext .ts",
+    "systemtest-docker": "docker build -t javascript-profiler . && docker compose run javascript-profiler"
   },
   "workspaces": [
     "packages/*"

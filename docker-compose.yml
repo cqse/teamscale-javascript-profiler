@@ -1,0 +1,7 @@
+version: "3.9"
+services:
+  javascript-profiler:
+    image: javascript-profiler
+    volumes:
+      - ./:/teamscale-javascript-profiler
+    command: sh -c "yarn install && yarn systemtest"

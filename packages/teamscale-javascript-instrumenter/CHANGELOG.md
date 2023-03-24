@@ -2,6 +2,9 @@ We use [Semantic Versioning](https://semver.org/).
 
 # New Release
 
+- [feature] Unquote inputs in nested quotes.
+- [feature] Log all input arguments in debug mode.
+
 # 0.0.1-beta.49
 
 - [fix] Coverage instrumentation led to tab crashes for complex applications.

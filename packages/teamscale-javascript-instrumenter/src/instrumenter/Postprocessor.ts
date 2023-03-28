@@ -14,9 +14,7 @@ import {
 	StringLiteral,
 	isVariableDeclaration,
 	VariableDeclaration,
-	VariableDeclarator,
 	isFunctionDeclaration,
-	ExpressionStatement,
 	isSequenceExpression,
 	SequenceExpression,
 	isUpdateExpression
@@ -46,6 +44,34 @@ type FunctionCoverageIncrement = CoverageIncrement & {
 	functionId: number;
 };
 
+/**
+ * Generator for identifiers that are unique across files to instrument.
+ * Relevant in case no Ecmascript modules are used.
+ *
+ * We assume that the files to be executed in a browser can
+ * stem from different runs of the instrumenter. We have to decrease
+ * the probability of colliding identifiers.
+ */
+const fileIdSeqGenerator: { next: () => string } = (() => {
+	const instrumenterRunId = process.pid;
+	let fileIdSeq = 0;
+
+	return {
+		next: () => {
+			fileIdSeq++;
+			let num: number;
+			if (fileIdSeq < 10000) {
+				num = instrumenterRunId * 10000 + fileIdSeq;
+			} else if (fileIdSeq < 100000) {
+				num = instrumenterRunId * 100000 + fileIdSeq;
+			} else {
+				throw new Error(`Not more that 100k files supported to be instrumented in one run.`)
+			}
+			return num.toString(36);
+		}
+	}
+})();
+
 function getIstanbulCoverageFunctionDeclarationName(node: Node | undefined): string | undefined {
 	if (!isFunctionDeclaration(node)) {
 		return undefined;
@@ -63,7 +89,7 @@ function getIstanbulCoverageFunctionDeclarationName(node: Node | undefined): str
  * Adds constants with the file id to the header of the file to process
  * which are then used in the coverage broadcast functions as arguments.
  *
- * For example, `_$fid0` is introduced as `const _$fid0 = "6822844a804c1e9986ac4bd4a45b85893bde8b33";`
+ * For example, `_$f0` is introduced as `const _$f0 = "6822844a804c1e9986ac4bd4a45b85893bde8b33";`
  * based on
  * ```
  * function cov_oqh6rsgrd() {
@@ -81,8 +107,7 @@ type FileIdMappingHandler = {
 	getFileHashForCoverageObjectId: (coverageObjectId: string) => string | undefined;
 };
 function createFileIdMappingHandler(): FileIdMappingHandler {
-	const fileIdMap: Map<string, string> = new Map<string, string>();
-	let fileIdSeq = 0;
+	const fileIdMap: Map<string, string> = new Map<string, string>();	
 
 	return {
 		enterPath(path: NodePath): void {
@@ -98,7 +123,7 @@ function createFileIdMappingHandler(): FileIdMappingHandler {
 					const declarator = declaration.declarations[0];
 					if (isIdentifier(declarator.id) && declarator.id.name === 'hash') {
 						// We take note of the hash that is stored within the `cov_*' function.
-						const fileIdVarName = `_$fid${fileIdSeq++}`;
+						const fileIdVarName = `_$f${fileIdSeqGenerator.next()}`;
 						const fileId = (declarator.init as StringLiteral).value;
 						fileIdMap.set(coverageFunctionName, fileIdVarName);
 						grandParentPath.insertBefore(newStringConstDeclarationNode(fileIdVarName, fileId) as any);

@@ -30,18 +30,14 @@ const TEAMSCALE_MOCK_PORT = 10088;
  * the expected coverage produced by our tool chain.
  */
 const caseStudies = [
-
 	{
-		name: 'generated-vite-react-app',
-		rootDir: 'test/casestudies/generated-vite-react-app',
+		name: BASELINE_STUDY,
+		rootDir: 'test/casestudies/baseline-empty-js',
 		distDir: 'dist',
-		expectCoveredLines: {
-			'../../src/App.tsx': [6, 14]
-		},
+		expectCoveredLines: {},
 		expectUncoveredLines: {},
 		excludeOrigins: [],
-		includeOrigins: [`'../../src/**/*.*'`],
-		maxNormTimeFraction: 1.1
+		includeOrigins: []
 	},
 	{
 		name: 'vite-react-ts-coverable-app',
@@ -54,6 +50,16 @@ const caseStudies = [
 		excludeOrigins: [],
 		includeOrigins: [`'../../src/**/*.*'`],
 		maxNormTimeFraction: 1.5
+	},
+	{
+		name: 'angular-realworld-example-app',
+		rootDir: 'test/casestudies/angular-realworld-example-app',
+		distDir: 'dist',
+		expectCoveredLines: {},
+		expectUncoveredLines: {},
+		excludeOrigins: [],
+		includeOrigins: [`'src/app/**/*.*'`],
+		maxNormTimeFraction: 8.0
 	},
 	{
 		name: 'vite-react-app',
@@ -470,6 +476,12 @@ function storePerfResult(perfMeasuresByStudy, studyName, perfKey, perf) {
 	studyPerfs[perfKey] = perf;
 }
 
+function buildAngularStudy(study) {
+	console.log('## Build the case study');
+	execSync('yarn install', { cwd: study.rootDir });
+	execSync('npm run ng build -prod', { cwd: study.rootDir });
+}
+
 function buildStudy(study) {
 	console.log('## Build the case study');
 	execSync('npm install', { cwd: study.rootDir });
@@ -542,7 +554,11 @@ await (async function runSystemTest() {
 	for (const study of caseStudies) {
 		console.group('# Case study', study.name);
 		try {
-			buildStudy(study);
+			if(study.name === "angular-realworld-example-app") {
+				buildAngularStudy(study)
+			} else {
+				buildStudy(study);
+			}
 
 			const webserverProcess = startStudyWebServer(study);
 

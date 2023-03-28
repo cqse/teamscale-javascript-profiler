@@ -71,7 +71,7 @@ test('Remove Function Coverage Increments', () => {
 		loc => loc.start.line === 9
 	);
 	expect(cleaned).toContain('f++');
-	expect(cleaned).toContain('_$stmtCov(_$fid');
+	expect(cleaned).toContain('_$stmtCov(_$f');
 	expect(cleaned).not.toContain('f[0]++');
 	expect(cleaned).not.toContain('f[1]++');
 });
@@ -134,7 +134,7 @@ test('Remove unsupported coverage only', () => {
 		loc => true
 	);
 	expect(cleaned).toContain('f++');
-	expect(cleaned).toContain('_$brCov(_$fid');
+	expect(cleaned).toContain('_$brCov(_$f');
 });
 
 test('Also handle coverage increments in sequence expressions.', () => {
@@ -156,7 +156,7 @@ test('Also handle coverage increments in sequence expressions.', () => {
 		loc => true
 	);
 	expect(cleaned).not.toContain('b[3][0]++');
-	expect(cleaned).toContain('_$brCov(_$fid');
+	expect(cleaned).toContain('_$brCov(_$f');
 });
 
 test('Remove the coverage from an instrument Angular bundle.', () => {

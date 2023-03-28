@@ -2,6 +2,8 @@ We use [Semantic Versioning](https://semver.org/).
 
 # New Release
 
+# 0.0.1-beta.51
+
 - [fix] The instrumenter created colliding identifiers in case no Ecmascript modules were used.
 
 # 0.0.1-beta.50

@@ -76,7 +76,7 @@ jobs:
       with:
         context: ./packages/teamscale-coverage-collector
         file: ./packages/teamscale-coverage-collector/Dockerfile
-        push: ${{ github.event_name != 'pull_request' }}
+        push: true
         tags: ${{ steps.meta.outputs.tags }}
         labels: ${{ steps.meta.outputs.labels }}
 

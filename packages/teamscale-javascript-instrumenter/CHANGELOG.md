@@ -2,6 +2,8 @@ We use [Semantic Versioning](https://semver.org/).
 
 # New Release
 
+- [fix] The instrumented app did send some garbage information not adding value.
+
 # 0.0.1-beta.51
 
 - [fix] The instrumenter created colliding identifiers in case no Ecmascript modules were used.

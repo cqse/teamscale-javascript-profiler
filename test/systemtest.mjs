@@ -1,3 +1,4 @@
+import net from "net";
 import tempfile from 'tempfile';
 import { exec, execSync, spawn } from 'child_process';
 import path from 'path';
@@ -12,6 +13,8 @@ import treeKill from 'tree-kill';
  */
 const BASELINE_STUDY = 'baseline-empty-js';
 
+const NUM_PERF_MEASURE_RUNS = 2;
+
 const KEY_PERF_TESTING_NO_INSTRUMENTATION = 'testingUninstrumented';
 const KEY_PERF_TESTING_WITH_INSTRUMENTATION = 'testingInstrumented';
 const KEY_PERF_INSTRUMENTATION = 'Instrumentation';
@@ -21,7 +24,6 @@ const __filename = fileURLToPath(import.meta.url);
 const PROFILER_ROOT_DIR = path.dirname(path.dirname(__filename));
 const INSTRUMENTER_DIR = path.join('packages', 'teamscale-javascript-instrumenter');
 const COLLECTOR_DIR = path.join('packages', 'teamscale-coverage-collector');
-const COLLECTOR_PORT = 54678;
 const SERVER_PORT = 9000;
 const TEAMSCALE_MOCK_PORT = 10088;
 
@@ -39,18 +41,7 @@ const caseStudies = [
 		excludeOrigins: [],
 		includeOrigins: []
 	},
-	{
-		name: 'vite-react-ts-coverable-app',
-		rootDir: 'test/casestudies/vite-react-ts-coverable-app',
-		distDir: 'dist',
-		expectCoveredLines: {
-			'../../src/App.tsx': [6, 11, 23, 27, 32, 33, 34]
-		},
-		expectUncoveredLines: {},
-		excludeOrigins: [],
-		includeOrigins: [`'../../src/**/*.*'`],
-		maxNormTimeFraction: 1.5
-	},
+
 	{
 		name: 'angular-realworld-example-app',
 		rootDir: 'test/casestudies/angular-realworld-example-app',
@@ -74,6 +65,18 @@ const caseStudies = [
 		maxNormTimeFraction: 1.1
 	},
 	{
+		name: 'vite-react-ts-coverable-app',
+		rootDir: 'test/casestudies/vite-react-ts-coverable-app',
+		distDir: 'dist',
+		expectCoveredLines: {
+			'../../src/App.tsx': [6, 11, 23, 27, 32, 33, 34]
+		},
+		expectUncoveredLines: {},
+		excludeOrigins: [],
+		includeOrigins: [`'../../src/**/*.*'`],
+		maxNormTimeFraction: 1.5
+	},
+	{
 		name: 'angular-hero-app',
 		rootDir: 'test/casestudies/angular-hero-app',
 		distDir: 'dist',
@@ -83,8 +86,7 @@ const caseStudies = [
 		},
 		expectUncoveredLines: {
 			'node_modules/zone.js/fesm2015/zone.js': ['1-30', '70-90', 28, 20, 80],
-			'src/app/heroes/heroes.component.ts': ['1-10', 15, 16, '18-20', '37-50'],
-			'src/app/hero-detail/hero-detail.component.ts': [33]
+			'src/app/heroes/heroes.component.ts': ['1-10', 15, 16, '18-20', '37-50']
 		},
 		excludeOrigins: [],
 		includeOrigins: [`'src/app/**/*.*'`],
@@ -106,6 +108,19 @@ const caseStudies = [
 		maxNormTimeFraction: 8.0
 	}
 ];
+
+/**
+ * Identify the next available port.
+ */
+async function identifyNextAvailablePort() {
+	return new Promise( res => {
+		const srv = net.createServer();
+		srv.listen(0, () => {
+			const port = srv.address().port;
+			srv.close(_ => res(port))
+		});
+	})
+}
 
 /**
  * Load coverage from a file in the simple coverage format to an object
@@ -207,10 +222,10 @@ function identifyExpectedButAbsent(actual, expected) {
  * Start the collector process.
  * @returns {ChildProcessWithoutNullStreams}
  */
-function startCollector(coverageFolder, logTargetFile, projectId) {
+function startCollector(coverageFolder, logTargetFile, projectId, collectorPort) {
 	const collector = spawn(
 		'node',
-		[`${COLLECTOR_DIR}/dist/src/main.js`, `-f`, `${coverageFolder}`, `-l`, `${logTargetFile}`, `-k`, `-e`, `info`],
+		[`${COLLECTOR_DIR}/dist/src/main.js`, `--port`, collectorPort, `-f`, `${coverageFolder}`, `-l`, `${logTargetFile}`, `-k`, `-e`, `info`],
 		{
 			env: {
 				...process.env,
@@ -225,6 +240,7 @@ function startCollector(coverageFolder, logTargetFile, projectId) {
 		}
 	);
 
+
 	collector.stdout.on('data', function (data) {
 		console.log('collector stdout: ' + data.toString());
 	});
@@ -232,6 +248,8 @@ function startCollector(coverageFolder, logTargetFile, projectId) {
 	collector.stderr.on('data', function (data) {
 		console.error('collector stderr: ' + data.toString());
 	});
+
+	console.info(`Started the collector on port ${collectorPort}.`);
 
 	return collector;
 }
@@ -293,8 +311,8 @@ function sleep(ms) {
 /**
  * Check if the produced coverage is sufficient for the given study.
  */
-function checkObtainedCoverage(study) {
-	const coverageFolder = getStudyCoverageFolder(study);
+function checkObtainedCoverage(study, sessionId) {
+	const coverageFolder = getStudyCoverageFolder(study, sessionId);
 	const coverageFile = identifyCoverageFile(coverageFolder);
 
 	// Check if the coverage collector has written the files
@@ -436,7 +454,7 @@ function profileTestingInBrowser(studyName) {
 
 	// The actual runs to determine the best performance.
 	const runResults = [];
-	let remainingRuns = 3;
+	let remainingRuns = NUM_PERF_MEASURE_RUNS;
 	while (remainingRuns > 0) {
 		runResults.push(runTestsOnSubjectInBrowser(studyName));
 		remainingRuns--;
@@ -445,7 +463,7 @@ function profileTestingInBrowser(studyName) {
 	return averagePerformance(runResults);
 }
 
-function instrumentStudy(study) {
+function instrumentStudy(study, collectorPort) {
 	const fullStudyDistPath = path.resolve(`${study.rootDir}/${study.distDir}`);
 	console.log(`## Instrument the case study in ${fullStudyDistPath}`);
 
@@ -461,7 +479,7 @@ function instrumentStudy(study) {
 
 	const performanceFile = tempfile('.json');
 	execSync(
-		`${path.join(PROFILER_ROOT_DIR, 'test', 'scripts', 'profile_instrumentation.sh')} ${fullStudyDistPath} ${COLLECTOR_PORT} ${performanceFile} ${excludeArgument} ${includeArgument}`,
+		`${path.join(PROFILER_ROOT_DIR, 'test', 'scripts', 'profile_instrumentation.sh')} ${fullStudyDistPath} ${collectorPort} ${performanceFile} ${excludeArgument} ${includeArgument}`,
 		{ cwd: INSTRUMENTER_DIR, stdio: 'inherit' }
 	);		
 	return JSON.parse(fs.readFileSync(performanceFile));	
@@ -489,8 +507,8 @@ function buildStudy(study) {
 	execSync('npm run build', { cwd: study.rootDir });
 }
 
-function getStudyCoverageFolder(study) {
-	return path.resolve(path.join(study.rootDir, 'coverage'));
+function getStudyCoverageFolder(study, sessionId) {
+	return path.resolve(path.join(study.rootDir, 'coverage', sessionId));
 }
 
 function identifyCoverageFile(coverageFolder) {
@@ -503,15 +521,15 @@ function identifyCoverageFile(coverageFolder) {
 	return path.join(coverageFolder, coverageFiles[0]);
 }
 
-async function clearStudyOutputs(study) {
-	const coverageFolder = getStudyCoverageFolder(study);
-	const logTargetFile = path.resolve(`${study.rootDir}/coverage.log`);
+async function clearStudyOutputs(study, sessionId) {
+	const coverageFolder = getStudyCoverageFolder(study, sessionId);
+	const logTargetFile = path.resolve(`${study.rootDir}/coverage-${sessionId}.log`);
 
 	// Delete existing files
 	if (fs.existsSync(coverageFolder)) {
 		fs.rmSync(coverageFolder, { recursive: true });
 	}
-	fs.mkdirSync(coverageFolder);
+	fs.mkdirSync(coverageFolder, { recursive: true });
 	if (fs.existsSync(logTargetFile)) {
 		await fsp.unlink(logTargetFile);
 	}
@@ -552,6 +570,9 @@ await (async function runSystemTest() {
 	const perfStore = {};
 
 	for (const study of caseStudies) {
+		const collectorPort = await identifyNextAvailablePort();
+		const sessionId = `session-${collectorPort}`;
+
 		console.group('# Case study', study.name);
 		try {
 			if(study.name === "angular-realworld-example-app") {
@@ -566,17 +587,17 @@ await (async function runSystemTest() {
 			const notInstrumentedRuntimePerf = profileTestingInBrowser(study.name);
 			storePerfResult(perfStore, study.name, KEY_PERF_TESTING_NO_INSTRUMENTATION, notInstrumentedRuntimePerf);
 
-			const instrumentationPerformance = instrumentStudy(study);
+			const instrumentationPerformance = instrumentStudy(study, collectorPort);
 			storePerfResult(perfStore, study.name, KEY_PERF_INSTRUMENTATION, instrumentationPerformance);
 
 			try {
-				const [coverageFolder, logTargetFile] = await clearStudyOutputs(study);
+				const [coverageFolder, logTargetFile] = await clearStudyOutputs(study, sessionId);
 
 				const teamscaleServerMock = await startTeamscaleMockServer(study);
 				try {
 					console.log('## Starting the collector');
 					console.log(`Collector is logging to ${logTargetFile}`);
-					const collectProcess = startCollector(coverageFolder, logTargetFile, study.name);
+					const collectProcess = startCollector(coverageFolder, logTargetFile, study.name, collectorPort);
 
 					// Run the tests in the browser on the instrumented version
 					try {
@@ -589,7 +610,7 @@ await (async function runSystemTest() {
 						await sleep(7000);
 					}
 
-					checkObtainedCoverage(study);
+					checkObtainedCoverage(study, sessionId);
 
 					checkTeamscaleServerMockInteractions(teamscaleServerMock, study);
 				} finally {

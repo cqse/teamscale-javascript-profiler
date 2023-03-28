@@ -12,7 +12,7 @@ jobs:
       ENV DBUS_SESSION_BUS_ADDRESS: /dev/null
     steps:
       - name: Check out the code
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
       - uses: actions/setup-node@v2
         with:
           node-version: '16'
@@ -42,8 +42,6 @@ jobs:
         uses: actions/setup-python@v4
         with:
           python-version: '3.10'
-      - name: Install the `mprof` profiler
-        run: pip3 install memory-profiler
       - name: Run the system test
         uses: GabrielBB/xvfb-action@v1
         with:

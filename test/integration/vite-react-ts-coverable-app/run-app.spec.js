@@ -7,5 +7,6 @@ describe('React Simple App', () => {
 		cy.get('button').click();
 		cy.get('button').click();
 		cy.get('button').click();
+		cy.document().trigger('visibilitychange');
 	});
 });

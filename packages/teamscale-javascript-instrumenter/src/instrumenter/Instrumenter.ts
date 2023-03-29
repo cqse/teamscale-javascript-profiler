@@ -264,12 +264,20 @@ export class IstanbulInstrumenter implements IInstrumenter {
 		instrumentedSources: string[],
 		finalSourceMaps: string[]
 	) {
+		Contract.require(
+			instrumentedSources.length === finalSourceMaps.length,
+			'Assuming alignment of source code and source map arrays.'
+		);
 		if (inputBundle.type === 'gwt') {
 			if (inputBundle.codeAsArrayArgument) {
 				throw new Error(
 					`Code as argument is not implemented. Function ${inputBundle.functionName}, fragment ${inputBundle.fragmentId}.`
 				);
 			} else {
+				Contract.require(
+					instrumentedSources.length === 1,
+					'Assuming only one code fragment to be passed as argument.'
+				);
 				const processedCodeString = `"${instrumentedSources[0].replace('"', '\\"')}"`;
 				writeToFile(
 					toFile,
@@ -277,6 +285,10 @@ export class IstanbulInstrumenter implements IInstrumenter {
 				);
 			}
 		} else {
+			Contract.require(
+				instrumentedSources.length === 1,
+				'Assuming only one code fragment to be passed as argument for JavaScript bundles.'
+			);
 			writeToFile(
 				toFile,
 				`${IS_INSTRUMENTED_TOKEN} ${this.vaccineSource} ${instrumentedSources[0]} \n${finalSourceMaps[0]}`

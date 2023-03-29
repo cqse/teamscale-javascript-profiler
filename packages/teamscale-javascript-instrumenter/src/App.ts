@@ -1,5 +1,5 @@
 import { ArgumentParser } from 'argparse';
-import { InstrumentationTask, TaskResult } from './instrumenter/Task';
+import {CollectorSpecifier, InstrumentationTask, TaskResult} from './instrumenter/Task';
 import { IInstrumenter, IstanbulInstrumenter } from './instrumenter/Instrumenter';
 import { Contract } from '@cqse/commons';
 import { ConfigurationParameters, TaskBuilder } from './instrumenter/TaskBuilder';
@@ -25,8 +25,8 @@ export class App {
 
 		// Build the logger
 		const logger = this.buildLogger(config);
-		logger.debug("Retrieved arguments", process.argv);
-		logger.debug("Translated arguments to config", config);
+		logger.debug('Retrieved arguments', process.argv);
+		logger.debug('Translated arguments to config', config);
 
 		// Run the instrumenter with the given configuration.
 		return this.runForConfigArguments(config, logger);
@@ -37,7 +37,7 @@ export class App {
 	 * still quoted. We remove those here.
 	 */
 	public static postprocessConfig(config: ConfigurationParameters): void {
-		function unquoteString(originalString: string|undefined): string|undefined {
+		function unquoteString(originalString: string | undefined): string | undefined {
 			if (originalString === undefined) {
 				return originalString;
 			}
@@ -49,7 +49,7 @@ export class App {
 			}
 		}
 
-		function unquoteStringElements(originalArray: unknown[]|undefined): unknown[]|undefined {
+		function unquoteStringElements(originalArray: unknown[] | undefined): unknown[] | undefined {
 			if (originalArray === undefined) {
 				return undefined;
 			}
@@ -61,7 +61,6 @@ export class App {
 					return s;
 				}
 			});
-
 		}
 
 		for (const [property, value] of Object.entries(config)) {
@@ -95,7 +94,7 @@ export class App {
 			help: 'Path (directory or file name) to write the instrumented version to.'
 		});
 		parser.add_argument('-s', '--source-map', {
-			help: 'External location of source-map files to consider.',
+			help: 'External location of source-map files to consider.'
 		});
 		parser.add_argument('-c', '--collector', {
 			help: 'The collector (`host:port` or `wss://host:port/` or `ws://host:port/`) to send coverage information to.',
@@ -173,14 +172,14 @@ export class App {
 		const task: InstrumentationTask = this.createInstrumentationTask(config);
 		Contract.require(task.elements.length > 0, 'The instrumentation task must not be empty.');
 
-		return this.createInstrumenter(logger ?? this.buildDummyLogger()).instrument(task);
+		return this.createInstrumenter(logger ?? this.buildDummyLogger(), task.collector).instrument(task);
 	}
 
 	private static createInstrumentationTask(config: ConfigurationParameters): InstrumentationTask {
 		return new TaskBuilder().addFromConfig(config).build();
 	}
 
-	private static createInstrumenter(logger: Logger): IInstrumenter {
+	private static createInstrumenter(logger: Logger, collector: CollectorSpecifier): IInstrumenter {
 		// We have to deal with two different `__dirname` versions,
 		// which depends on whether we run from within the IDE or from
 		// the command line:
@@ -188,9 +187,9 @@ export class App {
 		const pathVariant1 = path.join(__dirname, '../vaccine.js');
 		const pathVariant2 = path.join(__dirname, '../dist/vaccine.js');
 		if (existsSync(pathVariant1)) {
-			return new IstanbulInstrumenter(pathVariant1, logger);
+			return new IstanbulInstrumenter(pathVariant1, logger, collector);
 		} else {
-			return new IstanbulInstrumenter(pathVariant2, logger);
+			return new IstanbulInstrumenter(pathVariant2, logger, collector);
 		}
 	}
 }

@@ -258,18 +258,29 @@ export class IstanbulInstrumenter implements IInstrumenter {
 		return new TaskResult(1, 0, 0, 0, 0, 0, 0);
 	}
 
-	private writeBundleFile(toFile: string, inputBundle: BundleFile, sources: string[], finalSourceMaps: string[]) {
+	private writeBundleFile(
+		toFile: string,
+		inputBundle: BundleFile,
+		instrumentedSources: string[],
+		finalSourceMaps: string[]
+	) {
 		if (inputBundle.type === 'gwt') {
 			if (inputBundle.codeAsArrayArgument) {
 				throw new Error(
 					`Code as argument is not implemented. Function ${inputBundle.functionName}, fragment ${inputBundle.fragmentId}.`
 				);
 			} else {
-				const processedCode = ` ${sources[0]}`;
-				writeToFile(toFile, `${IS_INSTRUMENTED_TOKEN} ${this.vaccineSource} ${inputBundle.functionName}("")`);
+				const processedCodeString = `"${instrumentedSources[0].replace('"', '\\"')}"`;
+				writeToFile(
+					toFile,
+					`${IS_INSTRUMENTED_TOKEN} ${this.vaccineSource} ${inputBundle.functionName}(${processedCodeString})`
+				);
 			}
 		} else {
-			writeToFile(toFile, `${IS_INSTRUMENTED_TOKEN} ${this.vaccineSource} ${sources[0]} \n${finalSourceMaps[0]}`);
+			writeToFile(
+				toFile,
+				`${IS_INSTRUMENTED_TOKEN} ${this.vaccineSource} ${instrumentedSources[0]} \n${finalSourceMaps[0]}`
+			);
 		}
 	}
 

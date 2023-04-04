@@ -1,7 +1,7 @@
 import { App } from '../../src/App';
 import { getLocal } from 'mockttp';
 import { CollectorClient } from '../CollectorClient';
-import {CONTROL_URL, postAndDumpCoverage} from "./CommonControlServerTestUtils";
+import { CONTROL_URL, postAndDumpCoverage } from './CommonControlServerTestUtils';
 
 const ARTIFACTORY_MOCK_PORT = 11235;
 
@@ -32,51 +32,51 @@ describe('Test the control server that is integrated in the collector with uploa
 
 	afterEach(async () => {
 		// Stop the mock server
-		artifactoryServerMock.stop();
+		await artifactoryServerMock.stop();
 
 		// Stop the collector
 		await collectorState.stop();
 	});
 
-	it.skip('Dump coverage', async () => {
+	it('Dump coverage', async () => {
 		let mockedEndpoint = await artifactoryServerMock
 			.forPut(`/some/prefix/uploads/someBranch/someTime/part/simple/report.simple`)
-			.withHeaders({"x-jfrog-art-api": "DummyAccessToken"})
+			.withHeaders({ 'x-jfrog-art-api': 'DummyAccessToken' })
 			.thenReply(200, 'Mocked response');
-    	await postAndDumpCoverage();
+		await postAndDumpCoverage();
 		const requests = await mockedEndpoint.getSeenRequests();
 		expect(requests).toHaveLength(1);
 	}, 20000);
 
-	it.skip('Change commit and dump coverage', async () => {
+	it('Change commit and dump coverage', async () => {
 		let mockedEndpoint = await artifactoryServerMock
 			.forPut(`/some/prefix/uploads/master/123456789000/part/simple/report.simple`)
-			.withHeaders({"x-jfrog-art-api": "DummyAccessToken"})
+			.withHeaders({ 'x-jfrog-art-api': 'DummyAccessToken' })
 			.thenReply(200, 'Mocked response');
 		await CollectorClient.requestCommitChange(CONTROL_URL, 'master:123456789000');
-    	await postAndDumpCoverage();
+		await postAndDumpCoverage();
 		const requests = await mockedEndpoint.getSeenRequests();
 		expect(requests).toHaveLength(1);
 	}, 20000);
 
-	it.skip('Change revision and dump coverage', async () => {
+	it('Change revision and dump coverage', async () => {
 		let mockedEndpoint = await artifactoryServerMock
 			.forPut(`/some/prefix/uploads/someBranch/someTime-rev123/part/simple/report.simple`)
-			.withHeaders({"x-jfrog-art-api": "DummyAccessToken"})
+			.withHeaders({ 'x-jfrog-art-api': 'DummyAccessToken' })
 			.thenReply(200, 'Mocked response');
 		await CollectorClient.requestRevisionChange(CONTROL_URL, 'rev123');
-    	await postAndDumpCoverage();
+		await postAndDumpCoverage();
 		const requests = await mockedEndpoint.getSeenRequests();
 		expect(requests).toHaveLength(1);
 	}, 20000);
 
-	it.skip('Change partiton and dump coverage', async () => {
+	it('Change partiton and dump coverage', async () => {
 		let mockedEndpoint = await artifactoryServerMock
 			.forPut(`/some/prefix/uploads/someBranch/someTime/dummyPartition/simple/report.simple`)
-			.withHeaders({"x-jfrog-art-api": "DummyAccessToken"})
+			.withHeaders({ 'x-jfrog-art-api': 'DummyAccessToken' })
 			.thenReply(200, 'Mocked response');
 		await CollectorClient.requestPartitionChange(CONTROL_URL, 'dummyPartition');
-    	await postAndDumpCoverage();
+		await postAndDumpCoverage();
 		const requests = await mockedEndpoint.getSeenRequests();
 		expect(requests).toHaveLength(1);
 	}, 20000);

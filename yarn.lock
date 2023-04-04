@@ -1450,12 +1450,12 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@httptoolkit/httpolyglot@npm:^2.0.1":
-  version: 2.0.1
-  resolution: "@httptoolkit/httpolyglot@npm:2.0.1"
+"@httptoolkit/httpolyglot@npm:^2.1.0":
+  version: 2.1.0
+  resolution: "@httptoolkit/httpolyglot@npm:2.1.0"
   dependencies:
     "@types/node": ^16.7.10
-  checksum: d5209dcaba13c11a82833306ee64e19f5a4516590297dbb9e9f11cbaad1e56b1f958576c4d2562fbc56d4ff3a532a8bc660715a4ff9f688f5640d23229337163
+  checksum: b2471d15a2df9511b92a5c84513115898c811cb74056a93e281b4434f38f25c05ee20d81e3fc15ce57c285edf0a29304c1306644da3a2e94fefdcd3046c53562
   languageName: node
   linkType: hard
 
@@ -1904,7 +1904,7 @@ __metadata:
     form-data: ^4.0.0
     jest: ^27.2.0
     mkdirp: ^1.0.4
-    mockttp: ^3.4.0
+    mockttp: ^3.7.0
     rimraf: ^3.0.2
     rxjs: ^7.1.0
     source-map: ^0.7.4
@@ -4060,6 +4060,15 @@ __metadata:
   languageName: node
   linkType: hard
 
+"destroyable-server@npm:^1.0.0":
+  version: 1.0.0
+  resolution: "destroyable-server@npm:1.0.0"
+  dependencies:
+    "@types/node": "*"
+  checksum: ac81b26f616a9d0aaa9cb759fa5a5a186f887025362329f7ddc909f53090f4aea0d1b75c4dda23e210faee536e2d7352de017261e1625b7b18108f0e630efa1f
+  languageName: node
+  linkType: hard
+
 "detect-newline@npm:^3.0.0":
   version: 3.1.0
   resolution: "detect-newline@npm:3.1.0"
@@ -6121,13 +6130,13 @@ __metadata:
   languageName: node
   linkType: hard
 
-"http2-wrapper@npm:2.0.5":
-  version: 2.0.5
-  resolution: "http2-wrapper@npm:2.0.5"
+"http2-wrapper@npm:^2.2.0":
+  version: 2.2.0
+  resolution: "http2-wrapper@npm:2.2.0"
   dependencies:
     quick-lru: ^5.1.1
-    resolve-alpn: ^1.1.1
-  checksum: a42b40d0ff48516fd48ff91cc99fa2ef55968ac7bc2046feec8dcacc78d0a4e920ceed48bab7fa9a0ea433f689bcc31adeae332da77f4f410710cae7d27fa00a
+    resolve-alpn: ^1.2.0
+  checksum: 6fd20e5cb6a58151715b3581e06a62a47df943187d2d1f69e538a50cccb7175dd334ecfde7900a37d18f3e13a1a199518a2c211f39860e81e9a16210c199cfaa
   languageName: node
   linkType: hard
 
@@ -8203,13 +8212,13 @@ __metadata:
   languageName: node
   linkType: hard
 
-"mockttp@npm:^3.4.0":
-  version: 3.4.0
-  resolution: "mockttp@npm:3.4.0"
+"mockttp@npm:^3.7.0":
+  version: 3.7.0
+  resolution: "mockttp@npm:3.7.0"
   dependencies:
     "@graphql-tools/schema": ^8.5.0
     "@graphql-tools/utils": ^8.8.0
-    "@httptoolkit/httpolyglot": ^2.0.1
+    "@httptoolkit/httpolyglot": ^2.1.0
     "@httptoolkit/subscriptions-transport-ws": ^0.11.2
     "@httptoolkit/websocket-stream": ^6.0.1
     "@types/cors": ^2.8.6
@@ -8222,13 +8231,14 @@ __metadata:
     cors: ^2.8.4
     cors-gate: ^1.1.3
     cross-fetch: ^3.1.5
+    destroyable-server: ^1.0.0
     express: ^4.14.0
     express-graphql: ^0.11.0
     graphql: ^14.0.2 || ^15.5
     graphql-subscriptions: ^1.1.0
     graphql-tag: ^2.12.6
     http-encoding: ^1.5.1
-    http2-wrapper: 2.0.5
+    http2-wrapper: ^2.2.0
     https-proxy-agent: ^5.0.1
     isomorphic-ws: ^4.0.1
     lodash: ^4.16.4
@@ -8239,13 +8249,14 @@ __metadata:
     parse-multipart-data: ^1.4.0
     performance-now: ^2.1.0
     portfinder: 1.0.28
+    read-tls-client-hello: ^1.0.0
     socks-proxy-agent: ^7.0.0
     typed-error: ^3.0.2
     uuid: ^8.3.2
     ws: ^8.8.0
   bin:
     mockttp: dist/admin/admin-bin.js
-  checksum: d340283dace549741fab926da35a1062fd2e20224ae690b206008a986aa402ba18ea90534824d7d213f1fa225946f683248a73a0693719d7b234cef1118a2cb6
+  checksum: 53b9cc9259ac48e5a3f658b1605f6ce760f226ab2e98527b6a3e7843382fe0b05f8025111d05e341e8cc6192ab2a421cdf237ac909a53bedea45dd9f3e4d2c27
   languageName: node
   linkType: hard
 
@@ -9184,6 +9195,15 @@ __metadata:
   languageName: node
   linkType: hard
 
+"read-tls-client-hello@npm:^1.0.0":
+  version: 1.0.1
+  resolution: "read-tls-client-hello@npm:1.0.1"
+  dependencies:
+    "@types/node": "*"
+  checksum: 532c1c32ef049c245b59473ad7a06ad5db61bd22258ccfb54923be24173e8cafbb1a6a17bcc783884dce9b98db15db76a9569ea9c95b2b9b729be990439b931b
+  languageName: node
+  linkType: hard
+
 "readable-stream@npm:1.1.x":
   version: 1.1.14
   resolution: "readable-stream@npm:1.1.14"
@@ -9341,7 +9361,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"resolve-alpn@npm:^1.1.1":
+"resolve-alpn@npm:^1.2.0":
   version: 1.2.1
   resolution: "resolve-alpn@npm:1.2.1"
   checksum: f558071fcb2c60b04054c99aebd572a2af97ef64128d59bef7ab73bd50d896a222a056de40ffc545b633d99b304c259ea9d0c06830d5c867c34f0bfa60b8eae0

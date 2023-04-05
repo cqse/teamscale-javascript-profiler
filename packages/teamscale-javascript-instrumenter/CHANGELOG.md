@@ -3,6 +3,7 @@ We use [Semantic Versioning](https://semver.org/).
 # New Release
 
 - [fix] The instrumented app did send some garbage information not adding value.
+- [fix] `--exclude-bundle` failed to exclude file paths staring with `./`
 
 # 0.0.1-beta.51
 

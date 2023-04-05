@@ -1,6 +1,6 @@
 import { Optional } from 'typescript-optional';
 import { Contract } from '@cqse/commons';
-import matching from 'micromatch';
+import micromatch from 'micromatch';
 import path from 'path';
 
 /**
@@ -100,27 +100,24 @@ export class OriginSourcePattern {
 
 		const normalizedOriginFiles = originFiles.map(normalizePath);
 		if (this.exclude) {
-			const matchedToExclude = matching(normalizedOriginFiles, this.exclude);
+			const matchedToExclude = micromatch(normalizedOriginFiles, this.exclude);
 			if (originFiles.length === matchedToExclude.length) {
 				return false;
 			}
 		}
 
 		if (this.include) {
-			const matchedToInclude = matching(normalizedOriginFiles, this.include || ['**']);
-			return matchedToInclude.length > 0;
+			return micromatch.some(normalizedOriginFiles, this.include || ['**']);
 		}
 
 		return true;
 	}
-
 }
 
 /**
  * Pattern describing files (bundles) to not instrument.
  */
 export class FileExcludePattern {
-
 	/**
 	 * Glob pattern describing a set of files to be excluded in the instrumentation process.
 	 */
@@ -134,7 +131,7 @@ export class FileExcludePattern {
 	 * Return `true` if the given `filePath` is matched by any of the patterns in `exclude`.
 	 */
 	public isExcluded(filePath: string): boolean {
-		return matching([filePath], this.exclude).length === 1;
+		return micromatch.isMatch(normalizePath(filePath), this.exclude);
 	}
 }
 
@@ -169,10 +166,7 @@ function normalizePath(toNormalize: string): string {
 }
 
 function removeTrailingCurrentWorkingDir(removeFrom: string): string {
-	return removePrefix(
-		'webpack:///',
-		removePrefix('.' + path.sep, removeFrom)
-	);
+	return removePrefix('webpack:///', removePrefix('.' + path.sep, removeFrom));
 }
 
 function removePrefix(prefix: string, removeFrom: string): string {

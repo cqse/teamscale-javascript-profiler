@@ -1,5 +1,6 @@
 import {
-	CollectorSpecifier, FileExcludePattern,
+	CollectorSpecifier,
+	FileExcludePattern,
 	InstrumentationTask,
 	OriginSourcePattern,
 	SourceMapFileReference,
@@ -88,6 +89,7 @@ export class IstanbulInstrumenter implements IInstrumenter {
 	 *
 	 * @param collector - The collector to send the coverage information to.
 	 * @param taskElement - The task element to perform the instrumentation for.
+	 * @param excludeBundles - A exclude pattern to restrict which bundles should be instrumented
 	 * @param sourcePattern - A pattern to restrict the instrumentation to only a fraction of the task element.
 	 * @param dumpOriginsFile - A file path where all origins from the source map should be dumped in json format, or undefined if no origins should be dumped
 	 */
@@ -98,6 +100,22 @@ export class IstanbulInstrumenter implements IInstrumenter {
 		sourcePattern: OriginSourcePattern,
 		dumpOriginsFile: string | undefined
 	): Promise<TaskResult> {
+		// Not all file types are supported by the instrumenter
+		if (!this.isFileTypeSupported(taskElement.fromFile)) {
+			if (!taskElement.isInPlace()) {
+				copyToFile(taskElement.toFile, taskElement.fromFile);
+			}
+			return new TaskResult(0, 0, 0, 0, 1, 0, 0);
+		}
+
+		// We might want to skip the instrumentation of the file
+		if (excludeBundles.isExcluded(taskElement.fromFile)) {
+			if (!taskElement.isInPlace()) {
+				copyToFile(taskElement.toFile, taskElement.fromFile);
+			}
+			return new TaskResult(0, 1, 0, 0, 0, 0, 0);
+		}
+
 		const inputFileSource = fs.readFileSync(taskElement.fromFile, 'utf8');
 
 		// We skip files that we have already instrumented
@@ -106,19 +124,6 @@ export class IstanbulInstrumenter implements IInstrumenter {
 				writeToFile(taskElement.toFile, inputFileSource);
 			}
 			return new TaskResult(0, 0, 0, 1, 0, 0, 0);
-		}
-
-		// Not all file types are supported by the instrumenter
-		if (!this.isFileTypeSupported(taskElement.fromFile)) {
-			return new TaskResult(0, 0, 0, 0, 1, 0, 0);
-		}
-
-		// We might want to skip the instrumentation of the file
-		if (excludeBundles.isExcluded(taskElement.fromFile)) {
-			if (!taskElement.isInPlace()) {
-				writeToFile(taskElement.toFile, inputFileSource);
-			}
-			return new TaskResult(0, 1, 0, 0, 0, 0, 0);
 		}
 
 		// Report progress
@@ -444,4 +449,9 @@ export function instrumentWithSwc(
 			}
 		}
 	});
+}
+
+function copyToFile(targetFilePath: string, sourceFilePath: string) {
+	mkdirp.sync(path.dirname(targetFilePath));
+	fs.copyFileSync(sourceFilePath, targetFilePath);
 }

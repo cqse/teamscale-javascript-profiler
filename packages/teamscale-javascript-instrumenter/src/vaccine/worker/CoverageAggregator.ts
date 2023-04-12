@@ -94,6 +94,11 @@ export class CoverageAggregator {
 	 * Add coverage information.
 	 */
 	public addRange(fileId: string, range: CodeRange): void {
+		if (!range.start.line || !range.end.line) {
+			// Sometimes the range is not resolved.
+			return;
+		}
+
 		let coveredPositions: Set<CodeRange> | undefined = this.cachedCoveredRanges.get(fileId);
 		if (!coveredPositions) {
 			coveredPositions = new Set();

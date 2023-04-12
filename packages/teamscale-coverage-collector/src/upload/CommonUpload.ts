@@ -17,7 +17,7 @@ export class UploadError extends Error {
  */
 export function prepareFormData(coverageFile: string): FormData {
 	const form = new FormData();
-	form.append('report', fs.createReadStream(coverageFile), 'coverage.simple');
+	form.append('report', fs.readFileSync(coverageFile), 'coverage.simple');
 	return form;
 }
 

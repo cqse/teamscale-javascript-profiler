@@ -25,6 +25,8 @@ export class App {
 
 		// Build the logger
 		const logger = this.buildLogger(config);
+		logger.debug("Retrieved arguments", process.argv);
+		logger.debug("Translated arguments to config", config);
 
 		// Run the instrumenter with the given configuration.
 		return this.runForConfigArguments(config, logger);
@@ -39,7 +41,12 @@ export class App {
 			if (originalString === undefined) {
 				return originalString;
 			}
-			return originalString.replace(/^["'](.+(?=["']$))["']$/, '$1');
+			const result = originalString.replace(/^["'](.+(?=["']$))["']$/, '$1');
+			if (result === originalString) {
+				return result;
+			} else {
+				return unquoteString(result);
+			}
 		}
 
 		function unquoteStringElements(originalArray: unknown[]|undefined): unknown[]|undefined {

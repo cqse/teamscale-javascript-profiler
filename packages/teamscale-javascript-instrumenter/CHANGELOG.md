@@ -2,6 +2,18 @@ We use [Semantic Versioning](https://semver.org/).
 
 # New Release
 
+- [fix] The instrumented app did send some garbage information not adding value.
+- [fix] `--exclude-bundle` failed to exclude file paths staring with `./`
+
+# 0.0.1-beta.51
+
+- [fix] The instrumenter created colliding identifiers in case no Ecmascript modules were used.
+
+# 0.0.1-beta.50
+
+- [feature] Unquote inputs in nested quotes.
+- [feature] Log all input arguments in debug mode.
+
 # 0.0.1-beta.49
 
 - [fix] Coverage instrumentation led to tab crashes for complex applications.

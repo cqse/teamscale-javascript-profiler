@@ -101,5 +101,6 @@ describe('FileExcludePattern', () => {
 		expect(pattern.isExcluded('./src/app/index.js')).toBeFalsy();
 		expect(pattern.isExcluded('vendor.5d3bc21.js')).toBeTruthy();
 		expect(pattern.isExcluded('./assets/vendor.5d3bc21.js')).toBeTruthy();
+		expect(pattern.isExcluded('.\\assets\\vendor.5d3bc21.js')).toBeTruthy();
 	});
 });

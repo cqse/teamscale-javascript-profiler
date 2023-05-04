@@ -2,6 +2,8 @@ We use [Semantic Versioning](https://semver.org/).
 
 # New Release
 
+- [fix] Path normalization under windows did not work as expected
+
 # 0.0.1-beta.52
 
 - [fix] The instrumented app did send some garbage information not adding value.

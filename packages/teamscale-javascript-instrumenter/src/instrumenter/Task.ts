@@ -162,11 +162,11 @@ function normalizeGlobPattern(pattern: string | undefined): string | undefined {
 }
 
 function normalizePath(toNormalize: string): string {
-	return removeTrailingCurrentWorkingDir(toNormalize);
+	return removeTrailingCurrentWorkingDir(toNormalize.replace(/\\/g, '/'));
 }
 
 function removeTrailingCurrentWorkingDir(removeFrom: string): string {
-	return removePrefix('webpack:///', removePrefix('.' + path.sep, removeFrom));
+	return removePrefix('webpack:///', removePrefix('./', removeFrom));
 }
 
 function removePrefix(prefix: string, removeFrom: string): string {

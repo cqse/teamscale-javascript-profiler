@@ -20,6 +20,7 @@ import {
 	isUpdateExpression
 } from '@babel/types';
 import { IllegalStateException } from '@cqse/commons';
+import process from "process";
 
 const COVERAGE_OBJ_FUNCTION_NAME_PREFIX = 'cov_';
 
@@ -130,6 +131,7 @@ function createFileIdMappingHandler(): FileIdMappingHandler {
 					}
 				}
 			}
+			global.gc();
 		},
 		getFileHashForCoverageObjectId(coverageObjectId: string): string | undefined {
 			return fileIdMap.get(coverageObjectId);
@@ -179,6 +181,7 @@ function createPartialInstrumentationHandler(
 
 			// Remove the existing coverage increment node
 			path.remove();
+			global.gc();
 		}
 	};
 }
@@ -194,19 +197,25 @@ export function cleanSourceCode(
 	esModules: boolean,
 	makeCoverable: (location: SourceLocation) => boolean
 ): string {
+	let ramusage = process.memoryUsage().heapUsed;
+	console.log("BEFORE AST CREATION: " + ramusage)
 	const ast = parse(code, { sourceType: esModules ? 'module' : 'script' });
 	const fileIdMappingHandler = createFileIdMappingHandler();
 	const partialInstrumentationHandler = createPartialInstrumentationHandler(fileIdMappingHandler);
-
+	ramusage = process.memoryUsage().heapUsed;
+	console.log("AFTER AST CREATION: " + ramusage)
 	traverse(ast, {
 		enter(path: NodePath) {
 			fileIdMappingHandler.enterPath(path);
 			partialInstrumentationHandler.enterPath(path, makeCoverable);
 		}
 	});
+	ramusage = process.memoryUsage().heapUsed;
+	console.log("AFTER AST TRAVERSAL: " + ramusage)
 
 	return generate(ast, {}, code).code;
 }
+
 
 /**
  * We cannot just run `path.insertBefore` to add a new element to an AST.

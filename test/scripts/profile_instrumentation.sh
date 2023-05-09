@@ -38,7 +38,7 @@ fi
 
 # Run the instrumenter with the memory profiler attached
 /usr/bin/time -o "$PROFILING_RESULTS_FILE"  -f "%M %e" \
-    node ./dist/src/main.js \
+    node --heap-prof --expose-gc ./dist/src/main.js \
         --in-place "${DIST_DIR}" \
         --collector "ws://localhost:$COLLECTOR_PORT" \
         "${@:4}"

@@ -7,6 +7,7 @@ import {
 	TaskElement,
 	TaskResult
 } from './Task';
+import { setFlagsFromString } from 'v8';
 import { Contract, IllegalArgumentException } from '@cqse/commons';
 import { RawSourceMap, SourceMapConsumer } from 'source-map';
 import * as istanbul from 'istanbul-lib-instrument';
@@ -18,6 +19,8 @@ import { cleanSourceCode } from './Postprocessor';
 import { Optional } from 'typescript-optional';
 import Logger from 'bunyan';
 import async from 'async';
+import * as process from "process";
+import * as v8 from "v8";
 
 export const IS_INSTRUMENTED_TOKEN = '/** $IS_JS_PROFILER_INSTRUMENTED=true **/';
 
@@ -66,21 +69,17 @@ export class IstanbulInstrumenter implements IInstrumenter {
 
 		// We limit the number of instrumentations in parallel to one to
 		// not overuse memory (NodeJS has only limited mem to use).
-		return async
-			.mapLimit(task.elements, 1, async (taskElement: TaskElement) => {
-				return await this.instrumentOne(
-					task.collector,
-					taskElement,
-					task.excludeFilesPattern,
-					task.originSourcePattern,
-					task.dumpOriginsFile
-				);
-			})
-			.then(results => {
-				return results.reduce((prev, curr) => {
-					return prev.withIncrement(curr);
-				}, TaskResult.neutral());
-			});
+
+		const results = []
+		for(const taskElement of task.elements) {
+			const ramusage = process.memoryUsage().heapUsed;
+			console.log("MEMORY BETWEEN CALLS: " + ramusage)
+			results.push(await this.instrumentOne(task.collector, taskElement, task.excludeFilesPattern, task.originSourcePattern, task.dumpOriginsFile));
+			global.gc();
+		}
+		return results.reduce((prev, curr) => {
+			return prev.withIncrement(curr);
+		}, TaskResult.neutral());
 	}
 
 	/**
@@ -124,7 +123,6 @@ export class IstanbulInstrumenter implements IInstrumenter {
 		// Report progress
 		this.logger.info(`Instrumenting "${path.basename(taskElement.fromFile)}"`);
 
-		let finalSourceMap;
 		let instrumentedSource;
 
 		// We try to perform the instrumentation with different
@@ -134,6 +132,8 @@ export class IstanbulInstrumenter implements IInstrumenter {
 			const configurationAlternative = configurationAlternatives[i];
 			let inputSourceMap: RawSourceMap | undefined;
 			try {
+				let ramusage = process.memoryUsage().heapUsed;
+				console.log("BEFORE ANYTHING: " + ramusage)
 				const instrumenter = istanbul.createInstrumenter(configurationAlternative);
 				inputSourceMap = loadInputSourceMap(
 					inputFileSource,
@@ -149,7 +149,8 @@ export class IstanbulInstrumenter implements IInstrumenter {
 				if (dumpOriginsFile) {
 					this.dumpOrigins(dumpOriginsFile, originSourceFiles);
 				}
-
+				ramusage = process.memoryUsage().heapUsed;
+				console.log("AFTER INSTRUMENTER CREATION: " + ramusage)
 				// The main instrumentation (adding coverage statements) is performed now:
 				instrumentedSource = instrumenter.instrumentSync(
 					inputFileSource,
@@ -161,7 +162,8 @@ export class IstanbulInstrumenter implements IInstrumenter {
 				// In case of a bundle, the initial instrumentation step might have added
 				// too much and undesired instrumentations. Remove them now.
 				const instrumentedSourcemap = instrumenter.lastSourceMap();
-
+				ramusage = process.memoryUsage().heapUsed;
+				console.log("AFTER INSTRUMENTATION SOURCE: " + ramusage)
 				let instrumentedAndCleanedSource = await this.removeUnwantedInstrumentation(
 					taskElement,
 					instrumentedSource,
@@ -169,7 +171,8 @@ export class IstanbulInstrumenter implements IInstrumenter {
 					sourcePattern,
 					instrumentedSourcemap as any
 				);
-
+				ramusage = process.memoryUsage().heapUsed;
+				console.log("AFTER CLEANED INSTRUMENTATION SOURCE: " + ramusage)
 				instrumentedAndCleanedSource = instrumentedAndCleanedSource
 					.replace(
 						/actualCoverage\s*=\s*coverage\[path\]/g,
@@ -177,17 +180,12 @@ export class IstanbulInstrumenter implements IInstrumenter {
 					)
 					.replace(/new Function\("return this"\)\(\)/g, "typeof window === 'object' ? window : this");
 
-				// The process also can result in a new source map that we will append in the result.
-				//
-				// `lastSourceMap` === Sourcemap for the last file that was instrumented.
-				finalSourceMap = convertSourceMap.fromObject(instrumenter.lastSourceMap()).toComment();
-
 				// We now can glue together the final version of the instrumented file.
 				const vaccineSource = this.loadVaccine(collector);
 
 				writeToFile(
 					taskElement.toFile,
-					`${IS_INSTRUMENTED_TOKEN} ${vaccineSource} ${instrumentedAndCleanedSource} \n${finalSourceMap}`
+					`${IS_INSTRUMENTED_TOKEN} ${vaccineSource} ${instrumentedAndCleanedSource}`
 				);
 
 				return new TaskResult(1, 0, 0, 0, 0, 0, 0);
@@ -209,50 +207,34 @@ export class IstanbulInstrumenter implements IInstrumenter {
 		return new TaskResult(0, 0, 0, 0, 0, 1, 0);
 	}
 
-	private async removeUnwantedInstrumentation(
+	async removeUnwantedInstrumentation(
 		taskElement: TaskElement,
 		instrumentedSource: string,
 		configurationAlternative: Record<string, unknown>,
 		sourcePattern: OriginSourcePattern,
 		instrumentedSourcemap: RawSourceMap
 	): Promise<string> {
-		const instrumentedSourceMapConsumer: SourceMapConsumer | undefined = await new SourceMapConsumer(
-			instrumentedSourcemap
-		);
+		return await SourceMapConsumer.with(instrumentedSourcemap, undefined, instrumentedSourceMapConsumer => {
+			// Without a source map, excludes/includes do not work.
+			if (!instrumentedSourceMapConsumer) {
+				return instrumentedSource;
+			}
 
-		// Without a source map, excludes/includes do not work.
-		if (!instrumentedSourceMapConsumer) {
-			return instrumentedSource;
-		}
 
-		const removedInstrumentationFor: Set<string> = new Set<string>();
+			// Remove the unwanted instrumentation
+			return cleanSourceCode(instrumentedSource, configurationAlternative.esModules as boolean, location => {
+				const originalPosition = instrumentedSourceMapConsumer.originalPositionFor({
+					line: location.start.line,
+					column: location.start.column
+				});
+				if (!originalPosition.source) {
+					return false;
+				}
 
-		// Remove the unwanted instrumentation
-		const cleaned = cleanSourceCode(instrumentedSource, configurationAlternative.esModules as boolean, location => {
-			const originalPosition = instrumentedSourceMapConsumer.originalPositionFor({
-				line: location.start.line,
-				column: location.start.column
+				return sourcePattern.isAnyIncluded([originalPosition.source]);
 			});
-			if (!originalPosition.source) {
-				return false;
-			}
 
-			const isToCover = sourcePattern.isAnyIncluded([originalPosition.source]);
-			if (!isToCover) {
-				removedInstrumentationFor.add(originalPosition.source);
-			}
-			return isToCover;
-		});
-
-		if (removedInstrumentationFor.size) {
-			this.logger.info(`Removed from ${taskElement.toFile} instrumentation for:`);
-			removedInstrumentationFor.forEach(entry => this.logger.info(entry));
-		}
-
-		// Explicitly free the source map to avoid memory leaks
-		instrumentedSourceMapConsumer.destroy();
-
-		return cleaned;
+		})
 	}
 
 	/**

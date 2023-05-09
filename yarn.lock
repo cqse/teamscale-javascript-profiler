@@ -1942,6 +1942,8 @@ __metadata:
     "@types/node": ^15.0.1
     "@types/source-map": ^0.5.7
     "@types/ws": ^7.4.4
+    acorn: ^8.8.2
+    acorn-walk: ^8.2.0
     argparse: ^2.0.1
     async: ^3.2.4
     babel-jest: ^27.2.0
@@ -2579,6 +2581,15 @@ __metadata:
   bin:
     acorn: bin/acorn
   checksum: 7270ca82b242eafe5687a11fea6e088c960af712683756abf0791b68855ea9cace3057bd5e998ffcef50c944810c1e0ca1da526d02b32110e13c722aa959afdc
+  languageName: node
+  linkType: hard
+
+"acorn@npm:^8.8.2":
+  version: 8.8.2
+  resolution: "acorn@npm:8.8.2"
+  bin:
+    acorn: bin/acorn
+  checksum: f790b99a1bf63ef160c967e23c46feea7787e531292bb827126334612c234ed489a0dc2c7ba33156416f0ffa8d25bf2b0fdb7f35c2ba60eb3e960572bece4001
   languageName: node
   linkType: hard
 

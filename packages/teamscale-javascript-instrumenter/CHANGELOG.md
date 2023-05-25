@@ -2,6 +2,8 @@ We use [Semantic Versioning](https://semver.org/).
 
 # New Release
 
+# 0.0.1-beta.53
+
 - [fix] Path normalization under windows did not work as expected
 
 # 0.0.1-beta.52

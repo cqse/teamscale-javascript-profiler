@@ -2,12 +2,18 @@ use std::{path::MAIN_SEPARATOR};
 
 use glob::Pattern;
 
+/// The patterns used to decide if a code fragment of a bundle
+/// is to be instrumented. We have includes and excludes.
 pub struct SourceOriginPattern {
+    // Include GLOB pattern (see the `glob` crate)
     include_origins: Vec<Pattern>,
+    // Exclude GLOB pattern (see the `glob` crate)
     exclude_origins: Vec<Pattern>,
 }
 
 impl SourceOriginPattern {
+    /// The constructor for the origin pattern.
+    /// It transforms given pattern strings to pattern objects.
     pub fn new(include_origin_patterns: Vec<String>, exclude_origin_patterns: Vec<String>) -> Self {
         let include_origins = pattern_strings_to_patterns(&include_origin_patterns);
         let exclude_origins = pattern_strings_to_patterns(&exclude_origin_patterns);
@@ -16,6 +22,11 @@ impl SourceOriginPattern {
             include_origins,
             exclude_origins,
         }
+    }
+
+    pub fn print_patterns(&self) {
+        self.exclude_origins.iter().map(|pattern| println!("Excluding: {}", pattern)).count();
+        self.include_origins.iter().map(|pattern| println!("Including: {}", pattern)).count();
     }
 }
 
@@ -28,7 +39,15 @@ fn pattern_strings_to_patterns(input: &Vec<String>) -> Vec<Pattern> {
 }
 
 fn normalize_pattern_str(pattern_str: &String) -> String {
-    remove_trailing_working_dir(pattern_str).to_string()
+    unquote(remove_trailing_working_dir(pattern_str).to_string())
+}
+
+fn unquote(s: String) -> String {
+    let chars: Vec<char> = s.chars().collect();
+    if chars.len() > 0 && (chars[0] == '\'' || chars[0] == '\"') && chars[0] == chars[chars.len() - 1] {
+        return s[1..s.len()-1].to_string();
+    }
+    s
 }
 
 fn normalize_path(path: &String) -> String {
@@ -39,6 +58,7 @@ fn remove_trailing_working_dir(path: &String) -> String {
     let current_dir_prefix = format!(".{}", MAIN_SEPARATOR);
     let result = remove_prefix(current_dir_prefix.as_str(), path);
     let result = remove_prefix("webpack:///", &result);
+    let result = remove_prefix("./", &result);
     result
 }
 
@@ -47,10 +67,6 @@ fn remove_prefix(prefix: &str, remove_from: &String) -> String {
         Some(without_prefix) => without_prefix.to_string(),
         None => remove_from.to_string(),
     }
-}
-
-pub trait SourceMapMatcher {
-    fn is_any_included(&self, origin_files: Vec<String>) -> bool;
 }
 
 fn matching(to_filter: &Vec<String>, any_of_patterns: &Vec<Pattern>) -> usize {
@@ -65,7 +81,15 @@ fn matching(to_filter: &Vec<String>, any_of_patterns: &Vec<Pattern>) -> usize {
     return result;
 }
 
+/// A matcher determining if any of the given source file paths
+/// is to be included by the rules implemented in the trait.
+pub trait SourceMapMatcher {
+    fn is_any_included(&self, origin_files: Vec<String>) -> bool;
+}
+
 impl SourceMapMatcher for SourceOriginPattern {
+    /// A source file is supposed to be included if not explicitly excluded by
+    /// a pattern of if explicitly included. The exclude pattern has priority.
     fn is_any_included(&self, origin_files: Vec<String>) -> bool {
         if origin_files.is_empty() {
             return true;
@@ -101,6 +125,27 @@ mod tests {
         assert!(opattern.is_any_included(vec![
             "./src/app/app.components.ts".into(),
             "./src/app/messages/messages.component.ts".into()
+        ]));
+    }
+
+    #[test]
+    fn test_include_pattern_single_webpack_file() {
+        let opattern = SourceOriginPattern::new(vec!["./src/app/**/*.*".into()], vec![]);
+        assert!(opattern.is_any_included(vec![
+            "webpack:///./src/app/dashboard/dashboard.component.ts".into()
+        ]));
+    }
+
+    #[test]
+    fn test_include_pattern_with_wildcard_ext() {
+        let opattern = SourceOriginPattern::new(vec!["src/app/**/*.*".into()], vec![]);
+        assert!(opattern.is_any_included(vec![
+            "./src/app/app.components.ts".into(),
+            "./src/app/messages/messages.component.ts".into()
+        ]));
+        assert!(!opattern.is_any_included(vec![
+            "node_modules/zone.js/fesm2015/zone.js".into(),
+            "webpack:///./node_modules/@angular/core/fesm2015/core.mjs".into()
         ]));
     }
 

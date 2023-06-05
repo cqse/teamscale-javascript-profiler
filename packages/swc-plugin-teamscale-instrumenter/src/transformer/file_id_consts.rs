@@ -8,13 +8,18 @@ use swc_core::{
 use lazy_static::lazy_static;
 
 lazy_static! {
+    /// Global maps mapping from file ID to file hashes and to file number.
     pub static ref COV_FN_NAME_TO_HASH: Mutex<HashMap<String, String>> = Mutex::new(HashMap::new());
     pub static ref COV_FN_NAME_TO_NUMBER: Mutex<HashMap<String, i32>> = Mutex::new(HashMap::new());
 }
 
+/// A visitor that introduces a global map from file id to the
+/// corresponding coverage object.
+/// The file ids are used in the coverage statements as argument.
 #[derive(Debug)]
 pub struct FileIdVisitor {}
 
+/// If the given variable declaration declares a coverage object, then return its hash string.
 fn extract_file_hash(n: &VarDeclarator) -> Option<String> {
     match &n.name {
         Pat::Assign(assign) => {
@@ -43,15 +48,20 @@ fn extract_file_hash(n: &VarDeclarator) -> Option<String> {
     Option::None
 }
 
+/// An object with the relevant information about one file coverage object.
 #[derive(Debug)]
 pub struct CovFunctionSummary {
+    /// The name of the coverage object function.
     cov_fn_name: String,
+    // The file id.
     cov_fn_id: String,
+    // The file hash.
     file_hash: String,
 }
 
+/// Given a function declaration (expecting something like `function cov_oqh6rsgrd() { ... }`),
+/// create a corresponding function summary object.
 fn extract_cov_fn_summary(fn_decl: &FnDecl) -> Option<CovFunctionSummary> {
-    // function cov_oqh6rsgrd() {
     let cov_fn_name = fn_decl.ident.sym.to_string();
     if !cov_fn_name.starts_with("cov_") {
         return Option::None;
@@ -93,6 +103,11 @@ fn extract_cov_fn_summary(fn_decl: &FnDecl) -> Option<CovFunctionSummary> {
     };
 }
 
+/// Visitor that collects information about the bundles to instrument and the
+/// coverage objects contained.
+///
+/// The global maps `COV_FN_NAME_TO_HASH` and `COV_FN_NAME_TO_NUMBER` are filled.
+///
 impl VisitMut for FileIdVisitor {
     fn visit_mut_decl(&mut self, n: &mut Decl) {
         match n {

@@ -1,7 +1,9 @@
+use std::io::Cursor;
 use std::sync::Arc;
 
 use std::vec;
 
+use sourcemap::SourceMap as SM;
 use istanbul_oxide::SourceMap;
 use swc_core::common::util::take::Take;
 use swc_core::common::{chain, Span, DUMMY_SP, SourceMapper};
@@ -43,185 +45,113 @@ pub enum CoverageIncrement {
     None(),
 }
 
-fn print_opt_span(prefix: &str, opt_span: Option<Span>) {
-    match opt_span {
-        Some(span) => {
-            println!("{}: Span Ho {} Hi {}", prefix, span.lo.0, span.hi.0);
-        }
-        None => {
-            println!("{}: Span Unavailable", prefix);
-        }
-    }
-}
-
 fn extract_called_cov_fn_name(call_expr: &CallExpr) -> Option<String> {
-    if let Callee::Expr(expr) = &call_expr.callee {
-        if let Expr::Ident(ident) = expr.as_ref() {
-            let cov_fn_name = ident.sym.to_string();
-            let prefix: String = cov_fn_name[0..4].into();
-            if prefix.eq_ignore_ascii_case("cov_") {
-                return Some(cov_fn_name);
-            }
-        }
+    let expr = call_expr.callee.as_expr()?;
+    let ident = expr.as_ref().as_ident()?;
+
+    let cov_fn_name = ident.sym.to_string();
+    let prefix: String = cov_fn_name[0..4].into();
+
+    if prefix.eq_ignore_ascii_case("cov_") {
+        return Some(cov_fn_name);
     }
 
     None
 }
 
 fn extract_member_expr_numliteral(member_expr: &MemberExpr) -> Option<i32> {
-    match &member_expr.prop {
-        MemberProp::Computed(prop) => match prop.expr.as_ref() {
-            Expr::Lit(literal) => match literal {
-                Lit::Num(num) => {
-                    return Some(num.value as i32);
-                }
-                _ => {}
-            },
-            _ => {}
-        },
-        _ => {}
+    let prop = member_expr.prop.as_computed()?;
+    let literal = prop.expr.as_ref().as_lit()?;
+
+    if let Lit::Num(num) = literal {
+        return Some(num.value as i32);
     }
 
     None
 }
 
 fn extract_increment_member_expr(expr: &Expr) -> Option<&MemberExpr> {
-    match expr.as_update() {
-        Some(update_expr) => extract_increment_member_expr_from_update(update_expr),
-        _ => None,
-    }
+    return extract_increment_member_expr_from_update(expr.as_update()?);
 }
 
 fn extract_increment_member_expr_from_update(update_expr: &UpdateExpr) -> Option<&MemberExpr> {
-    match update_expr.op {
-        UpdateOp::PlusPlus => match update_expr.arg.as_member() {
-            Some(member_expr) => Some(member_expr),
-            _ => None,
-        },
-        _ => None,
+    return if let UpdateOp::PlusPlus = update_expr.op {
+        update_expr.arg.as_member()
+    } else {
+        None
     }
 }
 
 fn extract_branch_coverage_inc(update_expr: &UpdateExpr) -> Option<BranchCovInc> {
-    match extract_increment_member_expr_from_update(&update_expr) {
-        Some(member_expr_location) => match extract_member_expr_numliteral(member_expr_location) {
-            Some(location_no) => {
-                match extract_member_expr_numliteral(
-                    member_expr_location.obj.as_member().expect("foo"),
-                ) {
-                    Some(branch_no) => match member_expr_location.obj.as_member() {
-                        Some(member_expr_branch) => match member_expr_branch.obj.as_member() {
-                            Some(member_expr_call) => {
-                                match member_expr_call.prop.as_ident() {
-                                    Some(id) => {
-                                        if !id.sym.to_string().eq_ignore_ascii_case("b") {
-                                            return None;
-                                        }
-                                    }
-                                    _ => {
-                                        return None;
-                                    }
-                                }
+    match update_expr.op {
+        UpdateOp::PlusPlus => (),
+        _ => return None,
+    };
 
-                                match member_expr_call.obj.as_call() {
-                                    Some(call_expr) => {
-                                        match extract_called_cov_fn_name(call_expr) {
-                                            Some(cov_fn_name) => {
-                                                return Some(BranchCovInc {
-                                                    cov_fn_name: cov_fn_name,
-                                                    branch_no: branch_no,
-                                                    location_no: location_no,
-                                                });
-                                            }
-                                            None => None,
-                                        }
-                                    }
-                                    None => None,
-                                }
-                            }
-                            None => None,
-                        },
-                        None => None,
-                    },
-                    None => None,
-                }
-            }
-            None => None,
-        },
-        None => None,
+    let member_expr_location = extract_increment_member_expr_from_update(&update_expr)?;
+    let member_expr_branch = member_expr_location.obj.as_member()?;
+    let member_expr_call = member_expr_branch.obj.as_member()?;
+    let id = member_expr_call.prop.as_ident()?;
+
+    if !id.sym.to_string().eq_ignore_ascii_case("b") {
+        return None;
     }
+
+    let location_no = extract_member_expr_numliteral(member_expr_location)?;
+    let member_expr_obj_member = member_expr_location.obj.as_member().expect("foo");
+    let branch_no = extract_member_expr_numliteral(member_expr_obj_member)?;
+    let call_expr = member_expr_call.obj.as_call()?;
+    let cov_fn_name = extract_called_cov_fn_name(call_expr)?;
+
+    Some(BranchCovInc {
+        cov_fn_name,
+        branch_no,
+        location_no,
+    })
 }
 
 fn extract_statement_coverage_inc(expr: &Expr) -> Option<StatementCovInc> {
-    match extract_increment_member_expr(&expr) {
-        Some(member_expr) => match extract_member_expr_numliteral(member_expr) {
-            Some(statement_no) => match member_expr.obj.as_member() {
-                Some(member_expr) => {
-                    match member_expr.prop.as_ident() {
-                        Some(id) => {
-                            if !id.sym.to_string().eq_ignore_ascii_case("s") {
-                                return None;
-                            }
-                        }
-                        _ => {
-                            return None;
-                        }
-                    }
-                    match member_expr.obj.as_call() {
-                        Some(call_expr) => match extract_called_cov_fn_name(call_expr) {
-                            Some(cov_fn_name) => {
-                                return Some(StatementCovInc {
-                                    cov_fn_name: cov_fn_name,
-                                    statement_no: statement_no,
-                                });
-                            }
-                            None => None,
-                        },
-                        None => None,
-                    }
-                }
-                None => None,
-            },
-            None => None,
-        },
-        None => None,
+    let member_expr = extract_increment_member_expr(&expr)?;
+    let statement_no = extract_member_expr_numliteral(member_expr)?;
+    let member_expr = member_expr.obj.as_member()?;
+
+    if let Some(id) = member_expr.prop.as_ident() {
+        if !id.sym.to_string().eq_ignore_ascii_case("s") {
+            return None;
+        }
+    } else {
+        return None;
     }
+
+    let call_expr = member_expr.obj.as_call()?;
+    let cov_fn_name = extract_called_cov_fn_name(call_expr)?;
+
+    Some(StatementCovInc {
+        cov_fn_name,
+        statement_no,
+    })
 }
 
 fn extract_function_coverage_inc(expr: &Expr) -> Option<FunctionCovInc> {
-    match extract_increment_member_expr(&expr) {
-        Some(member_expr) => match extract_member_expr_numliteral(member_expr) {
-            Some(function_no) => match member_expr.obj.as_member() {
-                Some(member_expr) => {
-                    match member_expr.prop.as_ident() {
-                        Some(id) => {
-                            if !id.sym.to_string().eq_ignore_ascii_case("f") {
-                                return None;
-                            }
-                        }
-                        _ => {
-                            return None;
-                        }
-                    }
-                    match member_expr.obj.as_call() {
-                        Some(call_expr) => match extract_called_cov_fn_name(call_expr) {
-                            Some(cov_fn_name) => {
-                                return Some(FunctionCovInc {
-                                    cov_fn_name: cov_fn_name,
-                                    function_no: function_no,
-                                });
-                            }
-                            None => None,
-                        },
-                        None => None,
-                    }
-                }
-                None => None,
-            },
-            None => None,
-        },
-        None => None,
+    let member_expr = extract_increment_member_expr(&expr)?;
+    let function_no = extract_member_expr_numliteral(member_expr)?;
+    let member_expr = member_expr.obj.as_member()?;
+
+    if let Some(id) = member_expr.prop.as_ident() {
+        if !id.sym.to_string().eq_ignore_ascii_case("f") {
+            return None;
+        }
+    } else {
+        return None;
     }
+
+    let call_expr = member_expr.obj.as_call()?;
+    let cov_fn_name = extract_called_cov_fn_name(call_expr)?;
+
+    Some(FunctionCovInc {
+        cov_fn_name,
+        function_no,
+    })
 }
 
 fn extract_coverage_increment(expr: &Expr) -> CoverageIncrement {
@@ -357,21 +287,25 @@ fn create_coverage_increment_replacement(expr: &Expr) -> Option<Box<Expr>> {
 pub struct TransformVisitor<'a> {
     active_span_stack: Vec<Span>,
     mapper: Arc<dyn SourceMapper + 'a>,
+    input_source_map: Option<SM>,
     pattern: Arc<dyn SourceMapMatcher + 'a>,
 }
 
 impl TransformVisitor<'_> {
-    fn is_included<'a>(&self, span: Span) -> bool {      
+    fn is_included<'a>(&self, span: Span) -> bool {
         if span.is_dummy() {
             return true;
         }
-        
-        println!("SPAN LO {} HI {}", span.lo.0, span.hi.0);    
-        
-        let lines = self.mapper.span_to_snippet(span);
-        if lines.is_ok() {
-            let filename = self.mapper.span_to_filename(span);
-            return self.pattern.is_any_included(vec![filename.to_string()]);
+
+        if let Some(sm) = &self.input_source_map {
+            let span_lines = self.mapper.span_to_lines(span).unwrap();
+            for line in span_lines.lines {
+                if let Some(token) = sm.lookup_token(line.line_index as u32, line.start_col.0 as u32) {
+                    if let Some(origin_file_name) = token.get_source() {
+                        return self.pattern.is_any_included(vec![origin_file_name.to_string()]);
+                    }
+                }
+            }
         }
 
         true
@@ -418,20 +352,26 @@ impl TransformVisitor<'_> {
     }
 
     fn is_span_included(&self, span: &Span) -> bool {
-        if span.is_dummy() {
+        return if span.is_dummy() {
             let active = self.active_span();
             if active.is_some() {
-                return self.is_included(active.expect("Must be there").clone());
+                self.is_included(active.expect("Must be there").clone())
             } else {
-                return true;
+                true
             }
         } else {
-            return self.is_included(span.clone());
+            self.is_included(span.clone())
         }
     }
 }
 
 impl VisitMut for TransformVisitor<'_> {
+    fn visit_mut_span(&mut self, span: &mut Span) {
+        let active_span = self.push_active_span(span);
+        span.visit_mut_children_with(self);
+        self.pop_active_span(active_span);
+    }
+
     fn visit_mut_script(&mut self, n: &mut Script) {
         let active_span = self.push_active_span(&n.span);
         let mut i: i32 = 0;
@@ -495,9 +435,9 @@ impl VisitMut for TransformVisitor<'_> {
         n.visit_mut_children_with(self);
         match n.as_mut_expr() {
             Some(expr_stmt) => match create_coverage_increment_replacement(&expr_stmt.expr) {
-                Some(expr) => {
+                Some(replacement) => {
                     if self.is_span_included(&expr_stmt.span) {
-                        expr_stmt.expr = expr;
+                        expr_stmt.expr = replacement;
                     } else {
                         n.take();
                     }
@@ -514,7 +454,7 @@ impl VisitMut for TransformVisitor<'_> {
             Expr::Seq(seq_expr) => {
                 let mut new_expressions = vec![];
                 for expr in seq_expr.exprs.iter() {
-                    match create_coverage_increment_replacement(expr) {
+                    match create_coverage_increment_replacement(&expr) {
                         Some(replacement) => {
                             if self.is_span_included(&seq_expr.span) {
                                 new_expressions.push(replacement);
@@ -533,6 +473,7 @@ impl VisitMut for TransformVisitor<'_> {
 
 pub fn teamscale_transformer(
     mapper: Arc<impl SourceMapper + 'static>,
+    input_source_map: Option<SM>,
     origin_pattern: Arc<dyn SourceMapMatcher>,
 ) -> impl Fold + VisitMut {
     chain!(
@@ -540,6 +481,7 @@ pub fn teamscale_transformer(
         as_folder(TransformVisitor {
             active_span_stack: Vec::new(),
             mapper,
+            input_source_map,
             pattern: origin_pattern.clone()
         })
     )
@@ -567,9 +509,22 @@ pub fn istanbul_transformer(mapper: Arc<impl SourceMapper>, input_source_map: Op
 pub fn profiler_transformer(
     mapper: Arc<impl SourceMapper + 'static>,
     pattern: Arc<dyn SourceMapMatcher>,
-    input_source_map: Option<SourceMap>
+    input_source_map: Option<String>
 ) -> impl Fold + VisitMut {
+    let js_sourcemap = if let Some(input) = &input_source_map {
+        let mut cursor = Cursor::new(input.clone().into_bytes());
+        Some(SM::from_reader(cursor).unwrap())
+    } else {
+        None
+    };
+
+    let oxide_sourcemap = if let Some(input) = &input_source_map {
+        serde_json::from_str(input).ok() as Option<SourceMap>
+    } else {
+        None
+    };
+
     chain!(
-        istanbul_transformer(mapper.clone(), input_source_map),
-        teamscale_transformer(mapper.clone(), pattern.clone()))
+        istanbul_transformer(mapper.clone(), oxide_sourcemap),
+        teamscale_transformer(mapper.clone(), js_sourcemap, pattern.clone()))
 }

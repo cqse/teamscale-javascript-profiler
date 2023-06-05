@@ -97,13 +97,13 @@ universe()._$registerCoverageObject = function (coverage: IstanbulCoverageStore)
 		// Send the source maps
 		const sentMaps = universeAttribute('sentMaps', new Set());
 		if (coverage.inputSourceMap) {
-			if (!sentMaps.has(coverage.path)) {
+			if (!sentMaps.has(coverage.hash)) {
 				getWorker().postMessage(
 					`${ProtocolMessageTypes.MESSAGE_TYPE_SOURCEMAP} ${fileId}:${JSON.stringify(
 						coverage.inputSourceMap
 					)}`
 				);
-				sentMaps.add(coverage.path);
+				sentMaps.add(coverage.hash);
 			}
 		} else {
 			console.error(`The coverage object of "${fileId} "does not include a valid 'inputSourceMap'.`);

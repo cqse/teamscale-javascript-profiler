@@ -157,6 +157,7 @@ export class IstanbulInstrumenter implements IInstrumenter {
 				// The main instrumentation (adding coverage statements) is performed now:
 				const instrumentedSource: swc.Output = instrumentWithSwc(
 					taskElement.fromFile,
+					sourcePattern,
 					inputFileSource,
 					inputSourceMap
 				);
@@ -429,12 +430,19 @@ function writeToFile(filePath: string, fileContent: string) {
 
 export function instrumentWithSwc(
 	sourceFilename: string,
+	sourcePattern: OriginSourcePattern,
 	sourceContent: string,
 	sourceMap: RawSourceMap | undefined
 ): swc.Output {
+	let inputSourceString: boolean | string = false;
+	if (sourceMap) {
+		inputSourceString = JSON.stringify(sourceMap);
+	}
+
 	const pluginOptions = {
-		input_source_map: sourceMap,
-		inputSourceMap: sourceMap
+		inputSourceMap: inputSourceString,
+		includeOriginPatterns: sourcePattern.getIncludes(),
+		excludeOriginPatterns: sourcePattern.getExcludes(),
 	};
 
 	return swc.transformSync(sourceContent, {
@@ -443,6 +451,7 @@ export function instrumentWithSwc(
 		inlineSourcesContent: false,
 		minify: false,
 		isModule: true,
+		inputSourceMap: inputSourceString,
 		jsc: {
 			experimental: {
 				plugins: [['@teamscale/swc-instrumenter-plugin', pluginOptions]]

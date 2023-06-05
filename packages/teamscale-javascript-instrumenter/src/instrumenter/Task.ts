@@ -112,6 +112,14 @@ export class OriginSourcePattern {
 
 		return true;
 	}
+
+	public getIncludes(): string[] {
+		return this.include ?? [];
+	}
+
+	public getExcludes(): string[] {
+		return this.exclude ?? [];
+	}
 }
 
 /**

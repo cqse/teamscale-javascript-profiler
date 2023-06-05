@@ -337,6 +337,15 @@ function checkObtainedCoverage(study, sessionId) {
 
 	if (Object.entries(notCoveredButExpected).length > 0) {
 		console.error('Covered lines are missing!', study.name, notCoveredButExpected);
+		console.info(`
+			This error could be because:
+			- The collector did not receive the coverage.
+			- The collector was not able to map received coverage back to the origin.
+			- The instrumenter did not add the expected coverage statements upfront.
+			- The coverage statements that were added are wrong.
+			- The coverage statemets did not function as expected.
+			- The functionality was not executed/tested.
+		`);
 		process.exit(4);
 	}
 

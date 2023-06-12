@@ -50,7 +50,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@babel/core@npm:^7.11.6, @babel/core@npm:^7.12.3, @babel/core@npm:^7.21.8":
+"@babel/core@npm:^7.11.6, @babel/core@npm:^7.12.3, @babel/core@npm:^7.21.8, @babel/core@npm:^7.22.5":
   version: 7.22.5
   resolution: "@babel/core@npm:7.22.5"
   dependencies:
@@ -73,7 +73,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@babel/generator@npm:^7.21.5, @babel/generator@npm:^7.22.5, @babel/generator@npm:^7.7.2":
+"@babel/generator@npm:^7.22.5, @babel/generator@npm:^7.7.2":
   version: 7.22.5
   resolution: "@babel/generator@npm:7.22.5"
   dependencies:
@@ -352,7 +352,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@babel/parser@npm:^7.1.0, @babel/parser@npm:^7.14.7, @babel/parser@npm:^7.20.7, @babel/parser@npm:^7.21.8, @babel/parser@npm:^7.22.5":
+"@babel/parser@npm:^7.1.0, @babel/parser@npm:^7.14.7, @babel/parser@npm:^7.20.7, @babel/parser@npm:^7.22.5":
   version: 7.22.5
   resolution: "@babel/parser@npm:7.22.5"
   bin:
@@ -906,7 +906,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@babel/plugin-transform-modules-commonjs@npm:^7.21.5, @babel/plugin-transform-modules-commonjs@npm:^7.22.5":
+"@babel/plugin-transform-modules-commonjs@npm:^7.22.5":
   version: 7.22.5
   resolution: "@babel/plugin-transform-modules-commonjs@npm:7.22.5"
   dependencies:
@@ -1218,7 +1218,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@babel/preset-env@npm:^7.21.5":
+"@babel/preset-env@npm:^7.21.5, @babel/preset-env@npm:^7.22.5":
   version: 7.22.5
   resolution: "@babel/preset-env@npm:7.22.5"
   dependencies:
@@ -1350,7 +1350,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@babel/traverse@npm:^7.21.5, @babel/traverse@npm:^7.22.5, @babel/traverse@npm:^7.7.2":
+"@babel/traverse@npm:^7.22.5, @babel/traverse@npm:^7.7.2":
   version: 7.22.5
   resolution: "@babel/traverse@npm:7.22.5"
   dependencies:
@@ -1368,7 +1368,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@babel/types@npm:^7.0.0, @babel/types@npm:^7.20.7, @babel/types@npm:^7.21.5, @babel/types@npm:^7.22.5, @babel/types@npm:^7.3.3, @babel/types@npm:^7.4.4, @babel/types@npm:^7.8.3":
+"@babel/types@npm:^7.0.0, @babel/types@npm:^7.20.7, @babel/types@npm:^7.22.5, @babel/types@npm:^7.3.3, @babel/types@npm:^7.4.4, @babel/types@npm:^7.8.3":
   version: 7.22.5
   resolution: "@babel/types@npm:7.22.5"
   dependencies:
@@ -2204,13 +2204,13 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "@teamscale/javascript-instrumenter@workspace:packages/teamscale-javascript-instrumenter"
   dependencies:
-    "@babel/core": ^7.21.8
-    "@babel/generator": ^7.21.5
-    "@babel/parser": ^7.21.8
-    "@babel/plugin-transform-modules-commonjs": ^7.21.5
-    "@babel/preset-env": ^7.21.5
-    "@babel/traverse": ^7.21.5
-    "@babel/types": ^7.21.5
+    "@babel/core": ^7.22.5
+    "@babel/generator": ^7.22.5
+    "@babel/parser": ^7.22.5
+    "@babel/plugin-transform-modules-commonjs": ^7.22.5
+    "@babel/preset-env": ^7.22.5
+    "@babel/traverse": ^7.22.5
+    "@babel/types": ^7.22.5
     "@cqse/commons": 0.0.1-beta.52
     "@types/async": ^3.2.6
     "@types/bunyan": ^1.8.8

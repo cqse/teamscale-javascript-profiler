@@ -1,8 +1,7 @@
 import { parse } from '@babel/parser';
 import generate from '@babel/generator';
-import traverse, { NodePath } from '@babel/traverse';
+import traverse, { NodePath, Node as TraverseNode } from '@babel/traverse';
 import {
-	Node,
 	CallExpression,
 	Identifier,
 	isCallExpression,
@@ -65,14 +64,14 @@ const fileIdSeqGenerator: { next: () => string } = (() => {
 			} else if (fileIdSeq < 100000) {
 				num = instrumenterRunId * 100000 + fileIdSeq;
 			} else {
-				throw new Error(`Not more that 100k files supported to be instrumented in one run.`)
+				throw new Error(`Not more that 100k files supported to be instrumented in one run.`);
 			}
 			return num.toString(36);
 		}
-	}
+	};
 })();
 
-function getIstanbulCoverageFunctionDeclarationName(node: Node | undefined): string | undefined {
+function getIstanbulCoverageFunctionDeclarationName(node: TraverseNode | undefined): string | undefined {
 	if (!isFunctionDeclaration(node)) {
 		return undefined;
 	}
@@ -107,7 +106,7 @@ type FileIdMappingHandler = {
 	getFileHashForCoverageObjectId: (coverageObjectId: string) => string | undefined;
 };
 function createFileIdMappingHandler(): FileIdMappingHandler {
-	const fileIdMap: Map<string, string> = new Map<string, string>();	
+	const fileIdMap: Map<string, string> = new Map<string, string>();
 
 	return {
 		enterPath(path: NodePath): void {
@@ -214,7 +213,7 @@ export function cleanSourceCode(
  *
  * Special handling for some container nodes is needed.
  */
-function insertNodeBefore(path: NodePath<Node>, toInsert: Node): void {
+function insertNodeBefore(path: NodePath<TraverseNode>, toInsert: TraverseNode): void {
 	if (isSequenceExpression(path.parent)) {
 		(path.parentPath as NodePath<SequenceExpression>).unshiftContainer('expressions', [toInsert]);
 	} else {
@@ -248,7 +247,11 @@ function newStringConstDeclarationNode(name: string, value: string): VariableDec
 /**
  * Creates a new coverage increment statement.
  */
-function newCoverageIncrementNode(fileIdVarName: string, increment: CoverageIncrement, asExpression: boolean): Node {
+function newCoverageIncrementNode(
+	fileIdVarName: string,
+	increment: CoverageIncrement,
+	asExpression: boolean
+): TraverseNode {
 	let expression: CallExpression;
 	if (increment.type === 'branch') {
 		expression = newBranchCoverageIncrementExpression(fileIdVarName, increment as BranchCoverageIncrement);
@@ -259,13 +262,13 @@ function newCoverageIncrementNode(fileIdVarName: string, increment: CoverageIncr
 	}
 
 	if (asExpression) {
-		return expression;
+		return expression as TraverseNode;
 	}
 
 	return {
 		type: 'ExpressionStatement',
 		expression
-	};
+	} as TraverseNode;
 }
 
 /**

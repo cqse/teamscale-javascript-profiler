@@ -215,7 +215,7 @@ export function cleanSourceCode(
  */
 function insertNodeBefore(path: NodePath<TraverseNode>, toInsert: TraverseNode): void {
 	if (isSequenceExpression(path.parent)) {
-		(path.parentPath as NodePath<SequenceExpression>).unshiftContainer('expressions', [toInsert]);
+		(path.parentPath as NodePath<SequenceExpression>).unshiftContainer('expressions', [toInsert as any]);
 	} else {
 		path.insertBefore(toInsert);
 	}

@@ -71,6 +71,10 @@ const fileIdSeqGenerator: { next: () => string } = (() => {
 	};
 })();
 
+function isCoverageFunctionDefinition(path: NodePath): boolean {
+	return isFunctionDeclaration(path.node) && getIstanbulCoverageFunctionDeclarationName(path.node) !== undefined;
+}
+
 function getIstanbulCoverageFunctionDeclarationName(node: TraverseNode | undefined): string | undefined {
 	if (!isFunctionDeclaration(node)) {
 		return undefined;
@@ -110,25 +114,38 @@ function createFileIdMappingHandler(): FileIdMappingHandler {
 
 	return {
 		enterPath(path: NodePath): void {
-			if (!isVariableDeclaration(path.node)) {
+			if (!isFunctionDeclaration(path.node)) {
 				return;
 			}
 
-			const grandParentPath = path.parentPath?.parentPath;
-			const coverageFunctionName = getIstanbulCoverageFunctionDeclarationName(grandParentPath?.node);
-			if (grandParentPath && coverageFunctionName) {
-				const declaration = path.node;
-				if (declaration.declarations.length === 1) {
-					const declarator = declaration.declarations[0];
-					if (isIdentifier(declarator.id) && declarator.id.name === 'hash') {
-						// We take note of the hash that is stored within the `cov_*' function.
-						const fileIdVarName = `_$f${fileIdSeqGenerator.next()}`;
-						const fileId = (declarator.init as StringLiteral).value;
-						fileIdMap.set(coverageFunctionName, fileIdVarName);
-						grandParentPath.insertBefore(newStringConstDeclarationNode(fileIdVarName, fileId) as any);
+			const coverageFunctionName = getIstanbulCoverageFunctionDeclarationName(path.node);
+			if (!coverageFunctionName) {
+				return;
+			}
+
+			// From here onwards, we know that the path.node is a FunctionDeclaration
+			const body = path.node.body;
+
+			// Traverse the body of the function for VariableDeclarations
+			for (const statement of body.body) {
+				if (isVariableDeclaration(statement)) {
+					const declaration = statement;
+					if (declaration.declarations.length === 1) {
+						const declarator = declaration.declarations[0];
+						if (isIdentifier(declarator.id) && declarator.id.name === 'hash') {
+							// We take note of the hash that is stored within the `cov_*' function.
+							const fileIdVarName = `_$f${fileIdSeqGenerator.next()}`;
+							const fileId = (declarator.init as StringLiteral).value;
+							fileIdMap.set(coverageFunctionName, fileIdVarName);
+
+							const variableDeclaration = newStringConstDeclarationNode(fileIdVarName, fileId);
+							path.insertBefore(variableDeclaration as any);
+						}
 					}
 				}
 			}
+
+			path.skip();
 		},
 		getFileHashForCoverageObjectId(coverageObjectId: string): string | undefined {
 			return fileIdMap.get(coverageObjectId);
@@ -198,9 +215,13 @@ export function cleanSourceCode(
 	const partialInstrumentationHandler = createPartialInstrumentationHandler(fileIdMappingHandler);
 
 	traverse(ast, {
-		enter(path: NodePath) {
+		enter(path: NodePath): void {
 			fileIdMappingHandler.enterPath(path);
-			partialInstrumentationHandler.enterPath(path, makeCoverable);
+			if (isCoverageFunctionDefinition(path)) {
+				path.skip();
+			} else {
+				partialInstrumentationHandler.enterPath(path, makeCoverable);
+			}
 		}
 	});
 
@@ -311,21 +332,35 @@ function newStatementCoverageIncrementExpression(
  * the given UpdateExpression is a branch coverage update expression.
  */
 function extractBranchCoverageIncrement(expr: UpdateExpression): BranchCoverageIncrement | null {
-	if (
-		expr.operator === '++' &&
-		isMemberExpression(expr.argument) &&
-		isMemberExpression(expr.argument.object) &&
-		isMemberExpression(expr.argument.object.object) &&
-		isCallExpression(expr.argument.object.object.object) &&
-		isCoverageObjectCall(expr.argument.object.object.object)
-	) {
-		const coverageObjectId = ((expr.argument.object.object.object as CallExpression).callee as Identifier).name;
-		const branchId = (expr.argument.object.property as NumericLiteral).value;
-		const locationId = (expr.argument.property as NumericLiteral).value;
-		return { type: 'branch', branchId, locationId, coverageObjectId };
+	if (expr.operator !== '++') {
+		return null;
 	}
 
-	return null;
+	const arg = expr.argument;
+	if (!isMemberExpression(arg)) {
+		return null;
+	}
+
+	const argObj = arg.object;
+	if (!isMemberExpression(argObj)) {
+		return null;
+	}
+
+	const argObjObj = argObj.object;
+	if (!isMemberExpression(argObjObj)) {
+		return null;
+	}
+
+	const callExpr = argObjObj.object;
+	if (!isCallExpression(callExpr) || !isCoverageObjectCall(callExpr)) {
+		return null;
+	}
+
+	const coverageObjectId = (callExpr.callee as Identifier).name;
+	const branchId = (argObj.property as NumericLiteral).value;
+	const locationId = (arg.property as NumericLiteral).value;
+
+	return { type: 'branch', branchId, locationId, coverageObjectId };
 }
 
 /**
@@ -333,21 +368,36 @@ function extractBranchCoverageIncrement(expr: UpdateExpression): BranchCoverageI
  * the given UpdateExpression is a statement coverage update expression.
  */
 function extractStatementCoverageIncrement(expr: UpdateExpression): StatementCoverageIncrement | null {
-	if (
-		expr.operator === '++' &&
-		isMemberExpression(expr.argument) &&
-		isMemberExpression(expr.argument.object) &&
-		isCallExpression(expr.argument.object.object) &&
-		isIdentifier(expr.argument.object.property) &&
-		expr.argument.object.property.name === 's' &&
-		isCoverageObjectCall(expr.argument.object.object)
-	) {
-		const coverageObjectId = ((expr.argument.object.object as CallExpression).callee as Identifier).name;
-		const statementId = (expr.argument.property as NumericLiteral).value;
-		return { type: 'statement', statementId, coverageObjectId };
+	if (expr.operator !== '++') {
+		return null;
 	}
 
-	return null;
+	const arg = expr.argument;
+	if (!isMemberExpression(arg)) {
+		return null;
+	}
+
+	const argObj = arg.object;
+	if (!isMemberExpression(argObj)) {
+		return null;
+	}
+
+	const callExpr = argObj.object;
+	const argObjProp = argObj.property;
+
+	if (
+		!isCallExpression(callExpr) ||
+		!isIdentifier(argObjProp) ||
+		argObjProp.name !== 's' ||
+		!isCoverageObjectCall(callExpr)
+	) {
+		return null;
+	}
+
+	const coverageObjectId = (callExpr.callee as Identifier).name;
+	const statementId = (arg.property as NumericLiteral).value;
+
+	return { type: 'statement', statementId, coverageObjectId };
 }
 
 /**
@@ -355,21 +405,36 @@ function extractStatementCoverageIncrement(expr: UpdateExpression): StatementCov
  * the given UpdateExpression is a function coverage update expression.
  */
 function extractFunctionCoverageIncrement(expr: UpdateExpression): FunctionCoverageIncrement | null {
-	if (
-		expr.operator === '++' &&
-		isMemberExpression(expr.argument) &&
-		isMemberExpression(expr.argument.object) &&
-		isCallExpression(expr.argument.object.object) &&
-		isIdentifier(expr.argument.object.property) &&
-		expr.argument.object.property.name === 'f' &&
-		isCoverageObjectCall(expr.argument.object.object)
-	) {
-		const coverageObjectId = ((expr.argument.object.object as CallExpression).callee as Identifier).name;
-		const functionId = (expr.argument.property as NumericLiteral).value;
-		return { type: 'function', functionId, coverageObjectId };
+	if (expr.operator !== '++') {
+		return null;
 	}
 
-	return null;
+	const arg = expr.argument;
+	if (!isMemberExpression(arg)) {
+		return null;
+	}
+
+	const argObj = arg.object;
+	if (!isMemberExpression(argObj)) {
+		return null;
+	}
+
+	const callExpr = argObj.object;
+	const argObjProp = argObj.property;
+
+	if (
+		!isCallExpression(callExpr) ||
+		!isIdentifier(argObjProp) ||
+		argObjProp.name !== 'f' ||
+		!isCoverageObjectCall(callExpr)
+	) {
+		return null;
+	}
+
+	const coverageObjectId = (callExpr.callee as Identifier).name;
+	const functionId = (arg.property as NumericLiteral).value;
+
+	return { type: 'function', functionId, coverageObjectId };
 }
 
 /**

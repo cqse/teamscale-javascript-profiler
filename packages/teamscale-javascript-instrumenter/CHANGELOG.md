@@ -2,6 +2,8 @@ We use [Semantic Versioning](https://semver.org/).
 
 # New Release
 
+- [fix] The instrumenter did traverse parts of the code needlessly, adding a performance burden. 
+
 # 0.0.1-beta.53
 
 - [fix] Path normalization under windows did not work as expected

@@ -16,7 +16,8 @@ import {
 	isFunctionDeclaration,
 	isSequenceExpression,
 	SequenceExpression,
-	isUpdateExpression
+	isUpdateExpression,
+	MemberExpression
 } from '@babel/types';
 import { IllegalStateException } from '@cqse/commons';
 
@@ -41,6 +42,15 @@ type BranchCoverageIncrement = CoverageIncrement & {
 type FunctionCoverageIncrement = CoverageIncrement & {
 	type: 'function';
 	functionId: number;
+};
+
+type MemberMemberExpression = MemberExpression & {
+	object: MemberExpression;
+};
+
+type IncrementExpression = UpdateExpression & {
+	operator: '++';
+	argument: MemberMemberExpression;
 };
 
 /**
@@ -145,6 +155,7 @@ function createFileIdMappingHandler(): FileIdMappingHandler {
 				}
 			}
 
+			// Do not travers into the childs of this path.
 			path.skip();
 		},
 		getFileHashForCoverageObjectId(coverageObjectId: string): string | undefined {
@@ -166,10 +177,6 @@ function createPartialInstrumentationHandler(
 ): PartialInstrumentationHandler {
 	return {
 		enterPath(path: NodePath, makeCoverable: (location: SourceLocation) => boolean): void {
-			if (!isUpdateExpression(path.node)) {
-				return;
-			}
-
 			const increment = extractCoverageIncrement(path.node);
 			if (!increment) {
 				return;
@@ -218,6 +225,7 @@ export function cleanSourceCode(
 		enter(path: NodePath): void {
 			fileIdMappingHandler.enterPath(path);
 			if (isCoverageFunctionDefinition(path)) {
+				// Do try to instrument the coverage function (and save some time).
 				path.skip();
 			} else {
 				partialInstrumentationHandler.enterPath(path, makeCoverable);
@@ -331,34 +339,22 @@ function newStatementCoverageIncrementExpression(
  * Returns the call expression from `cov_2pvvu1hl8v().b[2][0]++;` if
  * the given UpdateExpression is a branch coverage update expression.
  */
-function extractBranchCoverageIncrement(expr: UpdateExpression): BranchCoverageIncrement | null {
-	if (expr.operator !== '++') {
+function extractBranchCoverageIncrement(expr: IncrementExpression): BranchCoverageIncrement | null {
+	const firstMemberExpr = expr.argument;
+	const secondMemberExpr = firstMemberExpr.object;
+	const thirdMemberExpr = secondMemberExpr.object;
+	if (!isMemberExpression(thirdMemberExpr)) {
 		return null;
 	}
 
-	const arg = expr.argument;
-	if (!isMemberExpression(arg)) {
-		return null;
-	}
-
-	const argObj = arg.object;
-	if (!isMemberExpression(argObj)) {
-		return null;
-	}
-
-	const argObjObj = argObj.object;
-	if (!isMemberExpression(argObjObj)) {
-		return null;
-	}
-
-	const callExpr = argObjObj.object;
+	const callExpr = thirdMemberExpr.object;
 	if (!isCallExpression(callExpr) || !isCoverageObjectCall(callExpr)) {
 		return null;
 	}
 
 	const coverageObjectId = (callExpr.callee as Identifier).name;
-	const branchId = (argObj.property as NumericLiteral).value;
-	const locationId = (arg.property as NumericLiteral).value;
+	const branchId = (secondMemberExpr.property as NumericLiteral).value;
+	const locationId = (firstMemberExpr.property as NumericLiteral).value;
 
 	return { type: 'branch', branchId, locationId, coverageObjectId };
 }
@@ -367,23 +363,11 @@ function extractBranchCoverageIncrement(expr: UpdateExpression): BranchCoverageI
  * Returns the call expression from `cov_104fq7oo4i().s[0]++;` if
  * the given UpdateExpression is a statement coverage update expression.
  */
-function extractStatementCoverageIncrement(expr: UpdateExpression): StatementCoverageIncrement | null {
-	if (expr.operator !== '++') {
-		return null;
-	}
-
-	const arg = expr.argument;
-	if (!isMemberExpression(arg)) {
-		return null;
-	}
-
-	const argObj = arg.object;
-	if (!isMemberExpression(argObj)) {
-		return null;
-	}
-
-	const callExpr = argObj.object;
-	const argObjProp = argObj.property;
+function extractStatementCoverageIncrement(expr: IncrementExpression): StatementCoverageIncrement | null {
+	const firstMemberExpr = expr.argument;
+	const secondMemberExpr = firstMemberExpr.object;
+	const callExpr = secondMemberExpr.object;
+	const argObjProp = secondMemberExpr.property;
 
 	if (
 		!isCallExpression(callExpr) ||
@@ -395,7 +379,7 @@ function extractStatementCoverageIncrement(expr: UpdateExpression): StatementCov
 	}
 
 	const coverageObjectId = (callExpr.callee as Identifier).name;
-	const statementId = (arg.property as NumericLiteral).value;
+	const statementId = (firstMemberExpr.property as NumericLiteral).value;
 
 	return { type: 'statement', statementId, coverageObjectId };
 }
@@ -404,23 +388,11 @@ function extractStatementCoverageIncrement(expr: UpdateExpression): StatementCov
  * Returns the call expression from `cov_104fq7oo4i().f[0]++;` if
  * the given UpdateExpression is a function coverage update expression.
  */
-function extractFunctionCoverageIncrement(expr: UpdateExpression): FunctionCoverageIncrement | null {
-	if (expr.operator !== '++') {
-		return null;
-	}
-
-	const arg = expr.argument;
-	if (!isMemberExpression(arg)) {
-		return null;
-	}
-
-	const argObj = arg.object;
-	if (!isMemberExpression(argObj)) {
-		return null;
-	}
-
-	const callExpr = argObj.object;
-	const argObjProp = argObj.property;
+function extractFunctionCoverageIncrement(expr: IncrementExpression): FunctionCoverageIncrement | null {
+	const firstMemberExpr = expr.argument;
+	const secondMemberExpr = firstMemberExpr.object;
+	const callExpr = secondMemberExpr.object;
+	const argObjProp = secondMemberExpr.property;
 
 	if (
 		!isCallExpression(callExpr) ||
@@ -432,20 +404,29 @@ function extractFunctionCoverageIncrement(expr: UpdateExpression): FunctionCover
 	}
 
 	const coverageObjectId = (callExpr.callee as Identifier).name;
-	const functionId = (arg.property as NumericLiteral).value;
+	const functionId = (firstMemberExpr.property as NumericLiteral).value;
 
 	return { type: 'function', functionId, coverageObjectId };
 }
 
 /**
- * Given an `UpdateExpression` extract the call expression returning the coverage object.
+ * Given an `IncrementExpression` extract the call expression returning the coverage object.
  */
-function extractCoverageIncrement(expr: UpdateExpression): CoverageIncrement | null {
-	return (
-		extractBranchCoverageIncrement(expr) ??
-		extractStatementCoverageIncrement(expr) ??
-		extractFunctionCoverageIncrement(expr)
-	);
+function extractCoverageIncrement(node: TraverseNode): CoverageIncrement | null {
+	if (
+		isUpdateExpression(node) &&
+		node.operator === '++' &&
+		isMemberExpression(node.argument) &&
+		isMemberExpression(node.argument.object)
+	) {
+		return (
+			extractBranchCoverageIncrement(node as IncrementExpression) ??
+			extractStatementCoverageIncrement(node as IncrementExpression) ??
+			extractFunctionCoverageIncrement(node as IncrementExpression)
+		);
+	}
+
+	return null;
 }
 
 /**

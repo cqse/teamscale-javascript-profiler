@@ -2,7 +2,9 @@ We use [Semantic Versioning](https://semver.org/).
 
 # New Release
 
-- [fix] The instrumenter did traverse parts of the code needlessly, adding a performance burden. 
+# 0.0.1-beta.54
+
+- [fix] The instrumenter did traverse parts of the code needlessly, adding a performance burden.
 
 # 0.0.1-beta.53
 

@@ -100,120 +100,129 @@ export class IstanbulInstrumenter implements IInstrumenter {
 		sourcePattern: OriginSourcePattern,
 		dumpOriginsFile: string | undefined
 	): Promise<TaskResult> {
-		// Not all file types are supported by the instrumenter
-		if (!this.isFileTypeSupported(taskElement.fromFile)) {
-			if (!taskElement.isInPlace()) {
-				copyToFile(taskElement.toFile, taskElement.fromFile);
-			}
-			return new TaskResult(0, 0, 0, 0, 1, 0, 0);
-		}
-
-		// We might want to skip the instrumentation of the file
-		if (excludeBundles.isExcluded(taskElement.fromFile)) {
-			if (!taskElement.isInPlace()) {
-				copyToFile(taskElement.toFile, taskElement.fromFile);
-			}
-			return new TaskResult(0, 1, 0, 0, 0, 0, 0);
-		}
-
-		const inputFileSource = fs.readFileSync(taskElement.fromFile, 'utf8');
-
-		// We skip files that we have already instrumented
-		if (inputFileSource.startsWith(IS_INSTRUMENTED_TOKEN)) {
-			if (!taskElement.isInPlace()) {
-				writeToFile(taskElement.toFile, inputFileSource);
-			}
-			return new TaskResult(0, 0, 0, 1, 0, 0, 0);
-		}
-
-		// Report progress
-		this.logger.info(`Instrumenting "${path.basename(taskElement.fromFile)}"`);
-
-		let finalSourceMap;
-		let instrumentedSource;
-
-		// We try to perform the instrumentation with different
-		// alternative configurations of the instrumenter.
-		const configurationAlternatives = this.configurationAlternativesFor(taskElement);
-		for (let i = 0; i < configurationAlternatives.length; i++) {
-			const configurationAlternative = configurationAlternatives[i];
-			let inputSourceMap: RawSourceMap | undefined;
-			try {
-				inputSourceMap = loadInputSourceMap(
-					inputFileSource,
-					taskElement.fromFile,
-					taskElement.externalSourceMapFile
-				);
-
-				// Based on the source maps of the file to instrument, we can now
-				// decide if we should NOT write an instrumented version of it
-				// and use the original code instead and write it to the target path.
-				//
-				const originSourceFiles = inputSourceMap?.sources ?? [];
-				if (dumpOriginsFile) {
-					this.dumpOrigins(dumpOriginsFile, originSourceFiles);
+		const startTime = process.hrtime();
+		try {
+			// Not all file types are supported by the instrumenter
+			if (!this.isFileTypeSupported(taskElement.fromFile)) {
+				if (!taskElement.isInPlace()) {
+					copyToFile(taskElement.toFile, taskElement.fromFile);
 				}
+				return new TaskResult(0, 0, 0, 0, 1, 0, 0);
+			}
 
-				// The main instrumentation (adding coverage statements) is performed now:
-				const instrumentedSource: swc.Output = instrumentWithSwc(
-					taskElement.fromFile,
-					sourcePattern,
-					inputFileSource,
-					inputSourceMap
-				);
+			// We might want to skip the instrumentation of the file
+			if (excludeBundles.isExcluded(taskElement.fromFile)) {
+				if (!taskElement.isInPlace()) {
+					copyToFile(taskElement.toFile, taskElement.fromFile);
+				}
+				return new TaskResult(0, 1, 0, 0, 0, 0, 0);
+			}
 
-				// FIXME: swc.this.logger.debug('Instrumentation source maps to:', instrumenter.lastSourceMap()?.sources);
+			const inputFileSource = fs.readFileSync(taskElement.fromFile, 'utf8');
 
-				// In case of a bundle, the initial instrumentation step might have added
-				// too much and undesired instrumentations. Remove them now.
-				// FIXME: const instrumentedSourcemap = instrumenter.lastSourceMap();
-
-				// let instrumentedAndCleanedSource = await this.removeUnwantedInstrumentation(
-				// 	taskElement,
-				// 	instrumentedSource.code,
-				// 	configurationAlternative,
-				// 	sourcePattern,
-				// 	instrumentedSourcemap as any
-				// );
-				let instrumentedAndCleanedSource = instrumentedSource.code;
-
-				instrumentedAndCleanedSource = instrumentedAndCleanedSource
-					.replace(
-						/actualCoverage\s*=\s*coverage\[path\]/g,
-						'actualCoverage=_$registerCoverageObject(coverage[path])'
-					)
-					.replace(/new Function\("return this"\)\(\)/g, "typeof window === 'object' ? window : this");
-
-				// The process also can result in a new source map that we will append in the result.
-				//
-				// `lastSourceMap` === Sourcemap for the last file that was instrumented.
-				finalSourceMap = convertSourceMap.fromObject(JSON.parse(instrumentedSource.map!)).toComment();
-
-				// We now can glue together the final version of the instrumented file.
-				const vaccineSource = this.loadVaccine(collector);
-
-				writeToFile(
-					taskElement.toFile,
-					`${IS_INSTRUMENTED_TOKEN} ${vaccineSource} ${instrumentedAndCleanedSource}`
-				);
-
-				return new TaskResult(1, 0, 0, 0, 0, 0, 0);
-			} catch (e) {
-				// If also the last configuration alternative failed,
-				// we emit a corresponding warning or signal an error.
-				if (i === configurationAlternatives.length - 1) {
-					if (!inputSourceMap) {
-						return TaskResult.warning(
-							`Failed loading input source map for ${taskElement.fromFile}: ${(e as Error).message}`
-						);
-					}
+			// We skip files that we have already instrumented
+			if (inputFileSource.startsWith(IS_INSTRUMENTED_TOKEN)) {
+				if (!taskElement.isInPlace()) {
 					writeToFile(taskElement.toFile, inputFileSource);
-					return TaskResult.error(e as Error);
+				}
+				return new TaskResult(0, 0, 0, 1, 0, 0, 0);
+			}
+
+			// Report progress
+			this.logger.info(`Instrumenting "${path.basename(taskElement.fromFile)}"`);
+
+			let finalSourceMap;
+			let instrumentedSource;
+
+			// We try to perform the instrumentation with different
+			// alternative configurations of the instrumenter.
+			const configurationAlternatives = this.configurationAlternativesFor(taskElement);
+			for (let i = 0; i < configurationAlternatives.length; i++) {
+				const configurationAlternative = configurationAlternatives[i];
+				let inputSourceMap: RawSourceMap | undefined;
+				try {
+					inputSourceMap = loadInputSourceMap(
+						inputFileSource,
+						taskElement.fromFile,
+						taskElement.externalSourceMapFile
+					);
+
+					// Based on the source maps of the file to instrument, we can now
+					// decide if we should NOT write an instrumented version of it
+					// and use the original code instead and write it to the target path.
+					//
+					const originSourceFiles = inputSourceMap?.sources ?? [];
+					if (dumpOriginsFile) {
+						this.dumpOrigins(dumpOriginsFile, originSourceFiles);
+					}
+
+					// The main instrumentation (adding coverage statements) is performed now:
+					const instrumentedSource: swc.Output = instrumentWithSwc(
+						taskElement.fromFile,
+						sourcePattern,
+						inputFileSource,
+						inputSourceMap
+					);
+
+					// FIXME: swc.this.logger.debug('Instrumentation source maps to:', instrumenter.lastSourceMap()?.sources);
+
+					// In case of a bundle, the initial instrumentation step might have added
+					// too much and undesired instrumentations. Remove them now.
+					// FIXME: const instrumentedSourcemap = instrumenter.lastSourceMap();
+
+					// let instrumentedAndCleanedSource = await this.removeUnwantedInstrumentation(
+					// 	taskElement,
+					// 	instrumentedSource.code,
+					// 	configurationAlternative,
+					// 	sourcePattern,
+					// 	instrumentedSourcemap as any
+					// );
+					let instrumentedAndCleanedSource = instrumentedSource.code;
+
+					instrumentedAndCleanedSource = instrumentedAndCleanedSource
+						.replace(
+							/actualCoverage\s*=\s*coverage\[path\]/g,
+							'actualCoverage=_$registerCoverageObject(coverage[path])'
+						)
+						.replace(/new Function\("return this"\)\(\)/g, "typeof window === 'object' ? window : this");
+
+					// The process also can result in a new source map that we will append in the result.
+					//
+					// `lastSourceMap` === Sourcemap for the last file that was instrumented.
+					finalSourceMap = convertSourceMap.fromObject(JSON.parse(instrumentedSource.map!)).toComment();
+
+					// We now can glue together the final version of the instrumented file.
+					const vaccineSource = this.loadVaccine(collector);
+
+					writeToFile(
+						taskElement.toFile,
+						`${IS_INSTRUMENTED_TOKEN} ${vaccineSource} ${instrumentedAndCleanedSource}`
+					);
+
+					return new TaskResult(1, 0, 0, 0, 0, 0, 0);
+				} catch (e) {
+					// If also the last configuration alternative failed,
+					// we emit a corresponding warning or signal an error.
+					if (i === configurationAlternatives.length - 1) {
+						if (!inputSourceMap) {
+							return TaskResult.warning(
+								`Failed loading input source map for ${taskElement.fromFile}: ${(e as Error).message}`
+							);
+						}
+						writeToFile(taskElement.toFile, inputFileSource);
+						return TaskResult.error(e as Error);
+					}
 				}
 			}
-		}
 
-		return new TaskResult(0, 0, 0, 0, 0, 1, 0);
+			return new TaskResult(0, 0, 0, 0, 0, 1, 0);
+		} finally {
+			const diff = process.hrtime(startTime);
+			const timeTakenInSeconds = diff[0] + diff[1] * 1e-9;
+			if (timeTakenInSeconds > 10) {
+				console.log(`Time taken for ${taskElement.fromFile}: ${timeTakenInSeconds.toFixed(2)} seconds`);
+			}
+		}
 	}
 
 	private async removeUnwantedInstrumentation(
@@ -434,7 +443,7 @@ export function instrumentWithSwc(
 	sourceContent: string,
 	sourceMap: RawSourceMap | undefined
 ): swc.Output {
-	let inputSourceString: boolean | string = false;
+	let inputSourceString: string | undefined = undefined;
 	if (sourceMap) {
 		inputSourceString = JSON.stringify(sourceMap);
 	}

@@ -20,6 +20,7 @@ use swc_core::{
 };
 use transformer::coverage_statements::profiler_transformer;
 use utils::source_origin::SourceOriginPattern;
+use crate::utils::performance::{end, report, ScopedPerformanceCounter, start};
 
 // The plugin can be configured with the following
 // configuration parameters.
@@ -48,32 +49,38 @@ pub fn process_transform(
     mut program: Program,
     metadata: TransformPluginProgramMetadata,
 ) -> Program {
-    // Retrieve the configuration options
-    let plugin_config = metadata.get_transform_plugin_config();
-    let plugin_options: PluginOptions = if let Some(plugin_config) = plugin_config {
-        serde_json::from_str(&plugin_config).unwrap_or_else(|f| {
-            println!("Could not deserialize instrumentation option");
-            println!("{:#?}", f);
+    {
+        let _perf = ScopedPerformanceCounter::new("process_transform");
+
+        // Retrieve the configuration options
+        let plugin_config = metadata.get_transform_plugin_config();
+        let plugin_options: PluginOptions = if let Some(plugin_config) = plugin_config {
+            serde_json::from_str(&plugin_config).unwrap_or_else(|f| {
+                println!("Could not deserialize instrumentation option");
+                println!("{:#?}", f);
+                Default::default()
+            })
+        } else {
             Default::default()
-        })
-    } else {
-        Default::default()
-    };
+        };
 
-    // The source origin patterns used to decide which fractions of the input
-    // files or bundles to instrument.
-    let pattern = Arc::new(SourceOriginPattern::new(
-        plugin_options.include_origin_patterns,
-        plugin_options.exclude_origin_patterns));
+        // The source origin patterns used to decide which fractions of the input
+        // files or bundles to instrument.
+        let pattern = Arc::new(SourceOriginPattern::new(
+            plugin_options.include_origin_patterns,
+            plugin_options.exclude_origin_patterns));
 
-    // Provide the source mapper in an Arc
-    let mapper = Arc::new(metadata.source_map);
+        // Provide the source mapper in an Arc
+        let mapper = Arc::new(metadata.source_map);
 
-    // Build the transformer passes to apply
-    let mut pass = profiler_transformer(mapper, pattern, plugin_options.input_source_map);
+        // Build the transformer passes to apply
+        let mut pass = profiler_transformer(mapper, pattern, plugin_options.input_source_map);
 
-    // Apply the transformation
-    program.visit_mut_with(&mut pass);
+        // Apply the transformation
+        program.visit_mut_with(&mut pass);
+    }
+
+    report();
 
     // ... and return the transformed (since mutable) result
     program

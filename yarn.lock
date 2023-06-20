@@ -2127,7 +2127,6 @@ __metadata:
     mkdirp: ^1.0.4
     rimraf: ^3.0.2
     source-map: 0.7.4
-    swc-plugin-coverage-instrument: "workspace:packages/swc-coverage-instrument"
     ts-jest: ^27.0.5
     ts-node: ^10.2.1
     tslib: ^2.2.0

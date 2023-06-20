@@ -1,0 +1,2 @@
+[dependencies]
+swc_plugin_teamscale_instrumenter = { path = "../" }

@@ -1,5 +1,6 @@
 import {instrumentWithSwc, loadInputSourceMap} from '../../src/instrumenter/Instrumenter';
 import { Optional } from 'typescript-optional';
+import {OriginSourcePattern} from "../../src/instrumenter/Task";
 
 test('Remove Function Coverage Increments', () => {
 	const code = `
@@ -17,7 +18,7 @@ test('Remove Function Coverage Increments', () => {
 	}
 	`;
 
-	const instrumented = instrumentWithSwc('test.js', code, undefined);
+	const instrumented = instrumentWithSwc('test.js',  new OriginSourcePattern([], []), code, undefined);
 	console.log(instrumented);
 });
 
@@ -28,6 +29,6 @@ console.log("Hello Number One!"),console.log("Hello Number Two!"),console.log("H
 	`;
 
 	const sourceMap = loadInputSourceMap(code, 'test.js', Optional.empty());
-	const instrumented = instrumentWithSwc('test.js', code, sourceMap);
+	const instrumented = instrumentWithSwc('test.js', new OriginSourcePattern([], []), code, sourceMap);
 	console.log(instrumented);
 })

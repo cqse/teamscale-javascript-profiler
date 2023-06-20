@@ -1,6 +1,7 @@
 use std::{path::MAIN_SEPARATOR};
 
 use glob::Pattern;
+use crate::utils::performance::ScopedPerformanceCounter;
 
 /// The patterns used to decide if a code fragment of a bundle
 /// is to be instrumented. We have includes and excludes.
@@ -70,6 +71,8 @@ fn remove_prefix(prefix: &str, remove_from: &String) -> String {
 }
 
 fn matching(to_filter: &Vec<String>, any_of_patterns: &Vec<Pattern>) -> usize {
+    let _perf = ScopedPerformanceCounter::new("matching");
+
     let mut result: usize = usize::default();
     for element in to_filter {
         for pattern in any_of_patterns.iter() {
@@ -91,6 +94,8 @@ impl SourceMapMatcher for SourceOriginPattern {
     /// A source file is supposed to be included if not explicitly excluded by
     /// a pattern of if explicitly included. The exclude pattern has priority.
     fn is_any_included(&self, origin_files: Vec<String>) -> bool {
+        let _perf = ScopedPerformanceCounter::new("is_any_included");
+
         if origin_files.is_empty() {
             return true;
         }

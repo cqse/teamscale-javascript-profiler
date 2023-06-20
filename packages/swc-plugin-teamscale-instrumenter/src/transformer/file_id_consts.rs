@@ -6,6 +6,7 @@ use swc_core::{
 };
 
 use lazy_static::lazy_static;
+use crate::utils::performance::ScopedPerformanceCounter;
 
 lazy_static! {
     /// Global maps mapping from file ID to file hashes and to file number.
@@ -21,6 +22,7 @@ pub struct FileIdVisitor {}
 
 /// If the given variable declaration declares a coverage object, then return its hash string.
 fn extract_file_hash(n: &VarDeclarator) -> Option<String> {
+    let _perf = ScopedPerformanceCounter::new("extract_file_hash");
     match &n.name {
         Pat::Assign(assign) => {
             match &assign.left.as_ref() {
@@ -62,6 +64,8 @@ pub struct CovFunctionSummary {
 /// Given a function declaration (expecting something like `function cov_oqh6rsgrd() { ... }`),
 /// create a corresponding function summary object.
 fn extract_cov_fn_summary(fn_decl: &FnDecl) -> Option<CovFunctionSummary> {
+    let _perf = ScopedPerformanceCounter::new("extract_cov_fn_summary");
+
     let cov_fn_name = fn_decl.ident.sym.to_string();
     if !cov_fn_name.starts_with("cov_") {
         return Option::None;
@@ -110,6 +114,8 @@ fn extract_cov_fn_summary(fn_decl: &FnDecl) -> Option<CovFunctionSummary> {
 ///
 impl VisitMut for FileIdVisitor {
     fn visit_mut_decl(&mut self, n: &mut Decl) {
+        let _perf = ScopedPerformanceCounter::new("visit_mut_decl");
+
         match n {
             Decl::Fn(fn_decl) => match extract_cov_fn_summary(fn_decl) {
                 Some(summary) => {

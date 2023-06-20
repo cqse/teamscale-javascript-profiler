@@ -18,6 +18,7 @@ use swc_core::{
 use swc_coverage_instrument::InstrumentOptions;
 
 use crate::transformer::file_id_consts::FileIdVisitor;
+use crate::utils::performance::{end, ScopedPerformanceCounter, start};
 use crate::utils::source_origin::SourceMapMatcher;
 
 use super::file_id_consts::{COV_FN_NAME_TO_HASH, COV_FN_NAME_TO_NUMBER};
@@ -70,10 +71,6 @@ fn extract_member_expr_numliteral(member_expr: &MemberExpr) -> Option<i32> {
     None
 }
 
-fn extract_increment_member_expr(expr: &Expr) -> Option<&MemberExpr> {
-    return extract_increment_member_expr_from_update(expr.as_update()?);
-}
-
 fn extract_increment_member_expr_from_update(update_expr: &UpdateExpr) -> Option<&MemberExpr> {
     return if let UpdateOp::PlusPlus = update_expr.op {
         update_expr.arg.as_member()
@@ -82,95 +79,108 @@ fn extract_increment_member_expr_from_update(update_expr: &UpdateExpr) -> Option
     }
 }
 
-fn extract_branch_coverage_inc(update_expr: &UpdateExpr) -> Option<BranchCovInc> {
-    match update_expr.op {
-        UpdateOp::PlusPlus => (),
-        _ => return None,
+struct CoverageUpdateExpr<'a> {
+    first_member_expr: &'a MemberExpr,
+    second_member_expr: &'a MemberExpr,
+    third_member_expr: Option<&'a MemberExpr>,
+    cov_fn_name: String,
+    inc_type: String
+}
+
+fn extract_coverage_inc(update_expr: &UpdateExpr) -> Option<CoverageUpdateExpr> {    
+    let _perf = ScopedPerformanceCounter::new("extract_coverage_inc");
+
+    let first_member_expr = extract_increment_member_expr_from_update(&update_expr)?;
+    let second_member_expr = first_member_expr.obj.as_member()?;
+    let third_member_expr = second_member_expr.obj.as_member();
+    let last_member_expr = if third_member_expr.is_some() {
+        third_member_expr.unwrap()
+    } else {
+        second_member_expr
     };
 
-    let member_expr_location = extract_increment_member_expr_from_update(&update_expr)?;
-    let member_expr_branch = member_expr_location.obj.as_member()?;
-    let member_expr_call = member_expr_branch.obj.as_member()?;
-    let id = member_expr_call.prop.as_ident()?;
+    let call_expr = last_member_expr.obj.as_call()?;
+    let cov_fn_name = extract_called_cov_fn_name(call_expr)?;
+    let id = last_member_expr.prop.as_ident()?;
 
-    if !id.sym.to_string().eq_ignore_ascii_case("b") {
+    return Some(CoverageUpdateExpr {
+        first_member_expr,
+        second_member_expr,
+        third_member_expr,
+        cov_fn_name,
+        inc_type: id.sym.to_string()
+    })
+}
+
+
+fn extract_branch_coverage_inc(cov_update: &CoverageUpdateExpr) -> Option<BranchCovInc> {
+    let _perf = ScopedPerformanceCounter::new("extract_branch_coverage_inc");
+
+    if !cov_update.inc_type.eq_ignore_ascii_case("b") {
         return None;
     }
 
-    let location_no = extract_member_expr_numliteral(member_expr_location)?;
-    let member_expr_obj_member = member_expr_location.obj.as_member().expect("foo");
-    let branch_no = extract_member_expr_numliteral(member_expr_obj_member)?;
-    let call_expr = member_expr_call.obj.as_call()?;
-    let cov_fn_name = extract_called_cov_fn_name(call_expr)?;
+    let location_no = extract_member_expr_numliteral(cov_update.first_member_expr)?;
+    let branch_no = extract_member_expr_numliteral(cov_update.second_member_expr)?;
 
     Some(BranchCovInc {
-        cov_fn_name,
+        cov_fn_name: cov_update.cov_fn_name.clone(),
         branch_no,
         location_no,
     })
 }
 
-fn extract_statement_coverage_inc(expr: &Expr) -> Option<StatementCovInc> {
-    let member_expr = extract_increment_member_expr(&expr)?;
-    let statement_no = extract_member_expr_numliteral(member_expr)?;
-    let member_expr = member_expr.obj.as_member()?;
+fn extract_statement_coverage_inc(cov_update: &CoverageUpdateExpr) -> Option<StatementCovInc> {
+    let _perf = ScopedPerformanceCounter::new("extract_statement_coverage_inc");
 
-    if let Some(id) = member_expr.prop.as_ident() {
-        if !id.sym.to_string().eq_ignore_ascii_case("s") {
-            return None;
-        }
-    } else {
+    if !cov_update.inc_type.eq_ignore_ascii_case("s") {
         return None;
     }
 
-    let call_expr = member_expr.obj.as_call()?;
-    let cov_fn_name = extract_called_cov_fn_name(call_expr)?;
+    let statement_no = extract_member_expr_numliteral(cov_update.first_member_expr)?;
 
     Some(StatementCovInc {
-        cov_fn_name,
+        cov_fn_name: cov_update.cov_fn_name.clone(),
         statement_no,
     })
 }
 
-fn extract_function_coverage_inc(expr: &Expr) -> Option<FunctionCovInc> {
-    let member_expr = extract_increment_member_expr(&expr)?;
-    let function_no = extract_member_expr_numliteral(member_expr)?;
-    let member_expr = member_expr.obj.as_member()?;
+fn extract_function_coverage_inc(cov_update: &CoverageUpdateExpr) -> Option<FunctionCovInc> {
+    let _perf = ScopedPerformanceCounter::new("extract_function_coverage_inc");
 
-    if let Some(id) = member_expr.prop.as_ident() {
-        if !id.sym.to_string().eq_ignore_ascii_case("f") {
-            return None;
-        }
-    } else {
+    if !cov_update.inc_type.eq_ignore_ascii_case("f") {
         return None;
     }
 
-    let call_expr = member_expr.obj.as_call()?;
-    let cov_fn_name = extract_called_cov_fn_name(call_expr)?;
+    let function_no = extract_member_expr_numliteral(cov_update.first_member_expr)?;
 
     Some(FunctionCovInc {
-        cov_fn_name,
+        cov_fn_name: cov_update.cov_fn_name.clone(),
         function_no,
     })
 }
 
 fn extract_coverage_increment(expr: &Expr) -> CoverageIncrement {
-    match &expr {
-        Expr::Update(update_expr) => match extract_branch_coverage_inc(update_expr) {
-            Some(branch_cov) => CoverageIncrement::Branch(branch_cov),
-            None => match extract_statement_coverage_inc(expr) {
-                Some(stmt_cov) => CoverageIncrement::Statement(stmt_cov),
-                None => match extract_function_coverage_inc(expr) {
-                    Some(fn_cov) => CoverageIncrement::Function(fn_cov),
-                    None => CoverageIncrement::None(),
-                },
-            },
-        },
-        _ => CoverageIncrement::None(),
+    let _perf = ScopedPerformanceCounter::new("extract_coverage_increment");
+
+    if let Some(update_expr) = expr.as_update() {
+        if let Some(cov_update) = extract_coverage_inc(update_expr) {
+            if let Some(branch_cov) = extract_branch_coverage_inc(&cov_update) {
+                return CoverageIncrement::Branch(branch_cov)
+            } else if let Some(fn_cov) = extract_function_coverage_inc(&cov_update) {
+                return CoverageIncrement::Function(fn_cov)
+            } else if let Some(stmt_cov) = extract_statement_coverage_inc(&cov_update) {
+                return CoverageIncrement::Statement(stmt_cov)
+            }
+        }
     }
+
+    CoverageIncrement::None()
 }
 
 fn new_statement_coverage_increment_call(inc: StatementCovInc) -> Expr {
+    let _perf = ScopedPerformanceCounter::new("new_statement_coverage_increment_call");
+
     let cov_obj_varname = get_cov_obj_varname(&inc.cov_fn_name);
     let args = vec![
         ExprOrSpread::from(Box::new(Expr::Ident(Ident::new(
@@ -193,6 +203,8 @@ fn new_statement_coverage_increment_call(inc: StatementCovInc) -> Expr {
 }
 
 fn get_cov_obj_varname(cov_fn_name: &String) -> String {
+    let _perf = ScopedPerformanceCounter::new("get_cov_obj_varname");
+
     let lookup_map = COV_FN_NAME_TO_NUMBER.lock().unwrap();
     let cov_obj_id = lookup_map
         .get(cov_fn_name)
@@ -202,6 +214,8 @@ fn get_cov_obj_varname(cov_fn_name: &String) -> String {
 }
 
 fn new_branch_coverage_increment_call(inc: BranchCovInc) -> Expr {
+    let _perf = ScopedPerformanceCounter::new("new_branch_coverage_increment_call");
+
     let cov_obj_varname = get_cov_obj_varname(&inc.cov_fn_name);
     let args = vec![
         ExprOrSpread::from(Box::new(Expr::Ident(Ident::new(
@@ -227,6 +241,8 @@ fn new_branch_coverage_increment_call(inc: BranchCovInc) -> Expr {
 }
 
 fn new_function_coverage_increment_call(inc: FunctionCovInc) -> Expr {
+    let _perf = ScopedPerformanceCounter::new("new_function_coverage_increment_call");
+
     let cov_obj_varname = get_cov_obj_varname(&inc.cov_fn_name);
     let args = vec![
         ExprOrSpread::from(Box::new(Expr::Ident(Ident::new(
@@ -249,6 +265,8 @@ fn new_function_coverage_increment_call(inc: FunctionCovInc) -> Expr {
 }
 
 fn new_fileid_decl(file_no: i32, cov_fn_hash: String) -> Box<VarDecl> {
+    let _perf = ScopedPerformanceCounter::new("new_fileid_decl");
+
     Box::new(VarDecl {
         span: DUMMY_SP,
         kind: VarDeclKind::Const,
@@ -270,6 +288,8 @@ fn new_fileid_decl(file_no: i32, cov_fn_hash: String) -> Box<VarDecl> {
 }
 
 fn create_coverage_increment_replacement(expr: &Expr) -> Option<Box<Expr>> {
+    let _perf = ScopedPerformanceCounter::new("create_coverage_increment_replacement");
+
     match extract_coverage_increment(expr) {
         CoverageIncrement::Function(fn_cov) => {
             Some(Box::new(new_function_coverage_increment_call(fn_cov)))
@@ -286,23 +306,30 @@ fn create_coverage_increment_replacement(expr: &Expr) -> Option<Box<Expr>> {
 
 pub struct TransformVisitor<'a> {
     active_span_stack: Vec<Span>,
+    is_current_stack_included: Vec<bool>,
     mapper: Arc<dyn SourceMapper + 'a>,
     input_source_map: Option<SM>,
     pattern: Arc<dyn SourceMapMatcher + 'a>,
 }
 
 impl TransformVisitor<'_> {
+
     fn is_included<'a>(&self, span: Span) -> bool {
+        let _perf = ScopedPerformanceCounter::new("is_included");
+
         if span.is_dummy() {
+            println!("Unmappable dummy span identified. This should not happen.");
             return true;
         }
 
         if let Some(sm) = &self.input_source_map {
             let span_lines = self.mapper.span_to_lines(span).unwrap();
             for line in span_lines.lines {
-                if let Some(token) = sm.lookup_token(line.line_index as u32, line.start_col.0 as u32) {
-                    if let Some(origin_file_name) = token.get_source() {
-                        return self.pattern.is_any_included(vec![origin_file_name.to_string()]);
+                for column in line.start_col.0..line.end_col.0 {
+                    if let Some(token) = sm.lookup_token(line.line_index as u32, column as u32) {
+                        if let Some(origin_file_name) = token.get_source() {
+                            return self.pattern.is_any_included(vec![origin_file_name.to_string()]);
+                        }
                     }
                 }
             }
@@ -311,23 +338,41 @@ impl TransformVisitor<'_> {
         true
     }
 
-    fn push_active_stmt_span(&mut self, n: &mut Stmt) -> Option<Span> {
-        match n.as_expr() {
-            Some(expr_stmt) => {
-                return self.push_active_span(&expr_stmt.span);
-            }
-            None => {}
-        }
+    fn push_active_span_opt(&mut self, span: Option<Span>) -> Option<Span> {
+        let _perf = ScopedPerformanceCounter::new("push_active_span_opt");
 
-        None
+        return match span {
+            Some(element) => {
+                if element.is_dummy() {
+                    None
+                } else {
+                    self.active_span_stack.push(element.clone());
+                    Some(element)
+                }
+            }
+            None => None
+        };
     }
 
     fn push_active_span(&mut self, span: &Span) -> Option<Span> {
+        let _perf = ScopedPerformanceCounter::new("push_active_span");
+        
         if span.is_dummy() {
             None
         } else {
             self.active_span_stack.push(span.clone());
-            Some(span.clone())
+            if self.is_current_stack_included.len() == 0 {
+                return None
+            }
+            let peeked = self.is_current_stack_included.get(self.is_current_stack_included.len()-1);
+            if let Some(value) = peeked {
+                if !value {
+                    return None
+                }
+            }
+
+            self.is_current_stack_included.push(self.is_included(span.clone()));
+            return Some(span.clone());
         }
     }
 
@@ -340,39 +385,76 @@ impl TransformVisitor<'_> {
         }
     }
 
-    fn active_span(&self) -> Option<Span> {
-        if self.active_span_stack.is_empty() {
-            return None;
-        }
-
-        match self.active_span_stack.get(self.active_span_stack.len() - 1) {
-            Some(span) => Some(span.clone()),
-            None => None,
-        }
-    }
-
     fn is_span_included(&self, span: &Span) -> bool {
-        return if span.is_dummy() {
-            let active = self.active_span();
-            if active.is_some() {
-                self.is_included(active.expect("Must be there").clone())
-            } else {
-                true
+        let _perf = ScopedPerformanceCounter::new("is_span_included");
+    
+        let included = self.is_current_stack_included.last();
+        if let Some(value) = included {
+            if !value {
+                return false;
             }
+        }
+
+        return if span.is_dummy() {
+            return true;
         } else {
             self.is_included(span.clone())
         }
     }
 }
 
+trait SpanMapper {
+    fn extract_span(&self) -> Option<Span>;
+}
+
+impl SpanMapper for Decl {
+    fn extract_span(&self) -> Option<Span> {
+        let _perf = ScopedPerformanceCounter::new("Decl::extract_span");
+        return match self {
+            Decl::Class(decl) =>
+                Some(decl.class.span.clone()),
+            Decl::Fn(decl) =>
+                Some(decl.function.span.clone()),
+            Decl::Var(decl) => Some(decl.span),
+            _ => None
+        }
+    }
+}
+
+impl SpanMapper for Stmt {
+    fn extract_span(&self) -> Option<Span> {
+        let _perf = ScopedPerformanceCounter::new("Stmt::extract_span");
+        return match self {
+            Stmt::Expr(stmt) => Some(stmt.span.clone()),
+            Stmt::Block(stmt) => Some(stmt.span.clone()),
+            _ => None
+        }
+    }
+}
+
+impl SpanMapper for Expr {
+    fn extract_span(&self) -> Option<Span> {
+        let _perf = ScopedPerformanceCounter::new("Expr::extract_span");
+        return match self {
+            Expr::Seq(expr) => Some(expr.span.clone()),
+            Expr::Fn(expr) => Some(expr.function.span.clone()),
+            Expr::Class(expr) => Some(expr.class.span.clone()),
+            _ => None
+        }
+    }
+}
+
 impl VisitMut for TransformVisitor<'_> {
-    fn visit_mut_span(&mut self, span: &mut Span) {
-        let active_span = self.push_active_span(span);
-        span.visit_mut_children_with(self);
+
+    fn visit_mut_decl(&mut self, decl: &mut Decl) {
+        let active_span = self.push_active_span_opt(decl.extract_span());
+        decl.visit_mut_children_with(self);
         self.pop_active_span(active_span);
     }
 
     fn visit_mut_script(&mut self, n: &mut Script) {
+        let _perf = ScopedPerformanceCounter::new("visit_mut_script");
+
         let active_span = self.push_active_span(&n.span);
         let mut i: i32 = 0;
         for (cov_fn_name, cov_fn_hash) in COV_FN_NAME_TO_HASH.lock().unwrap().iter() {
@@ -390,12 +472,16 @@ impl VisitMut for TransformVisitor<'_> {
     }
 
     fn visit_mut_block_stmt(&mut self, n: &mut BlockStmt) {
+        let _perf = ScopedPerformanceCounter::new("visit_mut_block_stmt");
+
         let active_span = self.push_active_span(&n.span);
         n.visit_mut_children_with(self);
         self.pop_active_span(active_span);
     }
 
     fn visit_mut_module(&mut self, n: &mut Module) {
+        let _perf = ScopedPerformanceCounter::new("visit_mut_module");
+
         let active_span = self.push_active_span(&n.span);
         let mut i: i32 = 0;
         for (cov_fn_name, cov_fn_hash) in COV_FN_NAME_TO_HASH.lock().unwrap().iter() {
@@ -431,7 +517,9 @@ impl VisitMut for TransformVisitor<'_> {
     }
 
     fn visit_mut_stmt(&mut self, n: &mut Stmt) {
-        let active_span = self.push_active_stmt_span(n);
+        let _perf = ScopedPerformanceCounter::new("visit_mut_stmt");
+
+        let active_span = self.push_active_span_opt(n.extract_span());
         n.visit_mut_children_with(self);
         match n.as_mut_expr() {
             Some(expr_stmt) => match create_coverage_increment_replacement(&expr_stmt.expr) {
@@ -450,11 +538,14 @@ impl VisitMut for TransformVisitor<'_> {
     }
 
     fn visit_mut_expr(&mut self, n: &mut Expr) {
+        let _perf = ScopedPerformanceCounter::new("visit_mut_expr");
+
+        let active_span = self.push_active_span_opt(n.extract_span());
         match n {
             Expr::Seq(seq_expr) => {
                 let mut new_expressions = vec![];
                 for expr in seq_expr.exprs.iter() {
-                    match create_coverage_increment_replacement(&expr) {
+                    match create_coverage_increment_replacement(expr) {
                         Some(replacement) => {
                             if self.is_span_included(&seq_expr.span) {
                                 new_expressions.push(replacement);
@@ -468,6 +559,7 @@ impl VisitMut for TransformVisitor<'_> {
             _ => {}
         }
         n.visit_mut_children_with(self);
+        self.pop_active_span(active_span);
     }
 }
 
@@ -480,6 +572,7 @@ pub fn teamscale_transformer(
         as_folder(FileIdVisitor {}),
         as_folder(TransformVisitor {
             active_span_stack: Vec::new(),
+            is_current_stack_included: Vec::new(),
             mapper,
             input_source_map,
             pattern: origin_pattern.clone()
@@ -526,5 +619,6 @@ pub fn profiler_transformer(
 
     chain!(
         istanbul_transformer(mapper.clone(), oxide_sourcemap),
-        teamscale_transformer(mapper.clone(), js_sourcemap, pattern.clone()))
+        teamscale_transformer(mapper.clone(), js_sourcemap, pattern.clone())
+    )
 }

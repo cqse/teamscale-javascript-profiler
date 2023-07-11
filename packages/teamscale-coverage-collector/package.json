@@ -12,11 +12,11 @@
     "url": "https://github.com/cqse/teamscale-javascript-profiler.git"
   },
   "scripts": {
-    "prepublishOnly": "yarn clean && yarn build",
+    "prepublishOnly": "pnpm clean && pnpm build",
     "clean": "rimraf dist tsconfig.tsbuildinfo",
     "build": "tsc",
     "collector": "node dist/src/main.js",
-    "test": "yarn build && NODE_OPTIONS='--experimental-vm-modules' jest --coverage --silent=true"
+    "test": "pnpm build && NODE_OPTIONS='--experimental-vm-modules' jest --coverage --silent=true"
   },
   "files": [
     "dist/**/*"

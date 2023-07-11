@@ -4,15 +4,12 @@
   "name": "teamscale-javascript-profiler",
   "files": [],
   "scripts": {
-    "clean": "yarn workspaces foreach run clean",
-    "build": "yarn workspaces foreach run build",
-    "test": "yarn workspaces foreach run test",
-    "systemtest": "yarn build && node ./test/systemtest.mjs",
-    "lint": "yarn run eslint . --ext .ts"
+    "clean": "pnpm -r --filter='./packages/*' run clean",
+    "build": "pnpm -r --filter='./packages/*' run build",
+    "test": "pnpm -r --filter='./packages/*' run test",
+    "systemtest": "pnpm build && node ./test/systemtest.mjs",
+    "lint": "pnpm run eslint . --ext .ts"
   },
-  "workspaces": [
-    "packages/*"
-  ],
   "devDependencies": {
     "@typescript-eslint/eslint-plugin": "^4.31.1",
     "@typescript-eslint/parser": "^4.31.1",
@@ -34,6 +31,5 @@
     "tempfile": "^4.0.0",
     "tree-kill": "^1.2.2",
     "typescript": "^4.4.3"
-  },
-  "packageManager": "yarn@3.2.0"
+  }
 }

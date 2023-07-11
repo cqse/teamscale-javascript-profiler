@@ -13,31 +13,51 @@ jobs:
     steps:
       - name: Check out the code
         uses: actions/checkout@v3
-      - uses: actions/setup-node@v2
+      - name: Install Node.js
+        uses: actions/setup-node@v3
         with:
-          node-version: '16'
-          cache: 'npm'
-      - run: npm install -g yarn
-      - name: Install the base dependencies
-        run: yarn install
+          node-version: 16
+      - uses: pnpm/action-setup@v2
+        name: Install pnpm
+        id: pnpm-install
+        with:
+          version: 7
+          run_install: false
+
+      - name: Get pnpm store directory
+        id: pnpm-cache
+        shell: bash
+        run: |
+          echo "STORE_PATH=$(pnpm store path)" >> $GITHUB_OUTPUT
+
+      - uses: actions/cache@v3
+        name: Setup pnpm cache
+        with:
+          path: ${{ steps.pnpm-cache.outputs.STORE_PATH }}
+          key: ${{ runner.os }}-pnpm-store-${{ hashFiles('**/pnpm-lock.yaml') }}
+          restore-keys: |
+            ${{ runner.os }}-pnpm-store-
+
+      - name: Install dependencies
+        run: pnpm install
       - name: Install, build, and test the Commons Library
         working-directory: ./packages/cqse-commons
         run: | 
-          yarn install
-          yarn build
-          yarn test
+          pnpm install
+          pnpm build
+          pnpm test
       - name: Install, build, and test the Instrumenter
         working-directory: ./packages/teamscale-javascript-instrumenter
-        run: | 
-          yarn install
-          yarn build
-          yarn test
+        run: |
+          pnpm install
+          pnpm build
+          pnpm test
       - name: Install, build, and test the Collector
         working-directory: ./packages/teamscale-coverage-collector
-        run: | 
-          yarn install
-          yarn build
-          yarn test
+        run: |
+          pnpm install
+          pnpm build
+          pnpm test
       - name: Set up Python
         uses: actions/setup-python@v4
         with:
@@ -45,6 +65,6 @@ jobs:
       - name: Run the system test
         uses: GabrielBB/xvfb-action@v1
         with:
-          run: yarn systemtest
+          run: pnpm systemtest
       - run: echo "Done."
 

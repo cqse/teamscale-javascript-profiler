@@ -19,12 +19,12 @@ information back to the original source code.
 ## Building
 
 The Collector is written in TypeScript/JavaScript. For building and running it,
-NodeJs (>= v14) and Yarn are needed as prerequisites.
+NodeJs (>= v16) and pnpm are needed as prerequisites.
 
 ```
-yarn clean
-yarn install
-yarn build
+pnpm clean
+pnpm install
+pnpm build
 ```
 
 ## Running the Collector

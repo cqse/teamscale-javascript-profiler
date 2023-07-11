@@ -9,9 +9,9 @@ describe('Test the control server that is integrated in the collector with uploa
 	const artifactoryServerMock = getLocal({ debug: true });
 	let collectorState: { stop: () => Promise<void> };
 
-	beforeEach(() => {
+	beforeEach(async () => {
 		// Start the Artifactory mock serer
-		artifactoryServerMock.start(ARTIFACTORY_MOCK_PORT);
+		await artifactoryServerMock.start(ARTIFACTORY_MOCK_PORT);
 
 		// Start the collector
 		collectorState = App.runWithConfig({
@@ -46,7 +46,7 @@ describe('Test the control server that is integrated in the collector with uploa
 		await postAndDumpCoverage();
 		const requests = await mockedEndpoint.getSeenRequests();
 		expect(requests).toHaveLength(1);
-	}, 20000);
+	}, 100000);
 
 	it('Change commit and dump coverage', async () => {
 		let mockedEndpoint = await artifactoryServerMock

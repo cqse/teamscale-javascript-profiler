@@ -53,7 +53,7 @@ export class WebSocketCollectingServer {
 		Contract.require(port > 0 && port < 65536, 'Port must be valid (range).');
 		this.storage = Contract.requireDefined(storage);
 		this.logger = Contract.requireDefined(logger);
-		this.server = new WebSocket.Server({ port: port });
+		this.server = new WebSocket.Server({ port });
 	}
 
 	/**
@@ -78,9 +78,9 @@ export class WebSocketCollectingServer {
 			});
 
 			// Handle incoming messages
-			webSocket.on('message', async (message: WebSocket.Data) => {
-				if (session && typeof message === 'string') {
-					await this.handleMessage(session, message);
+			webSocket.on('message', (message: WebSocket.Data) => {
+				if (session && Buffer.isBuffer(message)) {
+					void this.handleMessage(session, message);
 				}
 			});
 
@@ -104,16 +104,21 @@ export class WebSocketCollectingServer {
 	 * @param session - The session that has been started for the client.
 	 * @param message - The message to handle.
 	 */
-	private async handleMessage(session: Session, message: string) {
+	private async handleMessage(session: Session, message: Buffer) {
 		try {
-			if (message.startsWith(ProtocolMessageTypes.TYPE_SOURCEMAP)) {
-				await this.handleSourcemapMessage(session, message.substring(1));
-			} else if (message.startsWith(ProtocolMessageTypes.TYPE_COVERAGE)) {
-				await this.handleCoverageMessage(session, message.substring(1));
+			const messageType = message.toString('utf8', 0, 1);
+			if (messageType.startsWith(ProtocolMessageTypes.TYPE_SOURCEMAP)) {
+				await this.handleSourcemapMessage(session, message.subarray(1));
+			} else if (messageType.startsWith(ProtocolMessageTypes.TYPE_COVERAGE)) {
+				await this.handleCoverageMessage(session, message.subarray(1));
 			}
 		} catch (e) {
 			this.logger.error(
-				`Error while processing message starting with ${message.substring(0, Math.min(50, message.length))}`
+				`Error while processing message starting with ${message.toString(
+					'utf8',
+					0,
+					Math.min(50, message.length)
+				)}`
 			);
 			this.logger.error((e as Error).message);
 		}
@@ -125,12 +130,12 @@ export class WebSocketCollectingServer {
 	 * @param session - The session to handle the message for.
 	 * @param body - The body of the message (to be parsed).
 	 */
-	private async handleSourcemapMessage(session: Session, body: string) {
-		const fileIdSeparatorPosition = body.indexOf(INSTRUMENTATION_SUBJECT_SEPARATOR);
+	private async handleSourcemapMessage(session: Session, body: Buffer) {
+		const fileIdSeparatorPosition = body.indexOf(INSTRUMENTATION_SUBJECT_SEPARATOR.charCodeAt(0));
 		if (fileIdSeparatorPosition > -1) {
-			const fileId = body.substring(0, fileIdSeparatorPosition).trim();
+			const fileId = body.toString('utf8', 0, fileIdSeparatorPosition).trim();
 			this.logger.debug(`Received source map information for ${fileId}`);
-			const sourcemap = body.substring(fileIdSeparatorPosition + 1);
+			const sourcemap = body.subarray(fileIdSeparatorPosition + 1);
 			await session.putSourcemap(fileId, sourcemap);
 		}
 	}
@@ -141,9 +146,9 @@ export class WebSocketCollectingServer {
 	 * @param session - The session to handle the message for.
 	 * @param body - The body of the message (to be parsed).
 	 */
-	private async handleCoverageMessage(session: Session, body: string) {
+	private async handleCoverageMessage(session: Session, body: Buffer) {
 		const bodyPattern = /(?<fileId>\S+) (?<positions>((\d+:\d+(:\d+:\d+)?\s+)*(\d+:\d+(:\d+:\d+)?)))/;
-		const matches = bodyPattern.exec(body);
+		const matches = bodyPattern.exec(body.toString());
 		if (matches?.groups) {
 			const fileId = matches.groups.fileId;
 			const positions = (matches.groups.positions ?? '').split(/\s+/);

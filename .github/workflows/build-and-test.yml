@@ -1,6 +1,7 @@
 on:
   push:
     branches: '*'
+    tags: 'v*'
   pull_request:
     branches: '*'
 
@@ -21,41 +22,40 @@ jobs:
         name: Install pnpm
         id: pnpm-install
         with:
-          version: 7
+          version: 8
           run_install: false
-
       - name: Get pnpm store directory
         id: pnpm-cache
         shell: bash
         run: |
           echo "STORE_PATH=$(pnpm store path)" >> $GITHUB_OUTPUT
-
       - uses: actions/cache@v3
         name: Setup pnpm cache
         with:
           path: ${{ steps.pnpm-cache.outputs.STORE_PATH }}
-          key: ${{ runner.os }}-pnpm-store-${{ hashFiles('**/pnpm-lock.yaml') }}
+          key: pnpm-store-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}
           restore-keys: |
             ${{ runner.os }}-pnpm-store-
-
+      - uses: actions/cache@v3
+        name: Setup Cypress cache
+        with:
+          path: ~/.cache/Cypress
+          key: cypress-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}
       - name: Install dependencies
-        run: pnpm install
-      - name: Install, build, and test the Commons Library
+        run: pnpm install --frozen-lockfile
+      - name: Build and test the Commons Library
         working-directory: ./packages/cqse-commons
         run: | 
-          pnpm install
           pnpm build
           pnpm test
-      - name: Install, build, and test the Instrumenter
+      - name: Build and test the Instrumenter
         working-directory: ./packages/teamscale-javascript-instrumenter
         run: |
-          pnpm install
           pnpm build
           pnpm test
-      - name: Install, build, and test the Collector
+      - name: Build and test the Collector
         working-directory: ./packages/teamscale-coverage-collector
         run: |
-          pnpm install
           pnpm build
           pnpm test
       - name: Set up Python
@@ -66,5 +66,58 @@ jobs:
         uses: GabrielBB/xvfb-action@v1
         with:
           run: pnpm systemtest
-      - run: echo "Done."
+      - name: Publish the Commons Library
+        if: startsWith(github.ref, 'refs/tags/v')
+        working-directory: ./packages/cqse-commons
+        run: |
+          npm config set //registry.npmjs.org/:_authToken ${NPM_TOKEN}
+          npm publish --ignore-scripts
+        env:
+          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+      - name: Publish the Collector
+        if: startsWith(github.ref, 'refs/tags/v')
+        working-directory: ./packages/teamscale-coverage-collector
+        run: |
+          npm config set //registry.npmjs.org/:_authToken ${NPM_TOKEN}
+          npm publish --ignore-scripts
+        env:
+          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+      - name: Publish the Instrumenter
+        if: startsWith(github.ref, 'refs/tags/v')
+        working-directory: ./packages/teamscale-javascript-instrumenter
+        run: |
+          npm config set //registry.npmjs.org/:_authToken ${NPM_TOKEN}
+          npm publish --ignore-scripts
+        env:
+          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
 
+  docker:
+    name: Build the Docker Image
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out the code
+        uses: actions/checkout@v3
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v2
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v2
+      - name: Docker meta
+        id: meta
+        uses: docker/metadata-action@v4
+        with:
+          images: cqse/teamscale-coverage-collector
+      - name: Login to DockerHub
+        if: github.event_name != 'pull_request'
+        uses: docker/login-action@v2
+        with:
+          username: ${{ secrets.DOCKERHUB_USER }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+      - run: ls
+      - name: Build and push
+        uses: docker/build-push-action@v4
+        with:
+          context: ./packages/teamscale-coverage-collector
+          file: ./packages/teamscale-coverage-collector/Dockerfile
+          push: ${{ startsWith(github.ref, 'refs/tags/v') }}
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}

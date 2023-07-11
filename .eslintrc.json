@@ -1,19 +1,50 @@
 {
-  "parser": "@typescript-eslint/parser",
-  "parserOptions": {
-    "project": "./tsconfig.json"
-  },
   "extends": [
     "eslint:recommended",
+    "plugin:@typescript-eslint/recommended-type-checked",
+    "plugin:@typescript-eslint/stylistic-type-checked",
     "plugin:workspaces/recommended",
-    "standard",
-    "prettier",
-    "plugin:@typescript-eslint/recommended"
+    "prettier"
   ],
-  "plugins": ["@typescript-eslint", "workspaces"],
+  "root": true,
+  "parser": "@typescript-eslint/parser",
+  "parserOptions": {
+    "project": [
+      "./packages/*/tsconfig.json",
+      "./packages/teamscale-javascript-instrumenter/tsconfig.vaccine.json"
+    ]
+  },
+  "plugins": [
+    "@typescript-eslint",
+    "workspaces"
+  ],
   "env": {
     "es6": true,
     "node": true
   },
-  "ignorePatterns": ["dist", "lib", "node_modules", "examples", "scripts", "test"]
+  "ignorePatterns": [
+    "dist",
+    "lib",
+    "node_modules",
+    "examples",
+    "scripts",
+    "test"
+  ],
+  "rules": {
+    // All of those would probably make sense, but needs to be enabled and fixed one by one
+    "@typescript-eslint/consistent-type-definitions": "off",
+    "@typescript-eslint/no-unsafe-assignment": "off",
+    "@typescript-eslint/no-unsafe-argument": "off",
+    "@typescript-eslint/no-unsafe-call": "off",
+    "@typescript-eslint/prefer-nullish-coalescing": "off",
+    "@typescript-eslint/unbound-method": "off",
+    "@typescript-eslint/restrict-template-expressions": "off",
+    "@typescript-eslint/array-type": "off",
+    "@typescript-eslint/consistent-generic-constructors": "off",
+    "@typescript-eslint/require-await": "off",
+    "@typescript-eslint/no-misused-promises": "off",
+    "@typescript-eslint/restrict-plus-operands": "off",
+    "@typescript-eslint/consistent-indexed-object-style": "off",
+    "@typescript-eslint/no-unsafe-member-access": "off"
+  }
 }

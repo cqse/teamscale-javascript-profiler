@@ -1,7 +1,7 @@
 import { App } from '../../src/App';
-import { getLocal } from 'mockttp';
 import { CollectorClient } from '../CollectorClient';
-import {CONTROL_URL, postAndDumpCoverage} from "./CommonControlServerTestUtils";
+import { CONTROL_URL, postAndDumpCoverage } from './CommonControlServerTestUtils';
+import { getLocal } from 'mockttp';
 
 const TEAMSCALE_MOCK_PORT = 11234;
 
@@ -9,9 +9,9 @@ describe('Test the control server that is integrated in the collector with uploa
 	const teamscaleServerMock = getLocal({ debug: true });
 	let collectorState: { stop: () => Promise<void> };
 
-	beforeEach(() => {
+	beforeEach(async () => {
 		// Start the Teamscale mock serer
-		teamscaleServerMock.start(TEAMSCALE_MOCK_PORT);
+		await teamscaleServerMock.start(TEAMSCALE_MOCK_PORT);
 
 		// Start the collector
 		collectorState = App.runWithConfig({
@@ -34,7 +34,7 @@ describe('Test the control server that is integrated in the collector with uploa
 
 	afterEach(async () => {
 		// Stop the mock server
-		teamscaleServerMock.stop();
+		await teamscaleServerMock.stop();
 
 		// Stop the collector
 		await collectorState.stop();
@@ -46,10 +46,10 @@ describe('Test the control server that is integrated in the collector with uploa
 			.withQuery({ format: 'SIMPLE' })
 			.thenReply(200, 'Mocked response');
 		await CollectorClient.requestMessageChange(CONTROL_URL, 'mymessage');
-    await postAndDumpCoverage();
+		await postAndDumpCoverage();
 		const requests = await mockedEndpoint.getSeenRequests();
 		expect(requests).toHaveLength(1);
-		expect(requests[0].url).toContain("message=mymessage");
+		expect(requests[0].url).toContain('message=mymessage');
 	}, 20000);
 
 	it('Change commit and dump coverage', async () => {
@@ -58,10 +58,10 @@ describe('Test the control server that is integrated in the collector with uploa
 			.withQuery({ format: 'SIMPLE' })
 			.thenReply(200, 'Mocked response');
 		await CollectorClient.requestCommitChange(CONTROL_URL, 'master:123456789000');
-    await postAndDumpCoverage();
+		await postAndDumpCoverage();
 		const requests = await mockedEndpoint.getSeenRequests();
 		expect(requests).toHaveLength(1);
-		expect(requests[0].url).toContain("t=master%3A123456789000");
+		expect(requests[0].url).toContain('t=master%3A123456789000');
 	}, 20000);
 
 	it('Change revision and dump coverage', async () => {
@@ -70,10 +70,10 @@ describe('Test the control server that is integrated in the collector with uploa
 			.withQuery({ format: 'SIMPLE' })
 			.thenReply(200, 'Mocked response');
 		await CollectorClient.requestRevisionChange(CONTROL_URL, 'rev123');
-    await postAndDumpCoverage();
+		await postAndDumpCoverage();
 		const requests = await mockedEndpoint.getSeenRequests();
 		expect(requests).toHaveLength(1);
-		expect(requests[0].url).toContain("revision=rev123");
+		expect(requests[0].url).toContain('revision=rev123');
 	}, 20000);
 
 	it('Change partiton and dump coverage', async () => {
@@ -82,10 +82,10 @@ describe('Test the control server that is integrated in the collector with uploa
 			.withQuery({ format: 'SIMPLE' })
 			.thenReply(200, 'Mocked response');
 		await CollectorClient.requestPartitionChange(CONTROL_URL, 'dummyPartition');
-    await postAndDumpCoverage();
+		await postAndDumpCoverage();
 		const requests = await mockedEndpoint.getSeenRequests();
 		expect(requests).toHaveLength(1);
-		expect(requests[0].url).toContain("partition=dummyPartition");
+		expect(requests[0].url).toContain('partition=dummyPartition');
 	}, 20000);
 
 	it('Change project ID and dump coverage', async () => {
@@ -95,7 +95,7 @@ describe('Test the control server that is integrated in the collector with uploa
 			.withQuery({ format: 'SIMPLE' })
 			.thenReply(200, 'Mocked response');
 		await CollectorClient.requestProjectSwitch(CONTROL_URL, projectId);
-    await postAndDumpCoverage();
+		await postAndDumpCoverage();
 		const requests = await mockedEndpoint.getSeenRequests();
 		expect(requests).toHaveLength(1);
 	}, 20000);

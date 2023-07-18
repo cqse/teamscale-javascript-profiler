@@ -6,7 +6,7 @@ import { ConfigurationParameters, TaskBuilder } from './instrumenter/TaskBuilder
 import * as path from 'path';
 import { version } from '../package.json';
 import { existsSync } from 'fs';
-import mkdirp from 'mkdirp';
+import { mkdirp } from 'mkdirp';
 import Logger from 'bunyan';
 
 /**
@@ -25,8 +25,8 @@ export class App {
 
 		// Build the logger
 		const logger = this.buildLogger(config);
-		logger.debug("Retrieved arguments", process.argv);
-		logger.debug("Translated arguments to config", config);
+		logger.debug('Retrieved arguments', process.argv);
+		logger.debug('Translated arguments to config', config);
 
 		// Run the instrumenter with the given configuration.
 		return this.runForConfigArguments(config, logger);
@@ -37,7 +37,7 @@ export class App {
 	 * still quoted. We remove those here.
 	 */
 	public static postprocessConfig(config: ConfigurationParameters): void {
-		function unquoteString(originalString: string|undefined): string|undefined {
+		function unquoteString(originalString: string | undefined): string | undefined {
 			if (originalString === undefined) {
 				return originalString;
 			}
@@ -49,7 +49,7 @@ export class App {
 			}
 		}
 
-		function unquoteStringElements(originalArray: unknown[]|undefined): unknown[]|undefined {
+		function unquoteStringElements(originalArray: unknown[] | undefined): unknown[] | undefined {
 			if (originalArray === undefined) {
 				return undefined;
 			}
@@ -61,7 +61,6 @@ export class App {
 					return s;
 				}
 			});
-
 		}
 
 		for (const [property, value] of Object.entries(config)) {
@@ -95,7 +94,7 @@ export class App {
 			help: 'Path (directory or file name) to write the instrumented version to.'
 		});
 		parser.add_argument('-s', '--source-map', {
-			help: 'External location of source-map files to consider.',
+			help: 'External location of source-map files to consider.'
 		});
 		parser.add_argument('-c', '--collector', {
 			help: 'The collector (`host:port` or `wss://host:port/` or `ws://host:port/`) to send coverage information to.',
@@ -135,7 +134,8 @@ export class App {
 				{
 					level: logLevel,
 					stream: {
-						write: (rec: Record<any, any>) => {
+						// eslint-disable-next-line @typescript-eslint/no-explicit-any
+						write: (rec: any) => {
 							console.log(
 								'[%s] %s: %s',
 								rec.time.toISOString(),

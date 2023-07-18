@@ -1,7 +1,6 @@
 import { Optional } from 'typescript-optional';
 import { Contract } from '@cqse/commons';
 import micromatch from 'micromatch';
-import path from 'path';
 
 /**
  * An abstract source map type.

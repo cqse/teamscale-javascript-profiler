@@ -1,0 +1,10 @@
+{
+"version":3,
+"file":"sourceMap16",
+"lineCount":2,
+"mappings":"AAwDA,6BAEA,eAGA,EAAA,CCkGA,EDlGA,CACA,EAAA,CCyFA,EDzFA,CACA,iBACA,iBACA,mBEsGA,MAJA,GFlGA,GADA,CADA,CG0GA,IHnGA,CGmGA,CHnGA,QGmGA,EHlGA,QAfA,C;AAoBA,OIlDA,CJkDA,MAMA,oBKwRA,ILvRA,MKuRA,CLvRA,KKuRA,CLxRA;",
+"sources":["com/google/gwt/sample/showcase/client/content/tables/CwGrid.java","com/google/gwt/user/client/ui/Grid.java","gen/com/google/gwt/sample/showcase/client/ShowcaseResources_fr_InlineClientBundleGenerator.java","com/google/gwt/user/client/ui/UIObject.java","com/google/gwt/emul/java/lang/Object.java","com/google/gwt/sample/showcase/client/ContentWidget.java"],
+"names":[],
+"x_gwt_permutation":3,
+"x_gwt_fragment":16
+}

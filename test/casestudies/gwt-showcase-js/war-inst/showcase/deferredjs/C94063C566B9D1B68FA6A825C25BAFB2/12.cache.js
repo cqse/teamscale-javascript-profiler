@@ -1,0 +1,35 @@
+/** $IS_JS_PROFILER_INSTRUMENTED=true **/ (()=>{function d(e){let n=new Blob([e],{type:"text/javascript"}),t=URL.createObjectURL(n),s=new Worker(t);return URL.revokeObjectURL(t),s}function h(){return d('var r=class{constructor(e){this.cachedMessages=[];this.url=e,this.socket=this.createSocket()}createSocket(){let e=new WebSocket(this.url);return e.onopen=()=>this.onopen(),e.onclose=()=>this.onclose(),e}onclose(){this.socket=this.createSocket()}onopen(){console.log("Connection to Coverage Collector established."),this.cachedMessages.forEach(e=>this.socket.send(e)),this.cachedMessages=[]}send(e){this.socket.readyState===WebSocket.OPEN?this.socket.send(e):(this.cachedMessages.push(e),this.cachedMessages.length%500===0&&console.log(`More than ${this.cachedMessages.length} messages are queued to be sent.`))}};var C=20,m=1e3,d=class{constructor(e,t){this.milliseconds=e;this.onCountedToZero=t;this.timerHandle=null}restartCountdown(){this.stopCountdown(),this.timerHandle=self.setTimeout(()=>{this.stopCountdown(),this.onCountedToZero()},this.milliseconds)}stopCountdown(){this.timerHandle!==null&&(self.clearTimeout(this.timerHandle),this.timerHandle=null)}},a=class{constructor(e){this.socket=e,this.cachedCoveredRanges=new Map,this.numberOfCachedPositions=0,this.flushCountdown=new d(m,()=>this.flush())}addRange(e,t){if(!t.start.line||!t.end.line)return;let o=this.cachedCoveredRanges.get(e);o||(o=new Set,this.cachedCoveredRanges.set(e,o)),o.add(t),this.numberOfCachedPositions+=1,this.flushCountdown.restartCountdown(),this.numberOfCachedPositions>=C&&this.flush()}flush(){this.numberOfCachedPositions!==0&&(this.flushCountdown.stopCountdown(),this.cachedCoveredRanges.forEach((e,t)=>{let o=Array.from(e).map(n=>`${n.start.line}:${n.start.column}:${n.end.line}:${n.end.column}`);this.socket.send(`${"c"} ${t} ${o.join(" ")}`),e.clear()}),this.cachedCoveredRanges.clear(),this.numberOfCachedPositions=0)}};console.log("Starting coverage forwarding worker.");var u=new r("ws://localhost:54678/socket"),h=new a(u),f=new Map;onmessage=s=>{if(Array.isArray(s.data))p(s.data);else{let e=s.data;if(e.startsWith("s"))u.send(e);else if(e.startsWith("i")){let t=JSON.parse(e.substring(2));f.set(t.hash,t),console.info(`Received coverage mapping information for "${t.hash}".`)}else e==="unload"?h.flush():console.error(`No handler for message: ${e}`)}};function p(s){var n;let e=s[0],t=s[1],o=f.get(e);if(!o){console.log(`No coverage mapping information for ${e} available!`);return}for(let[c,i]of t.branches.entries()){let l=(n=o.branchMap[c])==null?void 0:n.locations[i];l&&h.addRange(e,l)}for(let c of t.statements){let i=o.statementMap[c];i&&h.addRange(e,i)}}\n')}function c(){return g()}function g(){return window}function p(e,n){let t=c()[e];return t||(t=n,c()[e]=t),t}var l;(function(r){r.MESSAGE_TYPE_SOURCEMAP="s",r.MESSAGE_TYPE_COVERAGE="c",r.ISTANBUL_COV_OBJECT="i",r.UNRESOLVED_CODE_ENTITY="u"})(l||(l={}));function v(e,n){let t=new Map;function s(i){let o=t.get(i);return o||(o={branches:new Map,statements:new Set},t.set(i,o),o)}function r(i,o,w){s(i).branches.set(o,w)}function u(i,o){s(i).statements.add(o)}function a(){n(t),t.clear()}return setInterval(()=>a(),e),{putBranchCoverage:r,putStatementCoverage:u,flush:a}}var C=p("__TS_AGENT",{});function f(){return C._$BcWorker}function S(e){return C._$BcWorker=e,e}var m=v(250,e=>{for(let n of e.entries())f().postMessage(n)});c()._$stmtCov=m.putStatementCoverage;c()._$brCov=m.putBranchCoverage;var b=new Set;c()._$registerCoverageObject=function(e){let n=e.hash;if(b.has(n)){console.log(`Coverage interceptor added twice for ${n}. This seems to be a bug in the instrumentation.`);return}else b.add(n);if(!f()){let t=S(new h);(function(){let r=()=>{m.flush(),t.postMessage("unload")},u=function(i,o){!o||o.addEventListener(i,r,{capture:!0})},a=g();u("blur",a),u("unload",a),u("visibilitychange",a),u("beforeunload",a)})()}(function(){f().postMessage(`${l.ISTANBUL_COV_OBJECT} ${JSON.stringify(e)}`);let s=p("sentMaps",new Set);e.inputSourceMap&&(s.has(e.path)||(f().postMessage(`${l.MESSAGE_TYPE_SOURCEMAP} ${n}:${JSON.stringify(e.inputSourceMap)}`),s.add(e.path)))})()};})();
+ $wnd.showcase.runAsyncCallback12("\"var gHc='cwHorizontalPanel';function $Ib(){var a,b;a=new c9b;a.e[vFc]=5;for(b=1;b<5;b++){_8b(a,new G1b(fHc+b))}a9b(a);return a}\ncqb(438,1,UDc);_.Ec=function dJb(){ssb(this.a,$Ib())};function a9b(a){var b,c;qic((x$b(),a.hb),'',gHc);c=a.j.c;for(b=0;b<c;b++){qic(I1b(a,Kic(a.j,b)),gHc,''+b)}}\nGAc(Fl)(12);\n//# sourceURL=showcase-12.js\n";
+
+const _$fiooeb3 = "389191a6431ff5566f27771e398a15e9c53bb855";
+function cov_1hhayuu3yg() {
+  var path = "test/casestudies/gwt-showcase-js/war/showcase/deferredjs/C94063C566B9D1B68FA6A825C25BAFB2/12.cache.js";
+  var hash = "389191a6431ff5566f27771e398a15e9c53bb855";
+  var global = typeof window === 'object' ? window : this;
+  var gcv = "__coverage__";
+  var coverageData = {
+    path: "test/casestudies/gwt-showcase-js/war/showcase/deferredjs/C94063C566B9D1B68FA6A825C25BAFB2/12.cache.js",
+    statementMap: {},
+    fnMap: {},
+    branchMap: {},
+    s: {},
+    f: {},
+    b: {},
+    _coverageSchema: "1a1c01bbd47fc00a2c39e90264f33305004495a9",
+    hash: "389191a6431ff5566f27771e398a15e9c53bb855"
+  };
+  var coverage = global[gcv] || (global[gcv] = {});
+  if (!coverage[path] || coverage[path].hash !== hash) {
+    coverage[path] = coverageData;
+  }
+  var actualCoverage=_$registerCoverageObject(coverage[path]);
+  {
+    // @ts-ignore
+    cov_1hhayuu3yg = function () {
+      return actualCoverage;
+    };
+  }
+  return actualCoverage;
+}
+cov_1hhayuu3yg();
+//# sourceMappingURL=data:application/json;charset=utf-8;base64,eyJ2ZXJzaW9uIjozLCJuYW1lcyI6WyJjb3ZfMWhoYXl1dTN5ZyIsInBhdGgiLCJoYXNoIiwiZ2xvYmFsIiwiRnVuY3Rpb24iLCJnY3YiLCJjb3ZlcmFnZURhdGEiLCJzdGF0ZW1lbnRNYXAiLCJmbk1hcCIsImJyYW5jaE1hcCIsInMiLCJmIiwiYiIsIl9jb3ZlcmFnZVNjaGVtYSIsImNvdmVyYWdlIiwiYWN0dWFsQ292ZXJhZ2UiXSwic291cmNlcyI6WyIxMi5jYWNoZS5qcyJdLCJzb3VyY2VzQ29udGVudCI6WyJcInZhciBnSGM9J2N3SG9yaXpvbnRhbFBhbmVsJztmdW5jdGlvbiAkSWIoKXt2YXIgYSxiO2E9bmV3IGM5YjthLmVbdkZjXT01O2ZvcihiPTE7Yjw1O2IrKyl7XzhiKGEsbmV3IEcxYihmSGMrYikpfWE5YihhKTtyZXR1cm4gYX1cXG5jcWIoNDM4LDEsVURjKTtfLkVjPWZ1bmN0aW9uIGRKYigpe3NzYih0aGlzLmEsJEliKCkpfTtmdW5jdGlvbiBhOWIoYSl7dmFyIGIsYztxaWMoKHgkYigpLGEuaGIpLCcnLGdIYyk7Yz1hLmouYztmb3IoYj0wO2I8YztiKyspe3FpYyhJMWIoYSxLaWMoYS5qLGIpKSxnSGMsJycrYil9fVxcbkdBYyhGbCkoMTIpO1xcbi8vIyBzb3VyY2VVUkw9c2hvd2Nhc2UtMTIuanNcXG5cIiJdLCJtYXBwaW5ncyI6IkFBQUEsa1ZBQWtWLFVBQUFBLGVBQUEsTUFBQUMsSUFBQSw2R0FBQUMsSUFBQSxnREFBQUMsTUFBQSxLQUFBQyxRQUFBLHNCQUFBQyxHQUFBLG9CQUFBQyxZQUFBLEVBQUFMLElBQUEseUdBQUFNLFlBQUEsSUFBQUMsS0FBQSxJQUFBQyxTQUFBLElBQUFDLENBQUEsSUFBQUMsQ0FBQSxJQUFBQyxDQUFBLElBQUFDLGVBQUEsNENBQUFYLElBQUEsaURBQUFZLFFBQUEsQ0FBQVgsTUFBQSxDQUFBRSxHQUFBLElBQUFGLE1BQUEsQ0FBQUUsR0FBQSxVQUFBUyxRQUFBLENBQUFiLElBQUEsR0FBQWEsUUFBQSxDQUFBYixJQUFBLEVBQUFDLElBQUEsR0FBQUEsSUFBQSxFQUFBWSxRQUFBLENBQUFiLElBQUEsRUFBQUssWUFBQSxNQUFBUyxjQUFBLENBQUFELFFBQUEsQ0FBQWIsSUFBQSxHQWV0VTtBQUFBRCxjQUFBLFNBQUFBLENBQUEsU0FBQWUsY0FBQSxXQUFBQSxjQUFBLEVBQUFmLGNBQUEifQ==")

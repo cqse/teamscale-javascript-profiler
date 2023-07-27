@@ -1,0 +1,10 @@
+{
+"version":3,
+"file":"sourceMap20",
+"lineCount":4,
+"mappings":"AA6FA,yB;AAAA,QCnEA,CDmEA,UACA,2BACA,EEwCA,GFxCA,MEwCA,CC4DA,MHpGA,CACA,CI0ZA,OJ1ZA,KK4fA,WCuVA,kCDvVA,CL5fA,aK4fA,WC+VA,gBD/VA,CL5fA,WAFA,E,IADA,iC,CAmBA,QCtFA,CDsFA,MAMA,8BOoPA,IPnPA,MOmPA,EPzRA,SAsCA,CAnCA,cMm2BA,wBNn2BA,EAmCA,CAhCA,SAgCA,CQuJA,KAkSA,MRxdA,CQwdA,GAlSA,EAklBA,EAllBA,CRtLA,cQsLA,CRvJA,CA9BA,QA8BA,CA3BA,UM20BA,aN30BA,CA2BA,CSMA,GThCA,CSgCA,CThCA,USgCA,OCjGA,IDiGA,CCxFA,EDwFA,ETNA,CAhBA,sBAgBA,CAfA,QAeA,CAZA,CO+PA,EPpPA,EE1CA,qBACA,cSmQA,GA7RA,IA6RA,QTnQA,EU6kBA,CJ1GA,MNleA,IMkeA,GI0GA,YV5kBA,gBAFA,C;AAYA,gBM+yBA,GN7yBA,IM6yBA,QN7yBA,CM6yBA,EN/yBA,C;AAxCA,QOuCA,GPvCA,U,IAAA;",
+"sources":["com/google/gwt/sample/showcase/client/content/widgets/CwFileUpload.java","com/google/gwt/emul/java/lang/Object.java","com/google/gwt/user/client/ui/FileUpload.java","com/google/gwt/dom/client/InputElement.java","com/google/gwt/emul/java/lang/String.java","com/google/gwt/user/client/Window.java","gen/com/google/gwt/sample/showcase/client/ShowcaseConstants_.java","com/google/gwt/sample/showcase/client/ContentWidget.java","com/google/gwt/user/client/ui/UIObject.java","com/google/gwt/user/client/ui/FocusWidget.java","com/google/gwt/event/dom/client/ClickEvent.java","com/google/gwt/dom/client/Document.java","com/google/gwt/dom/client/Element.java"],
+"names":[],
+"x_gwt_permutation":2,
+"x_gwt_fragment":20
+}

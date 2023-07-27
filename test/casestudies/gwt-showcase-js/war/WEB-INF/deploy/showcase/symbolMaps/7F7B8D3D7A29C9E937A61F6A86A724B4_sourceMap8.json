@@ -1,0 +1,10 @@
+{
+"version":3,
+"file":"sourceMap8",
+"lineCount":2,
+"mappings":"AAoEA,yBAEA,UCwMA,KAkSA,MDzeA,CCyeA,GAlSA,EAklBA,EAllBA,CDvMA,aCuMA,EDpMA,kBACA,qBCqoBA,GDpoBA,CCoeA,GAgKA,CDpoBA,uBCooBA,OC9pBA,IF2BA,CE3BA,CF2BA,CE3BA,CF2BA,CCmeA,GC9fA,CFwBA,CAOA,QAbA,C;AAkBA,OG5DA,CH4DA,MAMA,oBI8QA,GJ7QA,MI6QA,CJ7QA,KI6QA,CJ9QA;",
+"sources":["com/google/gwt/sample/showcase/client/content/panels/CwFlowPanel.java","com/google/gwt/user/client/ui/UIObject.java","com/google/gwt/user/client/ui/FlowPanel.java","com/google/gwt/emul/java/lang/Object.java","com/google/gwt/sample/showcase/client/ContentWidget.java"],
+"names":[],
+"x_gwt_permutation":5,
+"x_gwt_fragment":8
+}

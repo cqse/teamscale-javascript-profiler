@@ -1,0 +1,10 @@
+{
+"version":3,
+"file":"sourceMap1",
+"lineCount":4,
+"mappings":"A,QAwEA,qB,KAgCA,qB,CAjCA,wBACA,qBACA,GAAA,CC6MA,MD7MA,EACA,kBE3BA,CF2BA,oCAMA,eACA,QARA,MAUA,QAVA,CAFA,C;AAgCA,wBACA,qBACA,GAAA,CC6KA,MD7KA,EACA,kBE3DA,CF2DA,uDAQA,eACA,QAVA,MAYA,QAZA,CAFA,C;AG5BA,oCAEA,UACA,cHkBA,0DGlBA,GAGA,WACA,wBACA,OACA,iBCqFA,IDpFA,CCoFA,CDpFA,wBCoFA,EDnFA,OACA,CEkQA,ECXA,cDWA,WDwWA,GD1mBA,CC0mBA,CArGA,IA5CA,MDzdA,CCydA,GA4CA,EAqGA,KCpWA,GDoWA,MD3mBA,EAGA,QAPA,CAWA,4EAGA,WACA,wBACA,OACA,qBCsEA,IDrEA,CCqEA,CDpEA,oCCoEA,EDnEA,MEkUA,IFjUA,CEiUA,cFlUA,CAGA,QARA,CAWA,QAjCA,C;AAsCA,OIvFA,CJuFA,MAMA,oBKmPA,ILlPA,MKkPA,CLlPA,WKkPA,CLnPA;",
+"sources":["gen/com/google/gwt/sample/showcase/client/ShowcaseConstants_fr.java","com/google/gwt/dev/jjs/intrinsic/com/google/gwt/lang/Cast.java","com/google/gwt/emul/java/lang/String.java","com/google/gwt/sample/showcase/client/content/widgets/CwRadioButton.java","com/google/gwt/user/client/ui/UIObject.java","com/google/gwt/user/client/ui/CheckBox.java","com/google/gwt/dom/client/InputElement.java","com/google/gwt/emul/java/lang/Object.java","com/google/gwt/sample/showcase/client/ContentWidget.java"],
+"names":[],
+"x_gwt_permutation":3,
+"x_gwt_fragment":1
+}

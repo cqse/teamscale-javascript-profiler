@@ -1,0 +1,10 @@
+{
+"version":3,
+"file":"sourceMap44",
+"lineCount":2,
+"mappings":"AA2FA,6BAEA,aCiLA,KAkSA,MDldA,CCkdA,GAlSA,EAklBA,EAllBA,CDhLA,oBCgLA,ED/KA,CCidA,GC/FA,MCgxDA,CHjoEA,GGioEA,EHjoEA,mBGioEA,CH9nEA,cI48CA,GJ58CA,MACA,cIm9CA,GJn9CA,MK2DA,IL1DA,CK0DA,CL1DA,QIk8CA,GJl8CA,CK0DA,EApEA,MAoEA,GAAA,YA+EA,ILxIA,CKwIA,CLxIA,QIy9CA,GJz9CA,CKwIA,eLvIA,cI48CA,GJ58CA,MACA,cIm9CA,GJn9CA,MAGA,EIo7CA,gUJp7CA,CACA,iBACA,QADA,CAGA,aACA,aKqCA,ILpCA,CKoCA,CLpCA,CKoCA,aLjCA,QAzBA,C;AA8BA,QM/FA,CN+FA,MAMA,oBO2OA,IP1OA,MO0OA,CP1OA,KO0OA,CP3OA;",
+"sources":["com/google/gwt/sample/showcase/client/content/panels/CwSplitLayoutPanel.java","com/google/gwt/user/client/ui/UIObject.java","com/google/gwt/dom/client/Element.java","com/google/gwt/dom/client/Style.java","gen/com/google/gwt/sample/showcase/client/ShowcaseConstants_ar.java","com/google/gwt/user/client/ui/DockLayoutPanel.java","com/google/gwt/emul/java/lang/Object.java","com/google/gwt/sample/showcase/client/ContentWidget.java"],
+"names":[],
+"x_gwt_permutation":6,
+"x_gwt_fragment":44
+}

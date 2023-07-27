@@ -33,6 +33,24 @@ export function ensureExistingDirectory(path: string): void {
 	}
 }
 
+export function findSubFolders(startFromFolder: string, folderName: string): string[] {
+	const matches: string[] = [];
+	const entries = fs.readdirSync(startFromFolder, { withFileTypes: true });
+
+	for (const entry of entries) {
+		const fullPath = path.join(startFromFolder, entry.name);
+		if (entry.name === folderName && entry.isDirectory()) {
+			matches.push(fullPath);
+		}
+		if (entry.isDirectory()) {
+			const nestedMatches = findSubFolders(fullPath, folderName);
+			matches.push(...nestedMatches);
+		}
+	}
+
+	return matches;
+}
+
 /**
  * Is the given directory empty?
  */

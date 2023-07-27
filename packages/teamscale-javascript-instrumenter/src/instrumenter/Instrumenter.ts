@@ -19,6 +19,8 @@ import { cleanSourceCode } from './Postprocessor';
 import { Optional } from 'typescript-optional';
 import Logger from 'bunyan';
 import async from 'async';
+import { determineSymbolMapsDir } from './WebToolkit';
+import { isExistingFile } from './FileSystem';
 
 export const IS_INSTRUMENTED_TOKEN = '/** $IS_JS_PROFILER_INSTRUMENTED=true **/';
 
@@ -34,37 +36,37 @@ export interface IInstrumenter {
 	instrument(task: InstrumentationTask): Promise<TaskResult>;
 }
 
-type BundleFile = { content: string; codeArguments: string[] } & (
-	| { type: 'javascript' }
-	| { type: 'gwt'; functionName: string; fragmentId: string; codeAsArrayArgument: boolean }
-);
+type BaseBundle = { content: string; codeArguments: string[] };
+type StandardBundle = BaseBundle & { type: 'javascript' };
+type GwtBundle = BaseBundle & { type: 'gwt'; functionName: string; fragmentId: string; codeAsArrayArgument: boolean };
+type Bundle = BaseBundle & (StandardBundle | GwtBundle);
 
-function readBundleFile(fromFile: string): BundleFile {
-	const inputFileSource = fs.readFileSync(fromFile, 'utf8');
-	const baseNameMatch = path.basename(fromFile).match('^(\\d+).cache.js');
-	const directories = path.dirname(fromFile).split(path.sep);
-	if (
-		baseNameMatch &&
-		directories.length > 1 &&
-		directories[directories.length - 1].length === 32 &&
-		directories[directories.length - 2] === 'deferredjs'
-	) {
-		const functionCall = inputFileSource.match('(^[^\\(]+)\\((.*)\\)\\s*$');
-		if (functionCall && functionCall.length === 2) {
-			const codeAsArrayArgument = false;
-			const codeArguments = [functionCall[2]];
+function readBundle(bundleContent: string, taskElement: TaskElement): Bundle {
+	const baseNameMatch = path.basename(taskElement.fromFile).match('^([a-zA-Z0-9]*).cache.js');
+	const directories = path.dirname(taskElement.fromFile).split(path.sep);
+	if (baseNameMatch && directories.length > 1) {
+		const fragmentId = determineGwtFileUid(taskElement.fromFile);
+		const functionCall = bundleContent.match('^([^(]+)\\((.*)\\);*\\s*$');
+		if (fragmentId && functionCall && functionCall.length === 3) {
+			const argument = functionCall[2];
+			const codeAsArrayArgument = argument.startsWith('["') && argument.endsWith('"]');
+			let codeArgument = argument;
+			if (codeAsArrayArgument) {
+				codeArgument = argument.substring(2, argument.length - 2);
+			}
+			const codeArguments = [codeArgument];
 			return {
 				type: 'gwt',
-				content: inputFileSource,
-				fragmentId: directories[directories.length - 2],
+				content: bundleContent,
+				fragmentId,
 				functionName: functionCall[1],
 				codeAsArrayArgument,
 				codeArguments
-			};
+			} as GwtBundle;
 		}
 	}
 
-	return { type: 'javascript', content: inputFileSource, codeArguments: [inputFileSource] };
+	return { type: 'javascript', content: bundleContent, codeArguments: [bundleContent] } as StandardBundle;
 }
 
 /**
@@ -122,6 +124,7 @@ export class IstanbulInstrumenter implements IInstrumenter {
 	 *
 	 * @param collector - The collector to send the coverage information to.
 	 * @param taskElement - The task element to perform the instrumentation for.
+	 * @param excludeBundles - A exclude pattern to restrict which bundles should be instrumented
 	 * @param sourcePattern - A pattern to restrict the instrumentation to only a fraction of the task element.
 	 * @param dumpOriginsFile - A file path where all origins from the source map should be dumped in json format, or undefined if no origins should be dumped
 	 */
@@ -133,11 +136,15 @@ export class IstanbulInstrumenter implements IInstrumenter {
 	): Promise<TaskResult> {
 		// Not all file types are supported by the instrumenter
 		if (!this.isFileTypeSupported(taskElement.fromFile)) {
+			if (!taskElement.isInPlace()) {
+				copyToFile(taskElement.toFile, taskElement.fromFile);
+			}
 			return new TaskResult(0, 0, 0, 0, 1, 0, 0);
 		}
 
 		// Read the (supported) file
-		const inputBundle = readBundleFile(taskElement.fromFile);
+		const bundleContent = fs.readFileSync(taskElement.fromFile, 'utf8');
+		const inputBundle = readBundle(bundleContent, taskElement);
 
 		// We skip files that we have already instrumented
 		if (inputBundle.content.startsWith(IS_INSTRUMENTED_TOKEN)) {
@@ -150,13 +157,32 @@ export class IstanbulInstrumenter implements IInstrumenter {
 		// We might want to skip the instrumentation of the file
 		if (excludeBundles.isExcluded(taskElement.fromFile)) {
 			if (!taskElement.isInPlace()) {
-				writeToFile(taskElement.toFile, inputBundle.content);
+				copyToFile(taskElement.toFile, taskElement.fromFile);
 			}
 			return new TaskResult(0, 1, 0, 0, 0, 0, 0);
 		}
 
+		// We skip files that we have already instrumented
+		if (bundleContent.startsWith(IS_INSTRUMENTED_TOKEN)) {
+			if (!taskElement.isInPlace()) {
+				writeToFile(taskElement.toFile, inputBundle.content);
+			}
+			return new TaskResult(0, 0, 0, 1, 0, 0, 0);
+		}
+
 		// Report progress
 		this.logger.info(`Instrumenting "${path.basename(taskElement.fromFile)}"`);
+
+		// Load the bundles source maps
+		const inputSourceMaps: Array<RawSourceMap | undefined> = loadInputSourceMaps(
+			taskElement.fromFile,
+			inputBundle,
+			taskElement.externalSourceMapFile
+		);
+
+		if (inputSourceMaps.length === 0) {
+			return TaskResult.warning(`Failed loading input source map for ${taskElement.fromFile}.`);
+		}
 
 		// We try to perform the instrumentation with different
 		// alternative configurations of the instrumenter.
@@ -167,6 +193,7 @@ export class IstanbulInstrumenter implements IInstrumenter {
 				return await this.instrumentBundle(
 					taskElement,
 					inputBundle,
+					inputSourceMaps,
 					configurationAlternative,
 					dumpOriginsFile,
 					sourcePattern
@@ -175,11 +202,6 @@ export class IstanbulInstrumenter implements IInstrumenter {
 				// If also the last configuration alternative failed,
 				// we emit a corresponding warning or signal an error.
 				if (i === configurationAlternatives.length - 1) {
-					if (!inputSourceMap) {
-						return TaskResult.warning(
-							`Failed loading input source map for ${taskElement.fromFile}: ${(e as Error).message}`
-						);
-					}
 					writeToFile(taskElement.toFile, inputBundle.content);
 					return TaskResult.error(e as Error);
 				}
@@ -191,17 +213,13 @@ export class IstanbulInstrumenter implements IInstrumenter {
 
 	private async instrumentBundle(
 		taskElement: TaskElement,
-		inputBundle: BundleFile,
+		inputBundle: Bundle,
+		inputSourceMaps: Array<RawSourceMap | undefined>,
 		configurationAlternative: Partial<istanbul.InstrumenterOptions>,
 		dumpOriginsFile: string | undefined,
 		sourcePattern: OriginSourcePattern
 	) {
 		const instrumenter = istanbul.createInstrumenter(configurationAlternative);
-		const inputSourceMaps: Array<RawSourceMap | undefined> = loadInputSourceMaps(
-			taskElement.fromFile,
-			inputBundle,
-			taskElement.externalSourceMapFile
-		);
 
 		// Based on the source maps of the file to instrument, we can now
 		// decide if we should NOT write an instrumented version of it
@@ -260,7 +278,7 @@ export class IstanbulInstrumenter implements IInstrumenter {
 
 	private writeBundleFile(
 		toFile: string,
-		inputBundle: BundleFile,
+		inputBundle: Bundle,
 		instrumentedSources: string[],
 		finalSourceMaps: string[]
 	) {
@@ -357,6 +375,10 @@ export class IstanbulInstrumenter implements IInstrumenter {
 	 * @returns whether the given file is supported for instrumentation.
 	 */
 	private isFileTypeSupported(fileName: string) {
+		if (fileName.endsWith('.devmode.js') || fileName.endsWith('.nocache.js')) {
+			// GWT dev mode files.
+			return false;
+		}
 		const ext = path.extname(fileName).toLowerCase();
 		return ext === '.js' || ext === '.mjs';
 	}
@@ -424,10 +446,69 @@ export async function loadSourceMap(
 
 function loadInputSourceMaps(
 	taskFile: string,
-	bundleFile: BundleFile,
+	bundleFile: Bundle,
+	externalSourceMapFile: Optional<SourceMapReference>
+): Array<RawSourceMap | undefined> {
+	if (isGwtBundle(bundleFile)) {
+		return loadInputSourceMapsGwt(taskFile, bundleFile);
+	} else {
+		return loadInputSourceMapsStandard(taskFile, bundleFile, externalSourceMapFile);
+	}
+}
+
+function loadInputSourceMapsStandard(
+	taskFile: string,
+	bundleFile: StandardBundle,
 	externalSourceMapFile: Optional<SourceMapReference>
 ): Array<RawSourceMap | undefined> {
 	return bundleFile.codeArguments.map(code => loadInputSourceMap(code, taskFile, externalSourceMapFile));
+}
+
+function determineGwtFileUid(filename: string): string | undefined {
+	const fileUidMatcher = /.*([0-9A-Fa-f]{32}).*/;
+	const uidMatches = fileUidMatcher.exec(filename);
+	if (!uidMatches || uidMatches.length < 2) {
+		return undefined;
+	}
+	return uidMatches[1];
+}
+
+function loadInputSourceMapsGwt(taskFile: string, bundleFile: GwtBundle): Array<RawSourceMap | undefined> {
+	// taskFile:
+	//    war/stockwatcher/E2C1FB09E006E0A2420123D036967150.cache.js
+	//    war/showcase/deferredjs/28F63AD125178AAAB80993C11635D26F/5.cache.js
+	const mapDirs = determineSymbolMapsDir(taskFile);
+
+	const fileNumberMatcher = /sourceURL=(.*)-(\d+).js(\\n)*\s*$/;
+
+	const mapModules: Array<[string, number]> = bundleFile.codeArguments.map(code => {
+		const matches = fileNumberMatcher.exec(code);
+		if (!matches) {
+			return ['', -1];
+		}
+		return [matches[1], Number.parseInt(matches[2])];
+	});
+
+	const sourceMapFiles = mapModules.map(module => {
+		for (const mapDir of mapDirs) {
+			const mapFileCandidate = `${mapDir}/${bundleFile.fragmentId}_sourceMap${module[1]}.json`;
+			if (isExistingFile(mapFileCandidate)) {
+				return mapFileCandidate;
+			}
+		}
+		return undefined;
+	});
+
+	return sourceMapFiles.map(file => {
+		if (file) {
+			return sourceMapFromMapFile(file);
+		}
+		return undefined;
+	});
+}
+
+function isGwtBundle(bundle: Bundle): bundle is GwtBundle {
+	return bundle.type === 'gwt';
 }
 
 /**
@@ -512,4 +593,9 @@ export function sourceMapFromMapFile(mapFilePath: string): RawSourceMap | undefi
 function writeToFile(filePath: string, fileContent: string) {
 	mkdirp.sync(path.dirname(filePath));
 	fs.writeFileSync(filePath, fileContent);
+}
+
+function copyToFile(targetFilePath: string, sourceFilePath: string) {
+	mkdirp.sync(path.dirname(targetFilePath));
+	fs.copyFileSync(sourceFilePath, targetFilePath);
 }

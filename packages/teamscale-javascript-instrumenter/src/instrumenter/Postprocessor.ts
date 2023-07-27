@@ -1,8 +1,7 @@
 import { parse } from '@babel/parser';
 import generate from '@babel/generator';
-import traverse, { NodePath } from '@babel/traverse';
+import traverse, { NodePath, Node as TraverseNode } from '@babel/traverse';
 import {
-	Node,
 	CallExpression,
 	Identifier,
 	isCallExpression,
@@ -17,7 +16,8 @@ import {
 	isFunctionDeclaration,
 	isSequenceExpression,
 	SequenceExpression,
-	isUpdateExpression
+	isUpdateExpression,
+	MemberExpression
 } from '@babel/types';
 import { IllegalStateException } from '@cqse/commons';
 
@@ -44,6 +44,15 @@ type FunctionCoverageIncrement = CoverageIncrement & {
 	functionId: number;
 };
 
+type MemberMemberExpression = MemberExpression & {
+	object: MemberExpression;
+};
+
+type IncrementExpression = UpdateExpression & {
+	operator: '++';
+	argument: MemberMemberExpression;
+};
+
 /**
  * Generator for identifiers that are unique across files to instrument.
  * Relevant in case no Ecmascript modules are used.
@@ -65,14 +74,18 @@ const fileIdSeqGenerator: { next: () => string } = (() => {
 			} else if (fileIdSeq < 100000) {
 				num = instrumenterRunId * 100000 + fileIdSeq;
 			} else {
-				throw new Error(`Not more that 100k files supported to be instrumented in one run.`)
+				throw new Error(`Not more that 100k files supported to be instrumented in one run.`);
 			}
 			return num.toString(36);
 		}
-	}
+	};
 })();
 
-function getIstanbulCoverageFunctionDeclarationName(node: Node | undefined): string | undefined {
+function isCoverageFunctionDefinition(path: NodePath): boolean {
+	return isFunctionDeclaration(path.node) && getIstanbulCoverageFunctionDeclarationName(path.node) !== undefined;
+}
+
+function getIstanbulCoverageFunctionDeclarationName(node: TraverseNode | undefined): string | undefined {
 	if (!isFunctionDeclaration(node)) {
 		return undefined;
 	}
@@ -107,29 +120,43 @@ type FileIdMappingHandler = {
 	getFileHashForCoverageObjectId: (coverageObjectId: string) => string | undefined;
 };
 function createFileIdMappingHandler(): FileIdMappingHandler {
-	const fileIdMap: Map<string, string> = new Map<string, string>();	
+	const fileIdMap: Map<string, string> = new Map<string, string>();
 
 	return {
 		enterPath(path: NodePath): void {
-			if (!isVariableDeclaration(path.node)) {
+			if (!isFunctionDeclaration(path.node)) {
 				return;
 			}
 
-			const grandParentPath = path.parentPath?.parentPath;
-			const coverageFunctionName = getIstanbulCoverageFunctionDeclarationName(grandParentPath?.node);
-			if (grandParentPath && coverageFunctionName) {
-				const declaration = path.node;
-				if (declaration.declarations.length === 1) {
-					const declarator = declaration.declarations[0];
-					if (isIdentifier(declarator.id) && declarator.id.name === 'hash') {
-						// We take note of the hash that is stored within the `cov_*' function.
-						const fileIdVarName = `_$f${fileIdSeqGenerator.next()}`;
-						const fileId = (declarator.init as StringLiteral).value;
-						fileIdMap.set(coverageFunctionName, fileIdVarName);
-						grandParentPath.insertBefore(newStringConstDeclarationNode(fileIdVarName, fileId) as any);
+			const coverageFunctionName = getIstanbulCoverageFunctionDeclarationName(path.node);
+			if (!coverageFunctionName) {
+				return;
+			}
+
+			// From here onwards, we know that the path.node is a FunctionDeclaration
+			const body = path.node.body;
+
+			// Traverse the body of the function for VariableDeclarations
+			for (const statement of body.body) {
+				if (isVariableDeclaration(statement)) {
+					const declaration = statement;
+					if (declaration.declarations.length === 1) {
+						const declarator = declaration.declarations[0];
+						if (isIdentifier(declarator.id) && declarator.id.name === 'hash') {
+							// We take note of the hash that is stored within the `cov_*' function.
+							const fileIdVarName = `_$f${fileIdSeqGenerator.next()}`;
+							const fileId = (declarator.init as StringLiteral).value;
+							fileIdMap.set(coverageFunctionName, fileIdVarName);
+
+							const variableDeclaration = newStringConstDeclarationNode(fileIdVarName, fileId);
+							path.insertBefore(variableDeclaration as any);
+						}
 					}
 				}
 			}
+
+			// Do not travers into the childs of this path.
+			path.skip();
 		},
 		getFileHashForCoverageObjectId(coverageObjectId: string): string | undefined {
 			return fileIdMap.get(coverageObjectId);
@@ -150,10 +177,6 @@ function createPartialInstrumentationHandler(
 ): PartialInstrumentationHandler {
 	return {
 		enterPath(path: NodePath, makeCoverable: (location: SourceLocation) => boolean): void {
-			if (!isUpdateExpression(path.node)) {
-				return;
-			}
-
 			const increment = extractCoverageIncrement(path.node);
 			if (!increment) {
 				return;
@@ -199,9 +222,14 @@ export function cleanSourceCode(
 	const partialInstrumentationHandler = createPartialInstrumentationHandler(fileIdMappingHandler);
 
 	traverse(ast, {
-		enter(path: NodePath) {
+		enter(path: NodePath): void {
 			fileIdMappingHandler.enterPath(path);
-			partialInstrumentationHandler.enterPath(path, makeCoverable);
+			if (isCoverageFunctionDefinition(path)) {
+				// Do try to instrument the coverage function (and save some time).
+				path.skip();
+			} else {
+				partialInstrumentationHandler.enterPath(path, makeCoverable);
+			}
 		}
 	});
 
@@ -214,9 +242,9 @@ export function cleanSourceCode(
  *
  * Special handling for some container nodes is needed.
  */
-function insertNodeBefore(path: NodePath<Node>, toInsert: Node): void {
+function insertNodeBefore(path: NodePath<TraverseNode>, toInsert: TraverseNode): void {
 	if (isSequenceExpression(path.parent)) {
-		(path.parentPath as NodePath<SequenceExpression>).unshiftContainer('expressions', [toInsert]);
+		(path.parentPath as NodePath<SequenceExpression>).unshiftContainer('expressions', [toInsert as any]);
 	} else {
 		path.insertBefore(toInsert);
 	}
@@ -248,7 +276,11 @@ function newStringConstDeclarationNode(name: string, value: string): VariableDec
 /**
  * Creates a new coverage increment statement.
  */
-function newCoverageIncrementNode(fileIdVarName: string, increment: CoverageIncrement, asExpression: boolean): Node {
+function newCoverageIncrementNode(
+	fileIdVarName: string,
+	increment: CoverageIncrement,
+	asExpression: boolean
+): TraverseNode {
 	let expression: CallExpression;
 	if (increment.type === 'branch') {
 		expression = newBranchCoverageIncrementExpression(fileIdVarName, increment as BranchCoverageIncrement);
@@ -259,13 +291,13 @@ function newCoverageIncrementNode(fileIdVarName: string, increment: CoverageIncr
 	}
 
 	if (asExpression) {
-		return expression;
+		return expression as TraverseNode;
 	}
 
 	return {
 		type: 'ExpressionStatement',
 		expression
-	};
+	} as TraverseNode;
 }
 
 /**
@@ -307,77 +339,94 @@ function newStatementCoverageIncrementExpression(
  * Returns the call expression from `cov_2pvvu1hl8v().b[2][0]++;` if
  * the given UpdateExpression is a branch coverage update expression.
  */
-function extractBranchCoverageIncrement(expr: UpdateExpression): BranchCoverageIncrement | null {
-	if (
-		expr.operator === '++' &&
-		isMemberExpression(expr.argument) &&
-		isMemberExpression(expr.argument.object) &&
-		isMemberExpression(expr.argument.object.object) &&
-		isCallExpression(expr.argument.object.object.object) &&
-		isCoverageObjectCall(expr.argument.object.object.object)
-	) {
-		const coverageObjectId = ((expr.argument.object.object.object as CallExpression).callee as Identifier).name;
-		const branchId = (expr.argument.object.property as NumericLiteral).value;
-		const locationId = (expr.argument.property as NumericLiteral).value;
-		return { type: 'branch', branchId, locationId, coverageObjectId };
+function extractBranchCoverageIncrement(expr: IncrementExpression): BranchCoverageIncrement | null {
+	const firstMemberExpr = expr.argument;
+	const secondMemberExpr = firstMemberExpr.object;
+	const thirdMemberExpr = secondMemberExpr.object;
+	if (!isMemberExpression(thirdMemberExpr)) {
+		return null;
 	}
 
-	return null;
+	const callExpr = thirdMemberExpr.object;
+	if (!isCallExpression(callExpr) || !isCoverageObjectCall(callExpr)) {
+		return null;
+	}
+
+	const coverageObjectId = (callExpr.callee as Identifier).name;
+	const branchId = (secondMemberExpr.property as NumericLiteral).value;
+	const locationId = (firstMemberExpr.property as NumericLiteral).value;
+
+	return { type: 'branch', branchId, locationId, coverageObjectId };
 }
 
 /**
  * Returns the call expression from `cov_104fq7oo4i().s[0]++;` if
  * the given UpdateExpression is a statement coverage update expression.
  */
-function extractStatementCoverageIncrement(expr: UpdateExpression): StatementCoverageIncrement | null {
+function extractStatementCoverageIncrement(expr: IncrementExpression): StatementCoverageIncrement | null {
+	const firstMemberExpr = expr.argument;
+	const secondMemberExpr = firstMemberExpr.object;
+	const callExpr = secondMemberExpr.object;
+	const argObjProp = secondMemberExpr.property;
+
 	if (
-		expr.operator === '++' &&
-		isMemberExpression(expr.argument) &&
-		isMemberExpression(expr.argument.object) &&
-		isCallExpression(expr.argument.object.object) &&
-		isIdentifier(expr.argument.object.property) &&
-		expr.argument.object.property.name === 's' &&
-		isCoverageObjectCall(expr.argument.object.object)
+		!isCallExpression(callExpr) ||
+		!isIdentifier(argObjProp) ||
+		argObjProp.name !== 's' ||
+		!isCoverageObjectCall(callExpr)
 	) {
-		const coverageObjectId = ((expr.argument.object.object as CallExpression).callee as Identifier).name;
-		const statementId = (expr.argument.property as NumericLiteral).value;
-		return { type: 'statement', statementId, coverageObjectId };
+		return null;
 	}
 
-	return null;
+	const coverageObjectId = (callExpr.callee as Identifier).name;
+	const statementId = (firstMemberExpr.property as NumericLiteral).value;
+
+	return { type: 'statement', statementId, coverageObjectId };
 }
 
 /**
  * Returns the call expression from `cov_104fq7oo4i().f[0]++;` if
  * the given UpdateExpression is a function coverage update expression.
  */
-function extractFunctionCoverageIncrement(expr: UpdateExpression): FunctionCoverageIncrement | null {
+function extractFunctionCoverageIncrement(expr: IncrementExpression): FunctionCoverageIncrement | null {
+	const firstMemberExpr = expr.argument;
+	const secondMemberExpr = firstMemberExpr.object;
+	const callExpr = secondMemberExpr.object;
+	const argObjProp = secondMemberExpr.property;
+
 	if (
-		expr.operator === '++' &&
-		isMemberExpression(expr.argument) &&
-		isMemberExpression(expr.argument.object) &&
-		isCallExpression(expr.argument.object.object) &&
-		isIdentifier(expr.argument.object.property) &&
-		expr.argument.object.property.name === 'f' &&
-		isCoverageObjectCall(expr.argument.object.object)
+		!isCallExpression(callExpr) ||
+		!isIdentifier(argObjProp) ||
+		argObjProp.name !== 'f' ||
+		!isCoverageObjectCall(callExpr)
 	) {
-		const coverageObjectId = ((expr.argument.object.object as CallExpression).callee as Identifier).name;
-		const functionId = (expr.argument.property as NumericLiteral).value;
-		return { type: 'function', functionId, coverageObjectId };
+		return null;
 	}
 
-	return null;
+	const coverageObjectId = (callExpr.callee as Identifier).name;
+	const functionId = (firstMemberExpr.property as NumericLiteral).value;
+
+	return { type: 'function', functionId, coverageObjectId };
 }
 
 /**
- * Given an `UpdateExpression` extract the call expression returning the coverage object.
+ * Given an `IncrementExpression` extract the call expression returning the coverage object.
  */
-function extractCoverageIncrement(expr: UpdateExpression): CoverageIncrement | null {
-	return (
-		extractBranchCoverageIncrement(expr) ??
-		extractStatementCoverageIncrement(expr) ??
-		extractFunctionCoverageIncrement(expr)
-	);
+function extractCoverageIncrement(node: TraverseNode): CoverageIncrement | null {
+	if (
+		isUpdateExpression(node) &&
+		node.operator === '++' &&
+		isMemberExpression(node.argument) &&
+		isMemberExpression(node.argument.object)
+	) {
+		return (
+			extractBranchCoverageIncrement(node as IncrementExpression) ??
+			extractStatementCoverageIncrement(node as IncrementExpression) ??
+			extractFunctionCoverageIncrement(node as IncrementExpression)
+		);
+	}
+
+	return null;
 }
 
 /**

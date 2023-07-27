@@ -1,0 +1,10 @@
+{
+"version":3,
+"file":"sourceMap13",
+"lineCount":2,
+"mappings":"A,QA6EA,iB,CAXA,uBAEA,UACA,CCmIA,ECyiBA,CDziBA,GCyiBA,IFzqBA,kBACA,2BADA,CGiGA,IH5FA,CG4FA,EH3FA,QAZA,C;AAiBA,OIzDA,CJyDA,MAMA,oBKiRA,ILhRA,MKgRA,CLhRA,KKgRA,CLjRA,EMmCA,wBHkJA,KAkSA,MGnbA,CHmbA,GAlSA,EAklBA,EAllBA,CHjMA,GGiMA,EGhJA,EAAA,CCmCA,ECuDA,EF1FA,CACA,iBH+IA,IG9IA,MC7FA,ID6FA,CCiCA,EA9HA,CD6FA,CC7FA,CD6FA,CH8IA,CHjMA,GGiMA,CG9IA,IH8IA,CG/IA,CAHA;",
+"sources":["com/google/gwt/sample/showcase/client/content/panels/CwVerticalPanel.java","com/google/gwt/user/client/ui/CellPanel.java","com/google/gwt/dom/client/Element.java","com/google/gwt/user/client/ui/UIObject.java","com/google/gwt/emul/java/lang/Object.java","com/google/gwt/sample/showcase/client/ContentWidget.java","com/google/gwt/user/client/ui/VerticalPanel.java","com/google/gwt/user/client/ui/ComplexPanel.java","com/google/gwt/user/client/ui/WidgetCollection.java"],
+"names":[],
+"x_gwt_permutation":3,
+"x_gwt_fragment":13
+}

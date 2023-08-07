@@ -1,5 +1,5 @@
 import path from 'path';
-import { findSubFolders, isExistingDirectory } from './FileSystem';
+import { findSubFolders, isExistingDirectory, isExistingFile, sourceMapFromMapFile } from './FileSystem';
 import {
 	CallExpression,
 	Expression,
@@ -12,6 +12,8 @@ import {
 } from '@babel/types';
 import { parse } from '@babel/parser';
 import { IllegalArgumentException } from '@cqse/commons';
+import { Bundle, GwtBundle } from '@src/instrumenter/Task';
+import { RawSourceMap } from 'source-map';
 
 export type GwtCallInfos = { codeArguments: string[]; functionName: string; codeAsArrayArgument: boolean };
 
@@ -45,15 +47,6 @@ export function determineSymbolMapsDir(taskFile: string): string[] {
 	return symbolMapDirs;
 }
 
-export function extractFileUid(filename: string): string | undefined {
-	const fileUidMatcher = /(.*)\.(cache|sourceMap\d+)\.js$/gmu;
-	const matches = fileUidMatcher.exec(path.basename(filename));
-	if (!matches) {
-		return undefined;
-	}
-	return matches[1];
-}
-
 function expressionToString(expression: Expression): string {
 	if (isMemberExpression(expression)) {
 		return `${expressionToString(expression.object)}.${expressionToString(expression.property as any)}`;
@@ -70,6 +63,10 @@ function extractQualifiedFunctionName(call: CallExpression): string {
 	throw new IllegalArgumentException('Type of callee not yet supported.');
 }
 
+/**
+ * Extract the GWT function calls from the GWT bundle. These function calls
+ * do have the actual application code as arguments.
+ */
 export function extractGwtCallInfos(bundleContent: string): GwtCallInfos | null {
 	const ast = parse(bundleContent);
 	if (ast.program.body.length === 0) {
@@ -96,4 +93,60 @@ export function extractGwtCallInfos(bundleContent: string): GwtCallInfos | null 
 	}
 
 	return null;
+}
+
+/**
+ * Load the source map for the given GWT bundle.
+ */
+export function loadInputSourceMapsGwt(taskFile: string, bundleFile: GwtBundle): Array<RawSourceMap | undefined> {
+	// taskFile:
+	//    war/stockwatcher/E2C1FB09E006E0A2420123D036967150.cache.js
+	//    war/showcase/deferredjs/28F63AD125178AAAB80993C11635D26F/5.cache.js
+	const mapDirs = determineSymbolMapsDir(taskFile);
+
+	const fileNumberMatcher = /sourceURL=(.*)-(\d+).js(\\n)*\s*$/;
+
+	const mapModules: Array<[string, number]> = bundleFile.codeArguments.map(code => {
+		const matches = fileNumberMatcher.exec(code);
+		if (!matches) {
+			return ['', -1];
+		}
+		return [matches[1], Number.parseInt(matches[2])];
+	});
+
+	const sourceMapFiles = mapModules.map(module => {
+		for (const mapDir of mapDirs) {
+			const mapFileCandidate = `${mapDir}/${bundleFile.fragmentId}_sourceMap${module[1]}.json`;
+			if (isExistingFile(mapFileCandidate)) {
+				return mapFileCandidate;
+			}
+		}
+		return undefined;
+	});
+
+	return sourceMapFiles.map(file => {
+		if (file) {
+			return sourceMapFromMapFile(file);
+		}
+		return undefined;
+	});
+}
+
+/**
+ * Determine the ID of the given GWT bundle file.
+ */
+export function determineGwtFileUid(filename: string): string | undefined {
+	const fileUidMatcher = /.*([0-9A-Fa-f]{32}).*/;
+	const uidMatches = fileUidMatcher.exec(filename);
+	if (!uidMatches || uidMatches.length < 2) {
+		return undefined;
+	}
+	return uidMatches[1];
+}
+
+/**
+ * Is the given bundle a GWT bundle?
+ */
+export function isGwtBundle(bundle: Bundle): bundle is GwtBundle {
+	return bundle.type === 'gwt';
 }

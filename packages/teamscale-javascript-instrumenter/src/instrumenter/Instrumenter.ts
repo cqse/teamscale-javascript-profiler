@@ -1,10 +1,13 @@
 import {
+	Bundle,
 	CollectorSpecifier,
 	FileExcludePattern,
+	GwtBundle,
 	InstrumentationTask,
 	OriginSourcePattern,
 	SourceMapFileReference,
 	SourceMapReference,
+	StandardBundle,
 	TaskElement,
 	TaskResult
 } from './Task';
@@ -19,8 +22,8 @@ import { cleanSourceCode } from './Postprocessor';
 import { Optional } from 'typescript-optional';
 import Logger from 'bunyan';
 import async from 'async';
-import { determineSymbolMapsDir, extractGwtCallInfos } from './WebToolkit';
-import { isExistingFile } from './FileSystem';
+import { determineGwtFileUid, extractGwtCallInfos, isGwtBundle, loadInputSourceMapsGwt } from './WebToolkit';
+import { sourceMapFromMapFile } from './FileSystem';
 
 export const IS_INSTRUMENTED_TOKEN = '/** $IS_JS_PROFILER_INSTRUMENTED=true **/';
 
@@ -35,11 +38,6 @@ export interface IInstrumenter {
 	 */
 	instrument(task: InstrumentationTask): Promise<TaskResult>;
 }
-
-type BaseBundle = { content: string; codeArguments: string[] };
-type StandardBundle = BaseBundle & { type: 'javascript' };
-type GwtBundle = BaseBundle & { type: 'gwt'; functionName: string; fragmentId: string; codeAsArrayArgument: boolean };
-type Bundle = BaseBundle & (StandardBundle | GwtBundle);
 
 function readBundle(bundleContent: string, taskElement: TaskElement): Bundle {
 	const baseNameMatch = path.basename(taskElement.fromFile).match('^([a-zA-Z0-9]*).cache.js');
@@ -456,53 +454,6 @@ function loadInputSourceMapsStandard(
 	return bundleFile.codeArguments.map(code => loadInputSourceMap(code, taskFile, externalSourceMapFile));
 }
 
-function determineGwtFileUid(filename: string): string | undefined {
-	const fileUidMatcher = /.*([0-9A-Fa-f]{32}).*/;
-	const uidMatches = fileUidMatcher.exec(filename);
-	if (!uidMatches || uidMatches.length < 2) {
-		return undefined;
-	}
-	return uidMatches[1];
-}
-
-function loadInputSourceMapsGwt(taskFile: string, bundleFile: GwtBundle): Array<RawSourceMap | undefined> {
-	// taskFile:
-	//    war/stockwatcher/E2C1FB09E006E0A2420123D036967150.cache.js
-	//    war/showcase/deferredjs/28F63AD125178AAAB80993C11635D26F/5.cache.js
-	const mapDirs = determineSymbolMapsDir(taskFile);
-
-	const fileNumberMatcher = /sourceURL=(.*)-(\d+).js(\\n)*\s*$/;
-
-	const mapModules: Array<[string, number]> = bundleFile.codeArguments.map(code => {
-		const matches = fileNumberMatcher.exec(code);
-		if (!matches) {
-			return ['', -1];
-		}
-		return [matches[1], Number.parseInt(matches[2])];
-	});
-
-	const sourceMapFiles = mapModules.map(module => {
-		for (const mapDir of mapDirs) {
-			const mapFileCandidate = `${mapDir}/${bundleFile.fragmentId}_sourceMap${module[1]}.json`;
-			if (isExistingFile(mapFileCandidate)) {
-				return mapFileCandidate;
-			}
-		}
-		return undefined;
-	});
-
-	return sourceMapFiles.map(file => {
-		if (file) {
-			return sourceMapFromMapFile(file);
-		}
-		return undefined;
-	});
-}
-
-function isGwtBundle(bundle: Bundle): bundle is GwtBundle {
-	return bundle.type === 'gwt';
-}
-
 /**
  * Given a source code file, load the corresponding sourcemap.
  *
@@ -570,16 +521,6 @@ export function sourceMapFromCodeComment(sourcecode: string, sourceFilePath: str
 	} else {
 		return undefined;
 	}
-}
-
-/**
- * Read a source map from a source map file.
- *
- * @param mapFilePath
- */
-export function sourceMapFromMapFile(mapFilePath: string): RawSourceMap | undefined {
-	const content: string = fs.readFileSync(mapFilePath, 'utf8');
-	return JSON.parse(content) as RawSourceMap;
 }
 
 function writeToFile(filePath: string, fileContent: string) {

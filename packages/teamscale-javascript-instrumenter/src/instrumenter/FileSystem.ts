@@ -3,6 +3,7 @@ import * as fs from 'fs';
 import mkdirp from 'mkdirp';
 import path from 'path';
 import { glob } from 'glob';
+import { RawSourceMap } from 'source-map';
 
 /**
  * Does the given `path` point to an existing file?
@@ -77,4 +78,14 @@ export function expandToFileSet(toExpand: string): string[] {
 	}
 
 	return glob.sync(globPattern, { nodir: true });
+}
+
+/**
+ * Read a source map from a source map file.
+ *
+ * @param mapFilePath
+ */
+export function sourceMapFromMapFile(mapFilePath: string): RawSourceMap | undefined {
+	const content: string = fs.readFileSync(mapFilePath, 'utf8');
+	return JSON.parse(content) as RawSourceMap;
 }

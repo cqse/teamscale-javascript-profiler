@@ -19,7 +19,7 @@ import { cleanSourceCode } from './Postprocessor';
 import { Optional } from 'typescript-optional';
 import Logger from 'bunyan';
 import async from 'async';
-import { determineSymbolMapsDir } from './WebToolkit';
+import { determineSymbolMapsDir, extractGwtCallInfos } from './WebToolkit';
 import { isExistingFile } from './FileSystem';
 
 export const IS_INSTRUMENTED_TOKEN = '/** $IS_JS_PROFILER_INSTRUMENTED=true **/';
@@ -48,21 +48,17 @@ function readBundle(bundleContent: string, taskElement: TaskElement): Bundle {
 		const fragmentId = determineGwtFileUid(taskElement.fromFile);
 		const functionCall = bundleContent.match('^([^(]+)\\((.*)\\);*\\s*$');
 		if (fragmentId && functionCall && functionCall.length === 3) {
-			const argument = functionCall[2];
-			const codeAsArrayArgument = argument.startsWith('["') && argument.endsWith('"]');
-			let codeArgument = argument;
-			if (codeAsArrayArgument) {
-				codeArgument = argument.substring(2, argument.length - 2);
+			const callInfos = extractGwtCallInfos(bundleContent);
+			if (callInfos) {
+				return {
+					type: 'gwt',
+					content: bundleContent,
+					fragmentId,
+					functionName: callInfos.functionName,
+					codeAsArrayArgument: callInfos.codeAsArrayArgument,
+					codeArguments: callInfos.codeArguments
+				} as GwtBundle;
 			}
-			const codeArguments = [codeArgument];
-			return {
-				type: 'gwt',
-				content: bundleContent,
-				fragmentId,
-				functionName: functionCall[1],
-				codeAsArrayArgument,
-				codeArguments
-			} as GwtBundle;
 		}
 	}
 
@@ -287,20 +283,16 @@ export class IstanbulInstrumenter implements IInstrumenter {
 			'Assuming alignment of source code and source map arrays.'
 		);
 		if (inputBundle.type === 'gwt') {
+			Contract.require(
+				instrumentedSources.length === 1,
+				'Assuming only one code fragment to be passed as argument.'
+			);
+
+			const processedCodeString = JSON.stringify(`${this.vaccineSource} ${instrumentedSources[0]}`);
 			if (inputBundle.codeAsArrayArgument) {
-				throw new Error(
-					`Code as argument is not implemented. Function ${inputBundle.functionName}, fragment ${inputBundle.fragmentId}.`
-				);
+				writeToFile(toFile, `${IS_INSTRUMENTED_TOKEN} ${inputBundle.functionName}([${processedCodeString}]);`);
 			} else {
-				Contract.require(
-					instrumentedSources.length === 1,
-					'Assuming only one code fragment to be passed as argument.'
-				);
-				const processedCodeString = `"${instrumentedSources[0].replace('"', '\\"')}"`;
-				writeToFile(
-					toFile,
-					`${IS_INSTRUMENTED_TOKEN} ${this.vaccineSource} ${inputBundle.functionName}(${processedCodeString})`
-				);
+				writeToFile(toFile, `${IS_INSTRUMENTED_TOKEN} ${inputBundle.functionName}(${processedCodeString});`);
 			}
 		} else {
 			Contract.require(

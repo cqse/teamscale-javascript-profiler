@@ -10,7 +10,7 @@ import {
 } from './Task';
 import { Contract, IllegalArgumentException } from '@cqse/commons';
 import { RawSourceMap, SourceMapConsumer } from 'source-map';
-import * as istanbul from 'istanbul-lib-instrument';
+import * as istanbul from '@teamscale/lib-instrument';
 import * as fs from 'fs';
 import * as mkdirp from 'mkdirp';
 import * as path from 'path';

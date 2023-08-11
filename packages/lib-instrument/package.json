@@ -1,21 +1,26 @@
 {
-  "name": "@teamscale/istanbul-lib-instrument",
+  "name": "@teamscale/lib-instrument",
   "version": "6.0.0",
   "description": "Core istanbul API for JS code coverage",
   "author": "Krishnan Anantheswaran <kananthmail-github@yahoo.com>",
-  "main": "src/index.js",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
   "files": [
-    "src"
+    "dist"
   ],
   "scripts": {
+    "clean": "rimraf dist tsconfig.tsbuildinfo",
+    "build": "tsc",
     "test": "nyc mocha"
   },
   "dependencies": {
     "@babel/core": "^7.12.3",
     "@babel/parser": "^7.14.7",
     "@istanbuljs/schema": "^0.1.2",
+    "@types/node": "^20.4.1",
     "istanbul-lib-coverage": "^3.2.0",
-    "semver": "^7.5.4"
+    "semver": "^7.5.4",
+    "typescript": "^5.1.6"
   },
   "devDependencies": {
     "@babel/cli": "^7.7.5",
@@ -26,7 +31,8 @@
     "js-yaml": "^3.13.1",
     "mocha": "^6.2.3",
     "nopt": "^4.0.1",
-    "nyc": "^15.1.0"
+    "nyc": "^15.1.0",
+    "rimraf": "^5.0.1"
   },
   "license": "BSD-3-Clause",
   "bugs": {
@@ -35,16 +41,7 @@
   "homepage": "https://istanbul.js.org/",
   "repository": {
     "type": "git",
-    "url": "git+ssh://git@github.com/istanbuljs/istanbuljs.git",
-    "directory": "packages/istanbul-lib-instrument"
-  },
-  "keywords": [
-    "coverage",
-    "istanbul",
-    "js",
-    "instrumentation"
-  ],
-  "engines": {
-    "node": ">=10"
+    "url": "https://github.com/cqse/teamscale-javascript-profiler.git",
+    "directory": "packages/lib-instrument"
   }
 }

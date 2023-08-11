@@ -1,0 +1,20 @@
+{
+    "compilerOptions": {
+      "target": "ES2020",
+      "module": "commonjs",
+      "allowJs": true,       // Allows the TypeScript compiler to compile JavaScript files
+      "checkJs": false,     // Do not type-check the JavaScript files (You can set this to true if you want TypeScript to type-check your existing JavaScript)
+      "outDir": "./dist",   // Output directory for compiled JavaScript
+      "rootDir": "./src",   // Source code directory
+      "esModuleInterop": true,
+      "strict": true,       // Enables a wide range of type checking behavior
+      "skipLibCheck": true, // Skips type checking of declaration files.
+      "forceConsistentCasingInFileNames": true,
+      "declaration": true
+    },
+    "include": [
+      "src/**/*.ts",        // Include TypeScript files
+      "src/**/*.js",        // Include JavaScript files
+      "src/**/*.d.ts"       // Include TypeScript type definition files
+    ]
+  }  

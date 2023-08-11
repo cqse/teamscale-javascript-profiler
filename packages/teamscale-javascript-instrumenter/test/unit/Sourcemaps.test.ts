@@ -1,4 +1,4 @@
-import * as istanbul from 'istanbul-lib-instrument';
+import * as istanbul from '@teamscale/lib-instrument';
 import fs from 'fs';
 import path from 'path';
 import { loadInputSourceMap } from '../../src/instrumenter/Instrumenter';

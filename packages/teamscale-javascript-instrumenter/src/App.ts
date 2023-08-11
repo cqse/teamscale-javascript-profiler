@@ -6,7 +6,7 @@ import { ConfigurationParameters, TaskBuilder } from './instrumenter/TaskBuilder
 import * as path from 'path';
 import { version } from '../package.json';
 import { existsSync } from 'fs';
-import mkdirp from 'mkdirp';
+import { mkdirp } from 'mkdirp';
 import Logger from 'bunyan';
 
 /**
@@ -134,7 +134,8 @@ export class App {
 				{
 					level: logLevel,
 					stream: {
-						write: (rec: Record<any, any>) => {
+						// eslint-disable-next-line @typescript-eslint/no-explicit-any
+						write: (rec: any) => {
 							console.log(
 								'[%s] %s: %s',
 								rec.time.toISOString(),

@@ -13,12 +13,12 @@ type SourceMapConsumer = BasicSourceMapConsumer;
  * original code using a source map.
  */
 export type UnmappedCoverage = {
-	fileId: string,
-	startLine: number,
-	startColumn: number,
-	endLine: number,
-	endColumn: number
-}
+	fileId: string;
+	startLine: number;
+	startColumn: number;
+	endLine: number;
+	endColumn: number;
+};
 
 /**
  * The session maintains the relevant information for a client.
@@ -98,7 +98,7 @@ export class Session {
 				unmappedForFile = [];
 				this.unmappedCoverage.set(fileId, unmappedForFile);
 			}
-			unmappedForFile.push({endColumn, endLine, fileId, startColumn, startLine});
+			unmappedForFile.push({ endColumn, endLine, fileId, startColumn, startLine });
 			return false;
 		}
 
@@ -174,8 +174,8 @@ export class Session {
 	 * @param fileId - The identifier of the file bundle.
 	 * @param sourceMapText - The actual source map.
 	 */
-	public async putSourcemap(fileId: string, sourceMapText: string): Promise<void> {
-		const rawSourceMap = JSON.parse(sourceMapText);
+	public async putSourcemap(fileId: string, sourceMapText: Buffer): Promise<void> {
+		const rawSourceMap = JSON.parse(sourceMapText.toString());
 		try {
 			const sourceMapConsumer = await new sourceMap.SourceMapConsumer(rawSourceMap);
 			this.sourceMaps.set(fileId, sourceMapConsumer);
@@ -187,7 +187,7 @@ export class Session {
 
 	private processUnmappedCoverageOf(fileId: string): void {
 		const unmapped = this.unmappedCoverage.get(fileId) ?? [];
-		unmapped.forEach((entry) => {
+		unmapped.forEach(entry => {
 			if (!this.putCoverage(entry.fileId, entry.startLine, entry.startColumn, entry.endLine, entry.endColumn)) {
 				this.storage.signalUnmappedCoverage(this.projectId);
 			}

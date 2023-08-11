@@ -6,7 +6,7 @@ source "$SCRIPT_DIR"/common.sh.inc
 # We assume that this script is executed from the
 # root of the JS Profiler project.
 
-if [ ! -f "package.json" ]
+if [ ! -f "LICENSE" ]
 then
     echo "Please run the script from the root of the repository."
     exit 1
@@ -41,6 +41,8 @@ if [ -f $PROFILING_RESULTS_FILE ]
 then
   rm $PROFILING_RESULTS_FILE
 fi
+
+npx cypress install
 
 # Run the test with the memory profiler attached
 /usr/bin/time -o "$PROFILING_RESULTS_FILE"  -f "%M %e" \

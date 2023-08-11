@@ -4,9 +4,9 @@ FROM node:16-slim AS build
 
 COPY . /collector
 WORKDIR /collector
-RUN yarn set version berry && yarn install
-RUN yarn clean && yarn build 
+RUN npm install -g pnpm && pnpm install
+RUN pnpm clean && pnpm build
 
 FROM build AS deploy
 
-ENTRYPOINT ["yarn", "collector"]
+ENTRYPOINT ["pnpm", "collector"]

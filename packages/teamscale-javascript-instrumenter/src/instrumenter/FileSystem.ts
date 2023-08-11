@@ -1,6 +1,6 @@
 import { InvalidConfigurationException } from '@cqse/commons';
 import * as fs from 'fs';
-import { mkdirp } from 'mkdirp';
+import * as mkdirp from 'mkdirp';
 import path from 'path';
 import { glob } from 'glob';
 import { RawSourceMap } from 'source-map';
@@ -34,6 +34,9 @@ export function ensureExistingDirectory(path: string): void {
 	}
 }
 
+/**
+ * Given a root folder find a folder with a given name.
+ */
 export function findSubFolders(startFromFolder: string, folderName: string): string[] {
 	const matches: string[] = [];
 	const entries = fs.readdirSync(startFromFolder, { withFileTypes: true });

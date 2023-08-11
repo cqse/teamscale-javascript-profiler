@@ -237,7 +237,7 @@ export class IstanbulInstrumenter implements IInstrumenter {
 				instrumented,
 				configurationAlternative,
 				sourcePattern,
-				instrumentedSourcemap
+				instrumentedSourcemap as any
 			);
 
 			instrumentedAndCleanedSource = instrumentedAndCleanedSource
@@ -494,9 +494,7 @@ export function sourceMapFromCodeComment(sourcecode: string, sourceFilePath: str
 					result = convertSourceMap.fromComment(sourceMapComment).toObject();
 				} else {
 					result = convertSourceMap
-						.fromMapFileComment(sourceMapComment, function (filename) {
-							return fs.readFileSync(path.resolve(path.dirname(sourceFilePath), filename), 'utf-8');
-						})
+						.fromMapFileComment(sourceMapComment, path.resolve(path.dirname(sourceFilePath)))
 						.toObject();
 				}
 			} catch (e) {

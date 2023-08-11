@@ -5,6 +5,7 @@ import {
 	Expression,
 	isArrayExpression,
 	isCallExpression,
+	isExpression,
 	isExpressionStatement,
 	isIdentifier,
 	isMemberExpression,
@@ -48,8 +49,8 @@ export function determineSymbolMapsDir(taskFile: string): string[] {
 }
 
 function expressionToString(expression: Expression): string {
-	if (isMemberExpression(expression)) {
-		return `${expressionToString(expression.object)}.${expressionToString(expression.property as any)}`;
+	if (isMemberExpression(expression) && isExpression(expression.property)) {
+		return `${expressionToString(expression.object)}.${expressionToString(expression.property)}`;
 	} else if (isIdentifier(expression)) {
 		return expression.name;
 	}

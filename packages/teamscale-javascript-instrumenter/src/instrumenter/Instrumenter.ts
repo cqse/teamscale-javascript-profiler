@@ -225,7 +225,7 @@ export class IstanbulInstrumenter implements IInstrumenter {
 			const instrumented = instrumenter.instrumentSync(
 				inputBundle.codeArguments[i],
 				taskElement.fromFile,
-				inputSourceMaps[i] as any
+				inputSourceMaps[i]
 			);
 
 			// In case of a bundle, the initial instrumentation step might have added
@@ -237,7 +237,7 @@ export class IstanbulInstrumenter implements IInstrumenter {
 				instrumented,
 				configurationAlternative,
 				sourcePattern,
-				instrumentedSourcemap as any
+				instrumentedSourcemap
 			);
 
 			instrumentedAndCleanedSource = instrumentedAndCleanedSource
@@ -494,7 +494,9 @@ export function sourceMapFromCodeComment(sourcecode: string, sourceFilePath: str
 					result = convertSourceMap.fromComment(sourceMapComment).toObject();
 				} else {
 					result = convertSourceMap
-						.fromMapFileComment(sourceMapComment, path.resolve(path.dirname(sourceFilePath)))
+						.fromMapFileComment(sourceMapComment, function (filename) {
+							return fs.readFileSync(path.resolve(path.dirname(sourceFilePath), filename), 'utf-8');
+						})
 						.toObject();
 				}
 			} catch (e) {

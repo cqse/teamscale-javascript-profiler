@@ -18,5 +18,10 @@ module.exports = {
 	collectCoverage: true,
 
 	// The glob patterns Jest uses to detect test files.
-	testMatch: ['**/test/**/*.test.ts']
+	testMatch: ['**/test/**/*.test.ts'],
+
+	moduleNameMapper: {
+		// Force module uuid to resolve with the CJS entry point, because Jest does not support package.json.exports. See https://github.com/uuidjs/uuid/issues/451
+		uuid: require.resolve('uuid')
+	}
 };

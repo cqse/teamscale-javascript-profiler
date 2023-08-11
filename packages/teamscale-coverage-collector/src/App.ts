@@ -5,7 +5,7 @@ import { WebSocketCollectingServer } from './receiver/CollectingServer';
 import 'dotenv/config';
 import * as fs from 'fs';
 import { buildParameterParser, ConfigParameters } from './utils/ConfigParameters';
-import mkdirp from 'mkdirp';
+import { mkdirp } from 'mkdirp';
 import path from 'path';
 import { StdConsoleLogger } from './utils/StdConsoleLogger';
 import { PrettyFileLogger } from './utils/PrettyFileLogger';
@@ -24,7 +24,7 @@ export class App {
 	 */
 	private static parseArguments(): ConfigParameters {
 		const parser: ArgumentParser = buildParameterParser();
-		return parser.parse_args();
+		return parser.parse_args() as ConfigParameters;
 	}
 
 	/**
@@ -121,9 +121,12 @@ export class App {
 	): { stop: () => void } {
 		if (config.dump_after_mins > 0) {
 			logger.info(`Will dump coverage information every ${config.dump_after_mins} minute(s).`);
-			const timer = setInterval(async () => {
-				await this.dumpCoverage(config, storage, logger);
-			}, config.dump_after_mins * 1000 * 60);
+			const timer = setInterval(
+				async () => {
+					await this.dumpCoverage(config, storage, logger);
+				},
+				config.dump_after_mins * 1000 * 60
+			);
 
 			process.on('SIGINT', () => {
 				// Stop the timed file dump

@@ -17,7 +17,9 @@ import {
 	isSequenceExpression,
 	SequenceExpression,
 	isUpdateExpression,
-	MemberExpression
+	MemberExpression,
+	ExpressionStatement,
+	Expression
 } from '@babel/types';
 import { IllegalStateException } from '@cqse/commons';
 
@@ -149,7 +151,7 @@ function createFileIdMappingHandler(): FileIdMappingHandler {
 							fileIdMap.set(coverageFunctionName, fileIdVarName);
 
 							const variableDeclaration = newStringConstDeclarationNode(fileIdVarName, fileId);
-							path.insertBefore(variableDeclaration as any);
+							path.insertBefore(variableDeclaration);
 						}
 					}
 				}
@@ -242,9 +244,9 @@ export function cleanSourceCode(
  *
  * Special handling for some container nodes is needed.
  */
-function insertNodeBefore(path: NodePath<TraverseNode>, toInsert: TraverseNode): void {
+function insertNodeBefore(path: NodePath<TraverseNode>, toInsert: Expression | ExpressionStatement): void {
 	if (isSequenceExpression(path.parent)) {
-		(path.parentPath as NodePath<SequenceExpression>).unshiftContainer('expressions', [toInsert as any]);
+		(path.parentPath as NodePath<SequenceExpression>).unshiftContainer('expressions', [toInsert as Expression]);
 	} else {
 		path.insertBefore(toInsert);
 	}
@@ -280,7 +282,7 @@ function newCoverageIncrementNode(
 	fileIdVarName: string,
 	increment: CoverageIncrement,
 	asExpression: boolean
-): TraverseNode {
+): Expression | ExpressionStatement {
 	let expression: CallExpression;
 	if (increment.type === 'branch') {
 		expression = newBranchCoverageIncrementExpression(fileIdVarName, increment as BranchCoverageIncrement);
@@ -291,13 +293,13 @@ function newCoverageIncrementNode(
 	}
 
 	if (asExpression) {
-		return expression as TraverseNode;
+		return expression;
 	}
 
 	return {
 		type: 'ExpressionStatement',
 		expression
-	} as TraverseNode;
+	} satisfies ExpressionStatement;
 }
 
 /**

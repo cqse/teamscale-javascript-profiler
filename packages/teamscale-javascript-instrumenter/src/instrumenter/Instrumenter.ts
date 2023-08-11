@@ -156,11 +156,7 @@ export class IstanbulInstrumenter implements IInstrumenter {
 				}
 
 				// The main instrumentation (adding coverage statements) is performed now:
-				instrumentedSource = instrumenter.instrumentSync(
-					inputFileSource,
-					taskElement.fromFile,
-					inputSourceMap as any
-				);
+				instrumentedSource = instrumenter.instrumentSync(inputFileSource, taskElement.fromFile, inputSourceMap);
 				this.logger.debug('Instrumentation source maps to:', instrumenter.lastSourceMap()?.sources);
 
 				// In case of a bundle, the initial instrumentation step might have added
@@ -172,7 +168,7 @@ export class IstanbulInstrumenter implements IInstrumenter {
 					instrumentedSource,
 					configurationAlternative,
 					sourcePattern,
-					instrumentedSourcemap as any
+					instrumentedSourcemap
 				);
 
 				instrumentedAndCleanedSource = instrumentedAndCleanedSource
@@ -388,7 +384,9 @@ export function sourceMapFromCodeComment(sourcecode: string, sourceFilePath: str
 					result = convertSourceMap.fromComment(sourceMapComment).toObject();
 				} else {
 					result = convertSourceMap
-						.fromMapFileComment(sourceMapComment, path.dirname(sourceFilePath))
+						.fromMapFileComment(sourceMapComment, function (filename) {
+							return fs.readFileSync(path.resolve(path.dirname(sourceFilePath), filename), 'utf-8');
+						})
 						.toObject();
 				}
 			} catch (e) {

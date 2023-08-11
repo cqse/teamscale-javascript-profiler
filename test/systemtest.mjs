@@ -259,7 +259,7 @@ function startCollector(coverageFolder, logTargetFile, projectId, collectorPort)
  */
 function startWebServer(distributionFolder) {
 	const webserver = spawn(
-		'node',
+		'sh',
 		[
 			'node_modules/.bin/ws',
 			'--static.maxage',
@@ -456,7 +456,7 @@ function averagePerformance(samples) {
 
 function profileTestingInBrowser(studyName) {
 	const runTestsOnSubjectInBrowser = studyName => {
-		const browserPerformanceFile = tempfile('.json');
+		const browserPerformanceFile = tempfile({ extension: '.json' });
 		console.log('## Running Cypress tests on the subject');
 		const command = `${path.join(
 			PROFILER_ROOT_DIR,
@@ -494,7 +494,7 @@ function instrumentStudy(study, collectorPort) {
 	const includeArgument = study.includeOrigins.length > 0 ? `--include-origin ${study.includeOrigins.join(' ')}` : '';
 	console.log('Include/exclude arguments: ', includeArgument, excludeArgument);
 
-	const performanceFile = tempfile('.json');
+	const performanceFile = tempfile({ extension: '.json' });
 	execSync(
 		`${path.join(
 			PROFILER_ROOT_DIR,

@@ -7,6 +7,11 @@
       <sourceFolder url="file://$MODULE_DIR$/packages/teamscale-coverage-collector/test" isTestSource="true" />
       <sourceFolder url="file://$MODULE_DIR$/packages/teamscale-javascript-instrumenter/src" isTestSource="false" />
       <sourceFolder url="file://$MODULE_DIR$/packages/teamscale-javascript-instrumenter/test" isTestSource="true" />
+      <excludeFolder url="file://$MODULE_DIR$/node_modules" />
+      <excludeFolder url="file://$MODULE_DIR$/packages/teamscale-coverage-collector/coverage" />
+      <excludeFolder url="file://$MODULE_DIR$/packages/teamscale-coverage-collector/dist" />
+      <excludeFolder url="file://$MODULE_DIR$/packages/teamscale-javascript-instrumenter/coverage" />
+      <excludeFolder url="file://$MODULE_DIR$/packages/teamscale-javascript-instrumenter/dist" />
       <excludeFolder url="file://$MODULE_DIR$/test/casestudies" />
     </content>
     <orderEntry type="inheritedJdk" />

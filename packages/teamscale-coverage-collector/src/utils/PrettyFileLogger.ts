@@ -13,7 +13,8 @@ export class PrettyFileLogger {
 		this.outputStream = outputStream;
 	}
 
-	public write(rec: Record<any, any>): void {
+	// eslint-disable-next-line @typescript-eslint/no-explicit-any
+	public write(rec: any): void {
 		this.outputStream.write(
 			`[${rec.time.toISOString()}] ${Logger.nameFromLevel[rec.level].toUpperCase()}: ${rec.msg}\n`
 		);

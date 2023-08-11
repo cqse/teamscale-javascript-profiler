@@ -8,6 +8,7 @@
     "build": "yarn workspaces foreach run build",
     "test": "yarn workspaces foreach run test",
     "systemtest": "yarn build && node ./test/systemtest.mjs",
+    "benchmark_systemtest": "yarn build && node ./test/systemtest.mjs benchmark",
     "lint": "yarn run eslint . --ext .ts"
   },
   "workspaces": [

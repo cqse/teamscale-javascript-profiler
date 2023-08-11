@@ -26,7 +26,7 @@ const INSTRUMENTER_DIR = path.join('packages', 'teamscale-javascript-instrumente
 const COLLECTOR_DIR = path.join('packages', 'teamscale-coverage-collector');
 const SERVER_PORT = 9000;
 const TEAMSCALE_MOCK_PORT = 10088;
-
+const ARGS = process.argv.slice(2);
 /**
  * Definition of the case studies along with
  * the expected coverage produced by our tool chain.
@@ -516,6 +516,14 @@ function storePerfResult(perfMeasuresByStudy, studyName, perfKey, perf) {
 	studyPerfs[perfKey] = perf;
 }
 
+function buildGrafana(study) {
+	console.log('## Build Grafana');
+	execSync('rm -rf public/build', { cwd: study.rootDir });
+	execSync('yarn workspaces foreach run clean', { cwd: study.rootDir });
+	execSync('yarn install', { cwd: study.rootDir });
+	execSync('yarn build', { cwd: study.rootDir });
+}
+
 function buildStudy(study) {
 	console.log('## Build the case study');
 	execSync('npm install', { cwd: study.rootDir });
@@ -585,13 +593,32 @@ function checkTeamscaleServerMockInteractions(mockInstance, study) {
 await (async function runSystemTest() {
 	const perfStore = {};
 
+	if(ARGS.includes("benchmark")){
+		// Add grafana as additional benchmark casestudie
+		caseStudies.push({
+			name: 'grafana',
+			rootDir: 'test/casestudies/grafana',
+			distDir: 'public/build',
+			expectCoveredLines: {
+			},
+			expectUncoveredLines: {
+			},
+			excludeOrigins: ["**/public/build/*.*"],
+			includeOrigins: ["**/public/app/**/*.*"],
+			maxNormTimeFraction: 8.0
+		})
+	}
 	for (const study of caseStudies) {
 		const collectorPort = await identifyNextAvailablePort();
 		const sessionId = `session-${collectorPort}`;
 
 		console.group('# Case study', study.name);
 		try {
-			buildStudy(study);
+			if(study.name === "grafana") {
+				buildGrafana(study);
+			} else {
+				buildStudy(study);
+			}
 
 			const webserverProcess = startStudyWebServer(study);
 

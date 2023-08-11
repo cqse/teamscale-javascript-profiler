@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuites name="Mocha Tests" time="20.4050" tests="2" failures="0">
+  <testsuite name="Root Suite" timestamp="2023-08-11T08:57:12" tests="0" file="../../e2e/various-suite/visualization-suggestions.spec.ts" time="0.0000" failures="0">
+  </testsuite>
+  <testsuite name="Visualization suggestions" timestamp="2023-08-11T08:57:12" tests="2" time="20.4050" failures="0">
+    <testcase name="Visualization suggestions Should be shown and clickable" time="20.3910" classname="Should be shown and clickable">
+    </testcase>
+    <testcase name="Visualization suggestions temporary" time="0.0140" classname="temporary">
+    </testcase>
+  </testsuite>
+</testsuites>

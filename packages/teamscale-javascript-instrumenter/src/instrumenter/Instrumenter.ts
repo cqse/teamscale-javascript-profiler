@@ -156,14 +156,6 @@ export class IstanbulInstrumenter implements IInstrumenter {
 			return new TaskResult(0, 1, 0, 0, 0, 0, 0);
 		}
 
-		// We skip files that we have already instrumented
-		if (bundleContent.startsWith(IS_INSTRUMENTED_TOKEN)) {
-			if (!taskElement.isInPlace()) {
-				writeToFile(taskElement.toFile, inputBundle.content);
-			}
-			return new TaskResult(0, 0, 0, 1, 0, 0, 0);
-		}
-
 		// Report progress
 		this.logger.info(`Instrumenting "${path.basename(taskElement.fromFile)}"`);
 

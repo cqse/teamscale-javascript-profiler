@@ -1,4 +1,4 @@
-import { determineSymbolMapsDir } from '../../src/instrumenter/WebToolkit';
+import { determineGwtFileUid, determineSymbolMapsDir } from '../../src/instrumenter/WebToolkit';
 
 test('Identification of GWT symbol map dirs', () => {
 	const folders = determineSymbolMapsDir(
@@ -9,9 +9,8 @@ test('Identification of GWT symbol map dirs', () => {
 });
 
 test('Extraction of file UIDs', () => {
-	const folders = determineSymbolMapsDir(
+	const fileId = determineGwtFileUid(
 		'../../test/casestudies/gwt-showcase-js/war/showcase/deferredjs/28F63AD125178AAAB80993C11635D26F/5.cache.js'
 	);
-	expect(folders).toHaveLength(1);
-	expect(folders[0].endsWith('test/casestudies/gwt-showcase-js/war/WEB-INF/deploy/showcase/symbolMaps')).toBeTruthy();
+	expect(fileId).toEqual('28F63AD125178AAAB80993C11635D26F');
 });

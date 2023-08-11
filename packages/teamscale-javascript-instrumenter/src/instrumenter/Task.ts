@@ -333,7 +333,7 @@ export class TaskResult {
 	 * @param e - The error to add.
 	 */
 	public static error(e: Error): TaskResult {
-		// console.error(e);
+		console.error(e);
 		return new TaskResult(0, 0, 0, 0, 0, 1, 0);
 	}
 

@@ -66,6 +66,10 @@ function extractQualifiedFunctionName(call: CallExpression): string {
 /**
  * Extract the GWT function calls from the GWT bundle. These function calls
  * do have the actual application code as arguments.
+ *
+ * Examples of `bundleContent` (without the double quotes):
+ * 		"showcase.onScriptDownloaded(["var $wnd =  .....  __gwtModuleFunction.__moduleStartupDone($gwt.permProps);\n//# sourceURL=showcase-0.js\n"]);"
+ * 	    "$wnd.showcase.runAsyncCallback3("function bc(a){Wb((Ze(),Xe),a) ..... nZ5b(El)(3);\n//# sourceURL=showcase-3.js\n")
  */
 export function extractGwtCallInfos(bundleContent: string): GwtCallInfos | null {
 	const ast = parse(bundleContent);

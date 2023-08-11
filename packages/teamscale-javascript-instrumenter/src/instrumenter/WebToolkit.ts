@@ -16,6 +16,9 @@ import { IllegalArgumentException } from '@cqse/commons';
 import { Bundle, GwtBundle } from '@src/instrumenter/Task';
 import { RawSourceMap } from 'source-map';
 
+/**
+ * Information on a GWT function call, typically with code to be evaluated as arguments.
+ */
 export type GwtCallInfos = { codeArguments: string[]; functionName: string; codeAsArrayArgument: boolean };
 
 /**

@@ -13,7 +13,7 @@ import {
 } from '@babel/types';
 import { parse } from '@babel/parser';
 import { IllegalArgumentException } from '@cqse/commons';
-import { Bundle, GwtBundle } from '@src/instrumenter/Task';
+import { Bundle, GwtBundle } from './Task';
 import { RawSourceMap } from 'source-map';
 
 /**
@@ -91,10 +91,15 @@ export function extractGwtCallInfos(bundleContent: string): GwtCallInfos | null 
 	const firstArgument = call.arguments[0];
 
 	if (isArrayExpression(firstArgument)) {
-		if (isStringLiteral(firstArgument.elements[0])) {
-			const codeArgument = firstArgument.elements[0].value;
-			return { codeArguments: [codeArgument], functionName: qualifiedFunctionName, codeAsArrayArgument: true };
+		const codeArguments = [];
+		for (const element of firstArgument.elements) {
+			if (isStringLiteral(element)) {
+				codeArguments.push(element.value);
+			} else {
+				throw new Error(`Did expect only string arguments in the call of "${qualifiedFunctionName}".`);
+			}
 		}
+		return { codeArguments, functionName: qualifiedFunctionName, codeAsArrayArgument: true };
 	} else if (isStringLiteral(firstArgument)) {
 		const codeArgument = firstArgument.value;
 		return { codeArguments: [codeArgument], functionName: qualifiedFunctionName, codeAsArrayArgument: false };

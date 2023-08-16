@@ -1,10 +1,13 @@
 import {
+	Bundle,
 	CollectorSpecifier,
 	FileExcludePattern,
+	GwtBundle,
 	InstrumentationTask,
 	OriginSourcePattern,
 	SourceMapFileReference,
 	SourceMapReference,
+	StandardBundle,
 	TaskElement,
 	TaskResult
 } from './Task';
@@ -19,6 +22,8 @@ import { cleanSourceCode } from './Postprocessor';
 import { Optional } from 'typescript-optional';
 import Logger from 'bunyan';
 import async from 'async';
+import { determineGwtFileUid, extractGwtCallInfos, isGwtBundle, loadInputSourceMapsGwt } from './WebToolkit';
+import { sourceMapFromMapFile } from './FileSystem';
 
 export const IS_INSTRUMENTED_TOKEN = '/** $IS_JS_PROFILER_INSTRUMENTED=true **/';
 
@@ -34,28 +39,53 @@ export interface IInstrumenter {
 	instrument(task: InstrumentationTask): Promise<TaskResult>;
 }
 
+function readBundle(bundleContent: string, taskElement: TaskElement): Bundle {
+	const baseNameMatch = path.basename(taskElement.fromFile).match('^([a-zA-Z0-9]*).cache.js');
+	const directories = path.dirname(taskElement.fromFile).split(path.sep);
+	if (baseNameMatch && directories.length > 1) {
+		const fragmentId = determineGwtFileUid(taskElement.fromFile);
+		const functionCall = bundleContent.match('^([^(]+)\\((.*)\\);*\\s*$');
+		if (fragmentId && functionCall && functionCall.length === 3) {
+			const callInfos = extractGwtCallInfos(bundleContent);
+			if (callInfos) {
+				return {
+					type: 'gwt',
+					content: bundleContent,
+					fragmentId,
+					functionName: callInfos.functionName,
+					codeAsArrayArgument: callInfos.codeAsArrayArgument,
+					codeArguments: callInfos.codeArguments
+				} as GwtBundle;
+			}
+		}
+	}
+
+	return { type: 'javascript', content: bundleContent, codeArguments: [bundleContent] } as StandardBundle;
+}
+
 /**
  * An instrumenter based on the IstanbulJs instrumentation and coverage framework.
  */
 export class IstanbulInstrumenter implements IInstrumenter {
 	/**
-	 * The path to the vaccine to inject. The vaccine is a JavaScript
+	 * The vaccine to inject. The vaccine is a JavaScript
 	 * file with the code to forward the coverage information
 	 * produced by the Istanbul instrumentation.
 	 */
-	private readonly vaccineFilePath: string;
+	private readonly vaccineSource: string;
 
 	/**
 	 * The logger instance to log to.
 	 */
 	private logger: Logger;
 
-	constructor(vaccineFilePath: string, logger: Logger) {
-		this.vaccineFilePath = Contract.requireNonEmpty(vaccineFilePath);
+	constructor(vaccineFilePath: string, logger: Logger, collector: CollectorSpecifier) {
 		Contract.require(
 			fs.existsSync(vaccineFilePath),
 			`The vaccine file to inject "${vaccineFilePath}" must exist!\nCWD:${process.cwd()}`
 		);
+
+		this.vaccineSource = this.loadVaccine(Contract.requireNonEmpty(vaccineFilePath), collector);
 		this.logger = logger;
 	}
 
@@ -70,7 +100,6 @@ export class IstanbulInstrumenter implements IInstrumenter {
 		return async
 			.mapLimit(task.elements, 1, async (taskElement: TaskElement) => {
 				return await this.instrumentOne(
-					task.collector,
 					taskElement,
 					task.excludeFilesPattern,
 					task.originSourcePattern,
@@ -94,7 +123,6 @@ export class IstanbulInstrumenter implements IInstrumenter {
 	 * @param dumpOriginsFile - A file path where all origins from the source map should be dumped in json format, or undefined if no origins should be dumped
 	 */
 	async instrumentOne(
-		collector: CollectorSpecifier,
 		taskElement: TaskElement,
 		excludeBundles: FileExcludePattern,
 		sourcePattern: OriginSourcePattern,
@@ -108,6 +136,18 @@ export class IstanbulInstrumenter implements IInstrumenter {
 			return new TaskResult(0, 0, 0, 0, 1, 0, 0);
 		}
 
+		// Read the (supported) file
+		const bundleContent = fs.readFileSync(taskElement.fromFile, 'utf8');
+		const inputBundle = readBundle(bundleContent, taskElement);
+
+		// We skip files that we have already instrumented
+		if (inputBundle.content.startsWith(IS_INSTRUMENTED_TOKEN)) {
+			if (!taskElement.isInPlace()) {
+				writeToFile(taskElement.toFile, inputBundle.content);
+			}
+			return new TaskResult(0, 0, 0, 1, 0, 0, 0);
+		}
+
 		// We might want to skip the instrumentation of the file
 		if (excludeBundles.isExcluded(taskElement.fromFile)) {
 			if (!taskElement.isInPlace()) {
@@ -116,98 +156,144 @@ export class IstanbulInstrumenter implements IInstrumenter {
 			return new TaskResult(0, 1, 0, 0, 0, 0, 0);
 		}
 
-		const inputFileSource = fs.readFileSync(taskElement.fromFile, 'utf8');
-
-		// We skip files that we have already instrumented
-		if (inputFileSource.startsWith(IS_INSTRUMENTED_TOKEN)) {
-			if (!taskElement.isInPlace()) {
-				writeToFile(taskElement.toFile, inputFileSource);
-			}
-			return new TaskResult(0, 0, 0, 1, 0, 0, 0);
-		}
-
 		// Report progress
 		this.logger.info(`Instrumenting "${path.basename(taskElement.fromFile)}"`);
 
-		let finalSourceMap;
-		let instrumentedSource;
+		// Load the bundles source maps
+		const inputSourceMaps: Array<RawSourceMap | undefined> = loadInputSourceMaps(
+			taskElement.fromFile,
+			inputBundle,
+			taskElement.externalSourceMapFile
+		);
+
+		if (inputSourceMaps.length === 0) {
+			return TaskResult.warning(`Failed loading input source map for ${taskElement.fromFile}.`);
+		}
 
 		// We try to perform the instrumentation with different
 		// alternative configurations of the instrumenter.
 		const configurationAlternatives = this.configurationAlternativesFor(taskElement);
 		for (let i = 0; i < configurationAlternatives.length; i++) {
 			const configurationAlternative = configurationAlternatives[i];
-			let inputSourceMap: RawSourceMap | undefined;
 			try {
-				const instrumenter = istanbul.createInstrumenter(configurationAlternative);
-				inputSourceMap = loadInputSourceMap(
-					inputFileSource,
-					taskElement.fromFile,
-					taskElement.externalSourceMapFile
-				);
-
-				// Based on the source maps of the file to instrument, we can now
-				// decide if we should NOT write an instrumented version of it
-				// and use the original code instead and write it to the target path.
-				//
-				const originSourceFiles = inputSourceMap?.sources ?? [];
-				if (dumpOriginsFile) {
-					this.dumpOrigins(dumpOriginsFile, originSourceFiles);
-				}
-
-				// The main instrumentation (adding coverage statements) is performed now:
-				instrumentedSource = instrumenter.instrumentSync(inputFileSource, taskElement.fromFile, inputSourceMap);
-				this.logger.debug('Instrumentation source maps to:', instrumenter.lastSourceMap()?.sources);
-
-				// In case of a bundle, the initial instrumentation step might have added
-				// too much and undesired instrumentations. Remove them now.
-				const instrumentedSourcemap = instrumenter.lastSourceMap();
-
-				let instrumentedAndCleanedSource = await this.removeUnwantedInstrumentation(
+				return await this.instrumentBundle(
 					taskElement,
-					instrumentedSource,
+					inputBundle,
+					inputSourceMaps,
 					configurationAlternative,
-					sourcePattern,
-					instrumentedSourcemap
+					dumpOriginsFile,
+					sourcePattern
 				);
-
-				instrumentedAndCleanedSource = instrumentedAndCleanedSource
-					.replace(
-						/actualCoverage\s*=\s*coverage\[path\]/g,
-						'actualCoverage=_$registerCoverageObject(coverage[path])'
-					)
-					.replace(/new Function\("return this"\)\(\)/g, "typeof window === 'object' ? window : this");
-
-				// The process also can result in a new source map that we will append in the result.
-				//
-				// `lastSourceMap` === Sourcemap for the last file that was instrumented.
-				finalSourceMap = convertSourceMap.fromObject(instrumenter.lastSourceMap()).toComment();
-
-				// We now can glue together the final version of the instrumented file.
-				const vaccineSource = this.loadVaccine(collector);
-
-				writeToFile(
-					taskElement.toFile,
-					`${IS_INSTRUMENTED_TOKEN} ${vaccineSource} ${instrumentedAndCleanedSource} \n${finalSourceMap}`
-				);
-
-				return new TaskResult(1, 0, 0, 0, 0, 0, 0);
 			} catch (e) {
 				// If also the last configuration alternative failed,
 				// we emit a corresponding warning or signal an error.
 				if (i === configurationAlternatives.length - 1) {
-					if (!inputSourceMap) {
-						return TaskResult.warning(
-							`Failed loading input source map for ${taskElement.fromFile}: ${(e as Error).message}`
-						);
-					}
-					writeToFile(taskElement.toFile, inputFileSource);
+					writeToFile(taskElement.toFile, inputBundle.content);
 					return TaskResult.error(e as Error);
 				}
 			}
 		}
 
 		return new TaskResult(0, 0, 0, 0, 0, 1, 0);
+	}
+
+	private async instrumentBundle(
+		taskElement: TaskElement,
+		inputBundle: Bundle,
+		inputSourceMaps: Array<RawSourceMap | undefined>,
+		configurationAlternative: Partial<istanbul.InstrumenterOptions>,
+		dumpOriginsFile: string | undefined,
+		sourcePattern: OriginSourcePattern
+	) {
+		const instrumenter = istanbul.createInstrumenter(configurationAlternative);
+
+		// Based on the source maps of the file to instrument, we can now
+		// decide if we should NOT write an instrumented version of it
+		// and use the original code instead and write it to the target path.
+		//
+		for (const inputSourceMap of inputSourceMaps.filter(map => map)) {
+			const originSourceFiles = inputSourceMap?.sources ?? [];
+			if (dumpOriginsFile) {
+				this.dumpOrigins(dumpOriginsFile, originSourceFiles);
+			}
+		}
+
+		// The main instrumentation (adding coverage statements) is performed now:
+		const instrumentedSources: string[] = [];
+		const finaleSourceMaps: string[] = [];
+		for (let i = 0; i < inputBundle.codeArguments.length; i++) {
+			const instrumented = instrumenter.instrumentSync(
+				inputBundle.codeArguments[i],
+				taskElement.fromFile,
+				inputSourceMaps[i]
+			);
+
+			// In case of a bundle, the initial instrumentation step might have added
+			// too much and undesired instrumentations. Remove them now.
+			const instrumentedSourcemap = instrumenter.lastSourceMap();
+
+			let instrumentedAndCleanedSource = await this.removeUnwantedInstrumentation(
+				taskElement,
+				instrumented,
+				configurationAlternative,
+				sourcePattern,
+				instrumentedSourcemap
+			);
+
+			instrumentedAndCleanedSource = instrumentedAndCleanedSource
+				.replace(
+					/actualCoverage\s*=\s*coverage\[path\]/g,
+					'actualCoverage=_$registerCoverageObject(coverage[path])'
+				)
+				.replace(/new Function\("return this"\)\(\)/g, "typeof window === 'object' ? window : this");
+
+			instrumentedSources.push(instrumentedAndCleanedSource);
+
+			// The process also can result in a new source map that we will append in the result.
+			//
+			// `lastSourceMap` === Sourcemap for the last file that was instrumented.
+			finaleSourceMaps.push(convertSourceMap.fromObject(instrumenter.lastSourceMap()).toComment());
+
+			this.logger.debug('Instrumentation source maps to:', instrumenter.lastSourceMap()?.sources);
+		}
+
+		this.writeBundleFile(taskElement.toFile, inputBundle, instrumentedSources, finaleSourceMaps);
+
+		return new TaskResult(1, 0, 0, 0, 0, 0, 0);
+	}
+
+	private writeBundleFile(
+		toFile: string,
+		inputBundle: Bundle,
+		instrumentedSources: string[],
+		finalSourceMaps: string[]
+	) {
+		Contract.require(
+			instrumentedSources.length === finalSourceMaps.length,
+			'Assuming alignment of source code and source map arrays.'
+		);
+		if (inputBundle.type === 'gwt') {
+			Contract.require(
+				instrumentedSources.length === 1,
+				'Assuming only one code fragment to be passed as argument.'
+			);
+
+			const processedCodeString = JSON.stringify(`${this.vaccineSource} ${instrumentedSources[0]}`);
+			if (inputBundle.codeAsArrayArgument) {
+				writeToFile(toFile, `${IS_INSTRUMENTED_TOKEN} ${inputBundle.functionName}([${processedCodeString}]);`);
+			} else {
+				writeToFile(toFile, `${IS_INSTRUMENTED_TOKEN} ${inputBundle.functionName}(${processedCodeString});`);
+			}
+		} else {
+			Contract.require(
+				instrumentedSources.length === 1,
+				'Assuming only one code fragment to be passed as argument for JavaScript bundles.'
+			);
+			writeToFile(
+				toFile,
+				`${IS_INSTRUMENTED_TOKEN} ${this.vaccineSource} ${instrumentedSources[0]} \n${finalSourceMaps[0]}`
+			);
+		}
 	}
 
 	private async removeUnwantedInstrumentation(
@@ -261,16 +347,20 @@ export class IstanbulInstrumenter implements IInstrumenter {
 	 *
 	 * @param collector - The collector to send coverage information to.
 	 */
-	private loadVaccine(collector: CollectorSpecifier) {
+	private loadVaccine(filePath: string, collector: CollectorSpecifier) {
 		// We first replace parameters in the file with the
 		// actual values, for example, the collector to send the coverage information to.
-		return fs.readFileSync(this.vaccineFilePath, 'utf8').replace(/\$REPORT_TO_URL/g, collector.url);
+		return fs.readFileSync(filePath, 'utf8').replace(/\$REPORT_TO_URL/g, collector.url);
 	}
 
 	/**
 	 * @returns whether the given file is supported for instrumentation.
 	 */
 	private isFileTypeSupported(fileName: string) {
+		if (fileName.endsWith('.devmode.js') || fileName.endsWith('.nocache.js')) {
+			// GWT dev mode files.
+			return false;
+		}
 		const ext = path.extname(fileName).toLowerCase();
 		return ext === '.js' || ext === '.mjs';
 	}
@@ -334,6 +424,26 @@ export async function loadSourceMap(
 		return await new SourceMapConsumer(instrumentedSourceMap);
 	}
 	return undefined;
+}
+
+function loadInputSourceMaps(
+	taskFile: string,
+	bundleFile: Bundle,
+	externalSourceMapFile: Optional<SourceMapReference>
+): Array<RawSourceMap | undefined> {
+	if (isGwtBundle(bundleFile)) {
+		return loadInputSourceMapsGwt(taskFile, bundleFile);
+	} else {
+		return loadInputSourceMapsStandard(taskFile, bundleFile, externalSourceMapFile);
+	}
+}
+
+function loadInputSourceMapsStandard(
+	taskFile: string,
+	bundleFile: StandardBundle,
+	externalSourceMapFile: Optional<SourceMapReference>
+): Array<RawSourceMap | undefined> {
+	return bundleFile.codeArguments.map(code => loadInputSourceMap(code, taskFile, externalSourceMapFile));
 }
 
 /**
@@ -405,16 +515,6 @@ export function sourceMapFromCodeComment(sourcecode: string, sourceFilePath: str
 	} else {
 		return undefined;
 	}
-}
-
-/**
- * Read a source map from a source map file.
- *
- * @param mapFilePath
- */
-export function sourceMapFromMapFile(mapFilePath: string): RawSourceMap | undefined {
-	const content: string = fs.readFileSync(mapFilePath, 'utf8');
-	return JSON.parse(content) as RawSourceMap;
 }
 
 function writeToFile(filePath: string, fileContent: string) {

@@ -7,6 +7,29 @@ import micromatch from 'micromatch';
  */
 export abstract class SourceMapReference {}
 
+type BaseBundle = { content: string; codeArguments: string[] };
+
+/**
+ * A standard JavaScript bundle. Produced, for example, with bundlers
+ * like Webpack or Vite.
+ */
+export type StandardBundle = BaseBundle & { type: 'javascript' };
+
+/**
+ * A Google Web-Toolkit Js bundle file.
+ */
+export type GwtBundle = BaseBundle & {
+	type: 'gwt';
+	functionName: string;
+	fragmentId: string;
+	codeAsArrayArgument: boolean;
+};
+
+/**
+ * A bundle to be handled by the instrumenter.
+ */
+export type Bundle = BaseBundle & (StandardBundle | GwtBundle);
+
 /**
  * One element of an instrumentation task.
  * It corresponds to instrumenting a single file.

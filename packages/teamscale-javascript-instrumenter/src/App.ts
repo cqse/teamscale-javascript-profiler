@@ -1,5 +1,5 @@
 import { ArgumentParser } from 'argparse';
-import { InstrumentationTask, TaskResult } from './instrumenter/Task';
+import {CollectorSpecifier, InstrumentationTask, TaskResult} from './instrumenter/Task';
 import { IInstrumenter, IstanbulInstrumenter } from './instrumenter/Instrumenter';
 import { Contract } from '@cqse/commons';
 import { ConfigurationParameters, TaskBuilder } from './instrumenter/TaskBuilder';
@@ -173,14 +173,14 @@ export class App {
 		const task: InstrumentationTask = this.createInstrumentationTask(config);
 		Contract.require(task.elements.length > 0, 'The instrumentation task must not be empty.');
 
-		return this.createInstrumenter(logger ?? this.buildDummyLogger()).instrument(task);
+		return this.createInstrumenter(logger ?? this.buildDummyLogger(), task.collector).instrument(task);
 	}
 
 	private static createInstrumentationTask(config: ConfigurationParameters): InstrumentationTask {
 		return new TaskBuilder().addFromConfig(config).build();
 	}
 
-	private static createInstrumenter(logger: Logger): IInstrumenter {
+	private static createInstrumenter(logger: Logger, collector: CollectorSpecifier): IInstrumenter {
 		// We have to deal with two different `__dirname` versions,
 		// which depends on whether we run from within the IDE or from
 		// the command line:
@@ -188,9 +188,9 @@ export class App {
 		const pathVariant1 = path.join(__dirname, '../vaccine.js');
 		const pathVariant2 = path.join(__dirname, '../dist/vaccine.js');
 		if (existsSync(pathVariant1)) {
-			return new IstanbulInstrumenter(pathVariant1, logger);
+			return new IstanbulInstrumenter(pathVariant1, logger, collector);
 		} else {
-			return new IstanbulInstrumenter(pathVariant2, logger);
+			return new IstanbulInstrumenter(pathVariant2, logger, collector);
 		}
 	}
 }

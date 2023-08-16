@@ -45,7 +45,7 @@ fi
 npx cypress install
 
 # Run the test with the memory profiler attached
-/usr/bin/time -o "$PROFILING_RESULTS_FILE"  -f "%M %e" \
+gnutime -o "$PROFILING_RESULTS_FILE"  -f "%M %e" \
     npx cypress run \
         --e2e \
         --reporter "junit" \

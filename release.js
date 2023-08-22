@@ -60,7 +60,9 @@ async function incrementVersionOfAllPackages(newVersion) {
 }
 
 async function updateChangelog(changelogPath, newVersion) {
-	if (!(await fileExists(changelogPath))) return;
+	if (!(await fileExists(changelogPath))) {
+		return;
+	}
 
 	const changelogContent = await fs.readFile(changelogPath, 'utf8');
 	const updatedChangelogContent = changelogContent.replace('# New Release', `# New Release\n\n# ${newVersion}`);

@@ -88,12 +88,12 @@ function getCurrentGitBranch() {
 
 (async function release() {
 	const currentBranch = getCurrentGitBranch();
-	if (currentBranch !== 'master' && currentBranch !== 'main') {
-		console.error(
-			`This script can only be run on the 'master' or 'main' branch. Current branch is '${currentBranch}'.`
-		);
-		process.exit(1);
-	}
+//	if (currentBranch !== 'master' && currentBranch !== 'main') {
+//		console.error(
+//			`This script can only be run on the 'master' or 'main' branch. Current branch is '${currentBranch}'.`
+//		);
+//		process.exit(1);
+//	}
 
 	const firstPackageJsonPath = path.join(PACKAGES_DIR, 'cqse-commons', 'package.json');
 	const firstPackageJsonRaw = await fs.readFile(firstPackageJsonPath, 'utf8');

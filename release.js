@@ -6,16 +6,16 @@ const readline = require('readline');
 const PACKAGES_DIR = './packages';
 const CHANGELOG_FILENAME = 'CHANGELOG.md';
 
-const rl = readline.createInterface({
+const consoleInterface = readline.createInterface({
 	input: process.stdin,
 	output: process.stdout
 });
 
 function askQuestion(query) {
 	return new Promise(resolve => {
-		rl.question(query, answer => {
+		consoleInterface.question(query, answer => {
 			resolve(answer);
-			rl.close();
+			consoleInterface.close();
 		});
 	});
 }

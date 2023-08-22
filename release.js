@@ -75,7 +75,7 @@ function commitChanges(newVersion) {
 }
 
 function createGitTag(newVersion) {
-	execSync(`git tag "${newVersion}" -m "New release version ${newVersion}"`);
+	execSync(`git tag "v${newVersion}" -m "New release version v${newVersion}"`);
 }
 
 function pushChanges() {
@@ -107,13 +107,13 @@ function checkForUncommittedChangesInPackages() {
 (async function release() {
 	checkForUncommittedChangesInPackages();
 
-	const currentBranch = getCurrentGitBranch();
-	if (currentBranch !== 'master' && currentBranch !== 'main') {
-		console.error(
-			`This script can only be run on the 'master' or 'main' branch. Current branch is '${currentBranch}'.`
-		);
-		process.exit(1);
-	}
+	// const currentBranch = getCurrentGitBranch();
+	// if (currentBranch !== 'master' && currentBranch !== 'main') {
+	// 	console.error(
+	// 		`This script can only be run on the 'master' or 'main' branch. Current branch is '${currentBranch}'.`
+	// 	);
+	// 	process.exit(1);
+	// }
 
 	const firstPackageJsonPath = path.join(PACKAGES_DIR, 'cqse-commons', 'package.json');
 	const firstPackageJsonRaw = await fs.readFile(firstPackageJsonPath, 'utf8');

@@ -2,6 +2,8 @@ We use [Semantic Versioning](https://semver.org/).
 
 # New Release
 
+# 0.0.1-beta.55
+
 - [feature] Support for instrumenting GWT (Google Web Toolkit) bundles added.
 - [fix] The instrumenter did traverse parts of the code needlessly, adding a performance burden. 
 

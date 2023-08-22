@@ -1,72 +1,101 @@
 const fs = require('fs').promises;
 const path = require('path');
 const { execSync } = require('child_process');
+const readline = require('readline');
 
 const PACKAGES_DIR = './packages';
 const CHANGELOG_FILENAME = 'CHANGELOG.md';
 
-async function incrementVersionOfAllPackages() {
-    const packageDirectories = await fs.readdir(PACKAGES_DIR);
+const rl = readline.createInterface({
+	input: process.stdin,
+	output: process.stdout
+});
 
-    for (const packageDir of packageDirectories) {
-        const packageJsonPath = path.join(PACKAGES_DIR, packageDir, 'package.json');
+function askQuestion(query) {
+	return new Promise(resolve => {
+		rl.question(query, answer => {
+			resolve(answer);
+			rl.close();
+		});
+	});
+}
 
-        if (await fs.exists(packageJsonPath)) {
-            const packageJson = require(packageJsonPath);
-            
-            let newVersion;
-            if (packageJson.version.includes('beta')) {
-                // Increment the beta version
-                const [major, minor, patch, beta, betaVersion] = packageJson.version.match(/(\d+)\.(\d+)\.(\d+)-beta\.(\d+)/).slice(1);
-                const newBetaVersion = parseInt(betaVersion, 10) + 1;
-                newVersion = `${major}.${minor}.${patch}-beta.${newBetaVersion}`;
-            } else {
-                // Increment the patch version
-                const [major, minor, patch] = packageJson.version.match(/(\d+)\.(\d+)\.(\d+)/).slice(1);
-                const newPatchVersion = parseInt(patch, 10) + 1;
-                newVersion = `${major}.${minor}.${newPatchVersion}`;
-            }
+async function fileExists(filePath) {
+	try {
+		await fs.access(filePath);
+		return true;
+	} catch (err) {
+		return false;
+	}
+}
 
-            packageJson.version = newVersion;
-            await fs.writeFile(packageJsonPath, JSON.stringify(packageJson, null, 2));
+function incrementVersion(currentVersion) {
+	if (currentVersion.includes('beta')) {
+		const [major, minor, patch, beta] = currentVersion.match(/(\d+)\.(\d+)\.(\d+)-beta\.(\d+)/).slice(1);
+		const newBetaVersion = parseInt(beta, 10) + 1;
+		return `${major}.${minor}.${patch}-beta.${newBetaVersion}`;
+	} else {
+		const [major, minor, patch] = currentVersion.match(/(\d+)\.(\d+)\.(\d+)/).slice(1);
+		const newPatchVersion = parseInt(patch, 10) + 1;
+		return `${major}.${minor}.${newPatchVersion}`;
+	}
+}
 
-            // Update the changelog of the affected packages.
-            await updateChangelog(path.join(PACKAGES_DIR, packageDir, CHANGELOG_FILENAME), newVersion);
-        }
-    }
+async function incrementVersionOfAllPackages(newVersion) {
+	const packageDirectories = await fs.readdir(PACKAGES_DIR);
+
+	for (const packageDir of packageDirectories) {
+		const packageJsonPath = path.join(PACKAGES_DIR, packageDir, 'package.json');
+
+		if (await fileExists(packageJsonPath)) {
+			const packageJsonRaw = await fs.readFile(packageJsonPath, 'utf8');
+			const packageJson = JSON.parse(packageJsonRaw);
+
+			packageJson.version = newVersion;
+			await fs.writeFile(packageJsonPath, JSON.stringify(packageJson, null, 2));
+
+			await updateChangelog(path.join(PACKAGES_DIR, packageDir, CHANGELOG_FILENAME), newVersion);
+		}
+	}
 }
 
 async function updateChangelog(changelogPath, newVersion) {
-    if (!await fs.exists(changelogPath)) return;
+	if (!(await fileExists(changelogPath))) return;
 
-    const changelogContent = await fs.readFile(changelogPath, 'utf8');
-    const updatedChangelogContent = changelogContent.replace('# New Release', `# ${newVersion}`).replace('# Next Release', `# New Release`);
+	const changelogContent = await fs.readFile(changelogPath, 'utf8');
+	const updatedChangelogContent = changelogContent.replace('# New Release', `# New Release\n\n# ${newVersion}`);
 
-    await fs.writeFile(changelogPath, updatedChangelogContent);
+	await fs.writeFile(changelogPath, updatedChangelogContent);
 }
 
 function commitChanges(newVersion) {
-    execSync(`git commit -a -m "New release ${newVersion}"`);
+	execSync(`git commit -a -m "New release ${newVersion}"`);
 }
 
 function createGitTag(newVersion) {
-    execSync(`git tag "${newVersion}" -m "New release version ${newVersion}"`);
+	execSync(`git tag "${newVersion}" -m "New release version ${newVersion}"`);
 }
 
 function pushChanges() {
-    execSync('git push --tags');
+	execSync('git push --tags');
 }
 
 (async function release() {
-    await incrementVersionOfAllPackages();
+	const firstPackageJsonPath = path.join(PACKAGES_DIR, 'cqse-commons', 'package.json');
+	const firstPackageJsonRaw = await fs.readFile(firstPackageJsonPath, 'utf8');
+	const firstPackageJson = JSON.parse(firstPackageJsonRaw);
+	const currentVersion = firstPackageJson.version;
 
-    // Assuming the same version for all packages (based on the first package)
-    const firstPackageJsonPath = path.join(PACKAGES_DIR, 'cqse-commons', 'package.json');
-    const firstPackageJson = require(firstPackageJsonPath);
-    const newVersion = firstPackageJson.version;
+	const newVersion = incrementVersion(currentVersion);
+	await incrementVersionOfAllPackages(newVersion);
 
-    commitChanges(newVersion);
-    createGitTag(newVersion);
-    pushChanges();
+	const answer = await askQuestion(`Do you want to create a tag and push for version ${newVersion}? (yes/no) `);
+	if (answer.trim().toLowerCase() === 'yes') {
+		commitChanges(newVersion);
+		createGitTag(newVersion);
+		pushChanges();
+		console.log(`Release for version ${newVersion} completed successfully.`);
+	} else {
+		console.log(`Release for version ${newVersion} aborted by user.`);
+	}
 })();
-

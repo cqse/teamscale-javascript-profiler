@@ -71,7 +71,7 @@ jobs:
         working-directory: ./packages/cqse-commons
         run: |
           pnpm config set //registry.npmjs.org/:_authToken ${NPM_TOKEN}
-          pnpm publish --ignore-scripts
+          pnpm publish --ignore-scripts --no-git-checks
         env:
           NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
       - name: Publish the Collector
@@ -79,7 +79,7 @@ jobs:
         working-directory: ./packages/teamscale-coverage-collector
         run: |
           pnpm config set //registry.npmjs.org/:_authToken ${NPM_TOKEN}
-          pnpm publish --ignore-scripts
+          pnpm publish --ignore-scripts --no-git-checks
         env:
           NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
       - name: Publish the Instrumenter
@@ -87,7 +87,7 @@ jobs:
         working-directory: ./packages/teamscale-javascript-instrumenter
         run: |
           pnpm config set //registry.npmjs.org/:_authToken ${NPM_TOKEN}
-          pnpm publish --ignore-scripts
+          pnpm publish --ignore-scripts --no-git-checks
         env:
           NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
 

@@ -1,0 +1,34 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "rangeStrategy": "bump",
+  "separateMajorMinor": false,
+  "extends": [
+    "workarounds:all",
+    "group:monorepos"
+  ],
+  "packageRules": [
+    {
+      "matchPackagePatterns": [
+        "*"
+      ],
+      "reviewers": [
+        "stahlbauer",
+        "DreierF"
+      ]
+    },
+    {
+      "matchManagers": [
+        "npm"
+      ],
+      "matchPackagePatterns": [
+        "*"
+      ],
+      "matchUpdateTypes": [
+        "minor",
+        "patch"
+      ],
+      "groupName": "all non-major npm dependencies",
+      "groupSlug": "all-minor-patch-npm"
+    }
+  ]
+}

@@ -70,24 +70,24 @@ jobs:
         if: startsWith(github.ref, 'refs/tags/v')
         working-directory: ./packages/cqse-commons
         run: |
-          npm config set //registry.npmjs.org/:_authToken ${NPM_TOKEN}
-          npm publish --ignore-scripts
+          pnpm config set //registry.npmjs.org/:_authToken ${NPM_TOKEN}
+          pnpm publish --ignore-scripts
         env:
           NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
       - name: Publish the Collector
         if: startsWith(github.ref, 'refs/tags/v')
         working-directory: ./packages/teamscale-coverage-collector
         run: |
-          npm config set //registry.npmjs.org/:_authToken ${NPM_TOKEN}
-          npm publish --ignore-scripts
+          pnpm config set //registry.npmjs.org/:_authToken ${NPM_TOKEN}
+          pnpm publish --ignore-scripts
         env:
           NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
       - name: Publish the Instrumenter
         if: startsWith(github.ref, 'refs/tags/v')
         working-directory: ./packages/teamscale-javascript-instrumenter
         run: |
-          npm config set //registry.npmjs.org/:_authToken ${NPM_TOKEN}
-          npm publish --ignore-scripts
+          pnpm config set //registry.npmjs.org/:_authToken ${NPM_TOKEN}
+          pnpm publish --ignore-scripts
         env:
           NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
 

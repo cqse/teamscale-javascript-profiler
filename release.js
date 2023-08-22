@@ -86,7 +86,27 @@ function getCurrentGitBranch() {
 	return execSync('git rev-parse --abbrev-ref HEAD', { encoding: 'utf8' }).trim();
 }
 
+function revertPackagesChanges() {
+	return execSync('git checkout -- ./packages');
+}
+
+function checkForUncommittedChangesInPackages() {
+	const gitStatusOutput = execSync('git status --porcelain', { encoding: 'utf8' });
+	const modifiedFilesInPackages = gitStatusOutput
+		.split('\n')
+		.some(line => line.trim().startsWith('M') && line.includes('packages'));
+
+	if (modifiedFilesInPackages) {
+		console.error(
+			'There are uncommitted changes within the packages. Please commit or stash them before releasing.'
+		);
+		process.exit(1);
+	}
+}
+
 (async function release() {
+	checkForUncommittedChangesInPackages();
+
 	const currentBranch = getCurrentGitBranch();
 	if (currentBranch !== 'master' && currentBranch !== 'main') {
 		console.error(
@@ -110,6 +130,7 @@ function getCurrentGitBranch() {
 		pushChanges();
 		console.log(`Release for version ${newVersion} completed successfully.`);
 	} else {
+		revertPackagesChanges();
 		console.log(`Release for version ${newVersion} aborted by user.`);
 	}
 })();

@@ -2,12 +2,6 @@ We use [Semantic Versioning](https://semver.org/).
 
 # New Release
 
-# 0.0.1-beta.59
-
-# 0.0.1-beta.58
-
-# 0.0.1-beta.57
-
 # 0.0.1-beta.49
 
 - [feature] Coverage uploading via proxy is now supported.

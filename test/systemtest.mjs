@@ -37,7 +37,70 @@ const ARGS = process.argv.slice(2);
  * the expected coverage produced by our tool chain.
  */
 const caseStudies = [
-
+	{
+		name: BASELINE_STUDY,
+		rootDir: 'test/casestudies/baseline-empty-js',
+		distDir: 'dist',
+		expectCoveredLines: {},
+		expectUncoveredLines: {},
+		excludeOrigins: [],
+		includeOrigins: []
+	},
+	{
+		name: 'vite-react-app',
+		rootDir: 'test/casestudies/vite-react-app',
+		distDir: 'dist',
+		expectCoveredLines: {
+			'../../src/App.jsx': [6, 14]
+		},
+		expectUncoveredLines: {},
+		excludeOrigins: [],
+		includeOrigins: [`'../../src/**/*.*'`],
+		maxNormTimeFraction: 1.1
+	},
+	{
+		name: 'vite-react-ts-coverable-app',
+		rootDir: 'test/casestudies/vite-react-ts-coverable-app',
+		distDir: 'dist',
+		expectCoveredLines: {
+			'../../src/App.tsx': [6, 11, 23, 27, 32, 33, 34]
+		},
+		expectUncoveredLines: {},
+		excludeOrigins: [],
+		includeOrigins: [`'../../src/**/*.*'`],
+		maxNormTimeFraction: 1.5
+	},
+	{
+		name: 'angular-hero-app',
+		rootDir: 'test/casestudies/angular-hero-app',
+		distDir: 'dist',
+		expectCoveredLines: {
+			'src/app/heroes/heroes.component.ts': [11, 12, 22, 35, 36],
+			'src/app/hero-detail/hero-detail.component.ts': [23, 27, 28, 29, 33]
+		},
+		expectUncoveredLines: {
+			'node_modules/zone.js/fesm2015/zone.js': ['1-30', '70-90', 28, 20, 80],
+			'src/app/heroes/heroes.component.ts': ['1-10', 15, 16, '18-20', '37-50']
+		},
+		excludeOrigins: [],
+		includeOrigins: [`'src/app/**/*.*'`],
+		maxNormTimeFraction: 8.0
+	},
+	{
+		name: 'angular-hero-app-with-excludes',
+		rootDir: 'test/casestudies/angular-hero-app',
+		distDir: 'dist',
+		expectCoveredLines: {
+			'src/app/hero-detail/hero-detail.component.ts': [13, 17, 18, 19]
+		},
+		expectUncoveredLines: {
+			'src/app/heroes/heroes.component.ts': [11, 12, 22, 35, 36],
+			'node_modules/zone.js/fesm2015/zone.js': [17, 90, 28, 1054]
+		},
+		excludeOrigins: [`'src/app/heroes/*.*'`, `'node_modules/**/*.*'`, `'webpack/**/*'`],
+		includeOrigins: [],
+		maxNormTimeFraction: 9.0
+	}
 ];
 
 /**

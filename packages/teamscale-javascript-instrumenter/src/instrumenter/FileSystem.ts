@@ -1,8 +1,9 @@
 import { InvalidConfigurationException } from '@cqse/commons';
 import * as fs from 'fs';
-import mkdirp from 'mkdirp';
+import * as mkdirp from 'mkdirp';
 import path from 'path';
 import { glob } from 'glob';
+import { RawSourceMap } from 'source-map';
 
 /**
  * Does the given `path` point to an existing file?
@@ -34,6 +35,27 @@ export function ensureExistingDirectory(path: string): void {
 }
 
 /**
+ * Given a root folder find a folder with a given name.
+ */
+export function findSubFolders(startFromFolder: string, folderName: string): string[] {
+	const matches: string[] = [];
+	const entries = fs.readdirSync(startFromFolder, { withFileTypes: true });
+
+	for (const entry of entries) {
+		const fullPath = path.join(startFromFolder, entry.name);
+		if (entry.name === folderName && entry.isDirectory()) {
+			matches.push(fullPath);
+		}
+		if (entry.isDirectory()) {
+			const nestedMatches = findSubFolders(fullPath, folderName);
+			matches.push(...nestedMatches);
+		}
+	}
+
+	return matches;
+}
+
+/**
  * Is the given directory empty?
  */
 export function isDirectoryEmpty(path: string): boolean {
@@ -59,4 +81,14 @@ export function expandToFileSet(toExpand: string): string[] {
 	}
 
 	return glob.sync(globPattern, { nodir: true });
+}
+
+/**
+ * Read a source map from a source map file.
+ *
+ * @param mapFilePath
+ */
+export function sourceMapFromMapFile(mapFilePath: string): RawSourceMap | undefined {
+	const content: string = fs.readFileSync(mapFilePath, 'utf8');
+	return JSON.parse(content) as RawSourceMap;
 }

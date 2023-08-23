@@ -8,7 +8,7 @@ export function isWebWorker(): boolean {
 /**
  * Return the global universe object (in a Web browser: The window object).
  */
-export function universe(): {[k: string]: any} {
+export function universe(): Window {
 	return getWindow();
 }
 
@@ -22,8 +22,14 @@ export function hasWindow(): boolean {
 /**
  * Returns the window object.
  */
-export function getWindow(): {[k: string]: any} & EventTarget {
+export function getWindow(): Window {
 	return window;
+}
+
+declare global {
+	interface Window {
+		[key: string]: unknown;
+	}
 }
 
 /**

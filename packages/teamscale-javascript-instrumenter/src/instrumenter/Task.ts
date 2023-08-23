@@ -1,12 +1,34 @@
 import { Optional } from 'typescript-optional';
 import { Contract } from '@cqse/commons';
-import matching from 'micromatch';
-import path from 'path';
+import micromatch from 'micromatch';
 
 /**
  * An abstract source map type.
  */
 export abstract class SourceMapReference {}
+
+type BaseBundle = { content: string; codeArguments: string[] };
+
+/**
+ * A standard JavaScript bundle. Produced, for example, with bundlers
+ * like Webpack or Vite.
+ */
+export type StandardBundle = BaseBundle & { type: 'javascript' };
+
+/**
+ * A Google Web-Toolkit Js bundle file.
+ */
+export type GwtBundle = BaseBundle & {
+	type: 'gwt';
+	functionName: string;
+	fragmentId: string;
+	codeAsArrayArgument: boolean;
+};
+
+/**
+ * A bundle to be handled by the instrumenter.
+ */
+export type Bundle = BaseBundle & (StandardBundle | GwtBundle);
 
 /**
  * One element of an instrumentation task.
@@ -100,27 +122,24 @@ export class OriginSourcePattern {
 
 		const normalizedOriginFiles = originFiles.map(normalizePath);
 		if (this.exclude) {
-			const matchedToExclude = matching(normalizedOriginFiles, this.exclude);
+			const matchedToExclude = micromatch(normalizedOriginFiles, this.exclude);
 			if (originFiles.length === matchedToExclude.length) {
 				return false;
 			}
 		}
 
 		if (this.include) {
-			const matchedToInclude = matching(normalizedOriginFiles, this.include || ['**']);
-			return matchedToInclude.length > 0;
+			return micromatch.some(normalizedOriginFiles, this.include || ['**']);
 		}
 
 		return true;
 	}
-
 }
 
 /**
  * Pattern describing files (bundles) to not instrument.
  */
 export class FileExcludePattern {
-
 	/**
 	 * Glob pattern describing a set of files to be excluded in the instrumentation process.
 	 */
@@ -134,7 +153,7 @@ export class FileExcludePattern {
 	 * Return `true` if the given `filePath` is matched by any of the patterns in `exclude`.
 	 */
 	public isExcluded(filePath: string): boolean {
-		return matching([filePath], this.exclude).length === 1;
+		return micromatch.isMatch(normalizePath(filePath), this.exclude);
 	}
 }
 
@@ -165,14 +184,11 @@ function normalizeGlobPattern(pattern: string | undefined): string | undefined {
 }
 
 function normalizePath(toNormalize: string): string {
-	return removeTrailingCurrentWorkingDir(toNormalize);
+	return removeTrailingCurrentWorkingDir(toNormalize.replace(/\\/g, '/'));
 }
 
 function removeTrailingCurrentWorkingDir(removeFrom: string): string {
-	return removePrefix(
-		'webpack:///',
-		removePrefix('.' + path.sep, removeFrom)
-	);
+	return removePrefix('webpack:///', removePrefix('./', removeFrom));
 }
 
 function removePrefix(prefix: string, removeFrom: string): string {

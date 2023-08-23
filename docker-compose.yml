@@ -4,4 +4,4 @@ services:
     image: javascript-profiler
     volumes:
       - ./:/teamscale-javascript-profiler
-    command: sh -c "yarn install && yarn systemtest"
+    command: sh -c "pnpm install && pnpm build && node ./test/systemtest.mjs release"

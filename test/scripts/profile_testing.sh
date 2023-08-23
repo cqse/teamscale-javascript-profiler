@@ -6,7 +6,7 @@ source "$SCRIPT_DIR"/common.sh.inc
 # We assume that this script is executed from the
 # root of the JS Profiler project.
 
-if [ ! -f "package.json" ]
+if [ ! -f "LICENSE" ]
 then
     echo "Please run the script from the root of the repository."
     exit 1
@@ -35,23 +35,46 @@ fi
 
 BASE_URL="http://localhost:${SERVER_PORT}"
 INTEGRATION_FOLDER="test/integration/${STUDY_NAME}/"
-
 PROFILING_RESULTS_FILE="bench-perf-stats.dat"
 if [ -f $PROFILING_RESULTS_FILE ]
 then
   rm $PROFILING_RESULTS_FILE
 fi
 
+
+npx cypress install
+if [ "$STUDY_NAME" = "grafana" ]
+then
+cd test/casestudies/grafana
+
+
+if [ -f $PROFILING_RESULTS_FILE ]
+then
+  rm $PROFILING_RESULTS_FILE
+fi
+
 # Run the test with the memory profiler attached
-/usr/bin/time -o "$PROFILING_RESULTS_FILE"  -f "%M %e" \
-    npx cypress run \
-        --e2e \
-        --reporter "junit" \
-        --browser "chrome" \
-        --headless \
-        --quiet \
-        --spec "${INTEGRATION_FOLDER}*.spec.js" \
-        --config baseUrl="${BASE_URL}",specPattern="${INTEGRATION_FOLDER}*.spec.js"
+gnutime -o "$PROFILING_RESULTS_FILE"  -f "%M %e" \
+    yarn e2e
+
+./scripts/grafana-server/kill-server
+
+
+# Collect and compute the results
+else
+# Run the test with the memory profiler attached
+gnutime -o "$PROFILING_RESULTS_FILE"  -f "%M %e" \
+     npx cypress run \
+            --e2e \
+            --reporter "junit" \
+            --browser "chrome" \
+            --headless \
+            --quiet \
+            --spec "${INTEGRATION_FOLDER}*.spec.js" \
+            --config baseUrl="${BASE_URL}",specPattern="${INTEGRATION_FOLDER}*.spec.js"
+
+
+fi
 
 # Collect and compute the results
 DURATION_SECS=$(cut -f2 -d" " < $PROFILING_RESULTS_FILE)

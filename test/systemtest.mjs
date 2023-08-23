@@ -1,6 +1,6 @@
-import net from "net";
+import net from 'net';
 import tempfile from 'tempfile';
-import { exec, execSync, spawn } from 'child_process';
+import { execSync, spawn } from 'child_process';
 import path from 'path';
 import * as fs from 'fs';
 import * as fsp from 'fs/promises';
@@ -12,7 +12,11 @@ import treeKill from 'tree-kill';
  * The name of the study that will not be instrumented.
  */
 const BASELINE_STUDY = 'baseline-empty-js';
-
+/**
+ * Arg param to extend the systemtest with casestudies for extensive memory/time consumption testing.
+ * @type {string}
+ */
+const RELEASE_TEST = "release";
 const NUM_PERF_MEASURE_RUNS = 2;
 
 const KEY_PERF_TESTING_NO_INSTRUMENTATION = 'testingUninstrumented';
@@ -22,40 +26,31 @@ const KEY_PERF_INSTRUMENTATION = 'Instrumentation';
 const __filename = fileURLToPath(import.meta.url);
 
 const PROFILER_ROOT_DIR = path.dirname(path.dirname(__filename));
+const CASESTUDIES_DIR = path.join('test', 'casestudies');
 const INSTRUMENTER_DIR = path.join('packages', 'teamscale-javascript-instrumenter');
 const COLLECTOR_DIR = path.join('packages', 'teamscale-coverage-collector');
 const SERVER_PORT = 9000;
 const TEAMSCALE_MOCK_PORT = 10088;
-
+const ARGS = process.argv.slice(2);
 /**
  * Definition of the case studies along with
  * the expected coverage produced by our tool chain.
  */
 const caseStudies = [
 
-	{
-		name: 'angular-realworld-example-app',
-		rootDir: 'test/casestudies/angular-realworld-example-app',
-		distDir: 'dist',
-		expectCoveredLines: {},
-		expectUncoveredLines: {},
-		excludeOrigins: [],
-		includeOrigins: [`'src/app/**/*.*'`],
-		maxNormTimeFraction: 8.0
-	}
 ];
 
 /**
  * Identify the next available port.
  */
 async function identifyNextAvailablePort() {
-	return new Promise( res => {
+	return new Promise(res => {
 		const srv = net.createServer();
 		srv.listen(0, () => {
 			const port = srv.address().port;
-			srv.close(_ => res(port))
+			srv.close(_ => res(port));
 		});
-	})
+	});
 }
 
 /**
@@ -161,7 +156,18 @@ function identifyExpectedButAbsent(actual, expected) {
 function startCollector(coverageFolder, logTargetFile, projectId, collectorPort) {
 	const collector = spawn(
 		'node',
-		[`${COLLECTOR_DIR}/dist/src/main.js`, `--port`, collectorPort, `-f`, `${coverageFolder}`, `-l`, `${logTargetFile}`, `-k`, `-e`, `info`],
+		[
+			`${COLLECTOR_DIR}/dist/src/main.js`,
+			`--port`,
+			collectorPort,
+			`-f`,
+			`${coverageFolder}`,
+			`-l`,
+			`${logTargetFile}`,
+			`-k`,
+			`-e`,
+			`info`
+		],
 		{
 			env: {
 				...process.env,
@@ -172,10 +178,9 @@ function startCollector(coverageFolder, logTargetFile, projectId, collectorPort)
 			},
 			TEAMSCALE_PARTITION: 'mockPartition',
 			TEAMSCALE_BRANCH: 'mockBranch',
-			detached: false				
+			detached: false
 		}
 	);
-
 
 	collector.stdout.on('data', function (data) {
 		console.log('collector stdout: ' + data.toString());
@@ -194,13 +199,20 @@ function startCollector(coverageFolder, logTargetFile, projectId, collectorPort)
  * Start the Web server process.
  * @returns {ChildProcessWithoutNullStreams}
  */
- function startWebServer(distributionFolder) {
+function startWebServer(distributionFolder) {
 	const webserver = spawn(
-		'node',
-		['node_modules/.bin/ws', '--static.maxage', '0', 		
-		'--hostname', 'localhost',
-		'--port', SERVER_PORT,
-		'--directory', distributionFolder],
+		'sh',
+		[
+			'node_modules/.bin/ws',
+			'--static.maxage',
+			'0',
+			'--hostname',
+			'localhost',
+			'--port',
+			SERVER_PORT,
+			'--directory',
+			distributionFolder
+		],
 		{
 			detached: false,
 			killSignal: 'SIGKILL',
@@ -218,7 +230,7 @@ function startCollector(coverageFolder, logTargetFile, projectId, collectorPort)
 		console.error('webserver stderr: ' + data.toString());
 	});
 
-	webserver.on('close', (code) => {
+	webserver.on('close', code => {
 		console.log(`webserver process exited with code ${code}`);
 	});
 
@@ -290,7 +302,7 @@ function summarizePerformanceMeasures(perfMeasuresByStudy) {
 				return valueInCaseOfZero;
 			}
 			return toCheck;
-		}
+		};
 
 		const result = {};
 		result[perfType + 'Base'] = basePerfValue;
@@ -302,7 +314,9 @@ function summarizePerformanceMeasures(perfMeasuresByStudy) {
 		result[perfType + 'NoInstNormalized'] = noInstPerfDiffToBase;
 		result[perfType + 'NormalizedDelta'] = withInstPerfDiffToBase - noInstPerfDiffToBase;
 		result[perfType + 'NormalizedFraction'] = withInstPerfDiffToBase / noInstPerfDiffToBase;
-		result[perfType + 'NormalizedFraction' + String(fractionFactor)] = Math.round(withInstPerfDiffToBase / fractionFactor) / ifZeroElse(1, Math.round(noInstPerfDiffToBase / fractionFactor));
+		result[perfType + 'NormalizedFraction' + String(fractionFactor)] =
+			Math.round(withInstPerfDiffToBase / fractionFactor) /
+			ifZeroElse(1, Math.round(noInstPerfDiffToBase / fractionFactor));
 		result[perfType + 'NormalizedFraction'] = withInstPerfDiffToBase / noInstPerfDiffToBase / fractionFactor;
 		return result;
 	};
@@ -327,25 +341,28 @@ function summarizePerformanceMeasures(perfMeasuresByStudy) {
 			}
 
 			results.push({
-				'study': study.name,
-				...computePerfStats(study, 'memory', 'memory_mb_peak', 100, (value) => Math.ceil(value)),
-				...computePerfStats(study, 'time', 'duration_secs', 1, (value) => Number(value.toPrecision(2)))
+				study: study.name,
+				...computePerfStats(study, 'memory', 'memory_mb_peak', 100, value => Math.ceil(value)),
+				...computePerfStats(study, 'time', 'duration_secs', 1, value => Number(value.toPrecision(2)))
 			});
 		}
 		return results;
-	}
+	};
 
-	const checkPerformanceMeasures = (runtimeResults) => {
-		for (let i=0; i<runtimeResults.length; i++) {
+	const checkPerformanceMeasures = runtimeResults => {
+		for (let i = 0; i < runtimeResults.length; i++) {
 			const runtimeResult = runtimeResults[i];
 			// The baseline study is skipped, that is, a +1 is needed:
-			const study = caseStudies[i+1];
+			const study = caseStudies[i + 1];
 
 			// We only trigger a violation if the time needed for the study itself is larger than 2s
 			if ('maxNormTimeFraction' in study && runtimeResult.timeWithInstNormalized > 2) {
 				const maxValue = study.maxNormTimeFraction;
 				if (runtimeResult.timeNormalizedFraction > maxValue) {
-					console.error(`Time overhead added by the instrumentation was too high! ${runtimeResult.timeNormalizedFraction} > ${maxValue}`, study.name);
+					console.error(
+						`Time overhead added by the instrumentation was too high! ${runtimeResult.timeNormalizedFraction} > ${maxValue}`,
+						study.name
+					);
 					process.exit(6);
 				}
 			}
@@ -354,12 +371,15 @@ function summarizePerformanceMeasures(perfMeasuresByStudy) {
 			if ('maxNormMemoryFraction100' in study && runtimeResult.memoryNormalizedFraction100 > 2) {
 				const maxValue = study.maxNormMemoryFraction100;
 				if (runtimeResult.memoryNormalizedFraction > maxValue) {
-					console.error(`Memory overhead added by the instrumentation was too high! ${runtimeResult.memoryNormalizedFraction} > ${maxValue}`, study.name);
+					console.error(
+						`Memory overhead added by the instrumentation was too high! ${runtimeResult.memoryNormalizedFraction} > ${maxValue}`,
+						study.name
+					);
 					process.exit(7);
 				}
 			}
 		}
-	}
+	};
 
 	const runtimeResults = aggregatePerformanceResults();
 	console.log(runtimeResults);
@@ -377,13 +397,18 @@ function averagePerformance(samples) {
 }
 
 function profileTestingInBrowser(studyName) {
-	const runTestsOnSubjectInBrowser = (studyName) => {
-		const browserPerformanceFile = tempfile('.json');
-		console.log(`## Running Cypress tests on ${studyName}`);
-		const command = `${path.join(PROFILER_ROOT_DIR, 'test', 'scripts', 'profile_testing.sh')} ${studyName} ${SERVER_PORT} ${browserPerformanceFile}`;
+	const runTestsOnSubjectInBrowser = studyName => {
+		const browserPerformanceFile = tempfile({ extension: '.json' });
+		console.log('## Running Cypress tests on the subject');
+		const command = `${path.join(
+			PROFILER_ROOT_DIR,
+			'test',
+			'scripts',
+			'profile_testing.sh'
+		)} ${studyName} ${SERVER_PORT} ${browserPerformanceFile}`;
 		execSync(command, { cwd: PROFILER_ROOT_DIR, stdio: 'inherit' });
 		return JSON.parse(fs.readFileSync(browserPerformanceFile));
-	}
+	};
 
 	// We do one run that is just for warm-up. Its measures are not considered.
 	runTestsOnSubjectInBrowser(studyName);
@@ -406,19 +431,22 @@ function instrumentStudy(study, collectorPort) {
 	/**
 	 * Attention: This does wildcard expansion!!
 	 * 		See https://stackoverflow.com/questions/11717281/wildcards-in-child-process-spawn
-	 */	
-	const excludeArgument =
-		study.excludeOrigins.length > 0 ? `--exclude-origin ${study.excludeOrigins.join(' ')}` : '';
-	const includeArgument =
-		study.includeOrigins.length > 0 ? `--include-origin ${study.includeOrigins.join(' ')}` : '';
+	 */
+	const excludeArgument = study.excludeOrigins.length > 0 ? `--exclude-origin ${study.excludeOrigins.join(' ')}` : '';
+	const includeArgument = study.includeOrigins.length > 0 ? `--include-origin ${study.includeOrigins.join(' ')}` : '';
 	console.log('Include/exclude arguments: ', includeArgument, excludeArgument);
 
-	const performanceFile = tempfile('.json');
+	const performanceFile = tempfile({ extension: '.json' });
 	execSync(
-		`${path.join(PROFILER_ROOT_DIR, 'test', 'scripts', 'profile_instrumentation.sh')} ${fullStudyDistPath} ${collectorPort} ${performanceFile} ${excludeArgument} ${includeArgument}`,
+		`${path.join(
+			PROFILER_ROOT_DIR,
+			'test',
+			'scripts',
+			'profile_instrumentation.sh'
+		)} ${fullStudyDistPath} ${collectorPort} ${performanceFile} ${excludeArgument} ${includeArgument}`,
 		{ cwd: INSTRUMENTER_DIR, stdio: 'inherit' }
-	);		
-	return JSON.parse(fs.readFileSync(performanceFile));	
+	);
+	return JSON.parse(fs.readFileSync(performanceFile));
 }
 
 function storePerfResult(perfMeasuresByStudy, studyName, perfKey, perf) {
@@ -430,10 +458,11 @@ function storePerfResult(perfMeasuresByStudy, studyName, perfKey, perf) {
 	studyPerfs[perfKey] = perf;
 }
 
-function buildAngularStudy(study) {
-	console.log('## Build the case study');
-	execSync('yarn install', { cwd: study.rootDir });
-	execSync('npm run ng build -prod', { cwd: study.rootDir });
+function buildGrafana(study) {
+	console.log('## Build Grafana');
+	execSync('rm -rf public/build', { cwd: study.rootDir });
+	execSync('yarn install ', { cwd: study.rootDir, stdio: 'inherit' });
+	execSync('yarn build', { cwd: study.rootDir });
 }
 
 function buildStudy(study) {
@@ -493,8 +522,12 @@ async function startTeamscaleMockServer(study) {
 	return teamscaleServerMock;
 }
 
+
+function unzipProjects() {
+	execSync('unzip *.zip', {cwd: CASESTUDIES_DIR, stdio: 'ignore'});
+}
 function checkTeamscaleServerMockInteractions(mockInstance, study) {
-	const mockedRequests = mockInstance.requests({method: 'POST'}).length;
+	const mockedRequests = mockInstance.requests({ method: 'POST' }).length;
 	if (mockedRequests === 0 && Object.keys(study.expectCoveredLines).length > 0) {
 		throw new Error('No coverage information was sent to the Teamscale mock server!');
 	} else {
@@ -505,14 +538,30 @@ function checkTeamscaleServerMockInteractions(mockInstance, study) {
 await (async function runSystemTest() {
 	const perfStore = {};
 
+	if(ARGS.includes(RELEASE_TEST)){
+		// Add grafana as additional benchmark casestudie
+		caseStudies.push({
+			name: 'grafana',
+			rootDir: 'test/casestudies/grafana',
+			distDir: 'public/build',
+			expectCoveredLines: {
+			},
+			expectUncoveredLines: {
+			},
+			excludeOrigins: ["**/public/build/*.*"],
+			includeOrigins: ["**/public/app/**/*.*"],
+			maxNormTimeFraction: 8.0
+		})
+	}
+	unzipProjects()
 	for (const study of caseStudies) {
 		const collectorPort = await identifyNextAvailablePort();
 		const sessionId = `session-${collectorPort}`;
 
 		console.group('# Case study', study.name);
 		try {
-			if(study.name === "angular-realworld-example-app") {
-				buildAngularStudy(study)
+			if(study.name === "grafana") {
+				buildGrafana(study);
 			} else {
 				buildStudy(study);
 			}
@@ -538,7 +587,12 @@ await (async function runSystemTest() {
 					// Run the tests in the browser on the instrumented version
 					try {
 						const runtimePerformance = profileTestingInBrowser(study.name);
-						storePerfResult(perfStore, study.name, KEY_PERF_TESTING_WITH_INSTRUMENTATION, runtimePerformance);
+						storePerfResult(
+							perfStore,
+							study.name,
+							KEY_PERF_TESTING_WITH_INSTRUMENTATION,
+							runtimePerformance
+						);
 					} finally {
 						console.log('## Stopping the collector');
 						await sleep(1000);

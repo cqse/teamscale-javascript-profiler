@@ -40,6 +40,26 @@ Please see our [HOWTO](https://docs.teamscale.com/howto/recording-test-coverage-
 - [Docker Image with the Teamscale Coverage Collector](https://hub.docker.com/r/cqse/teamscale-coverage-collector/tags/)
 - [Node Package of the Teamscale JavaScript Instrumenter](https://www.npmjs.com/package/@teamscale/javascript-instrumenter)
 
+## Limitations
+
+As any other software, the Teamscale JavaScript Profiler has known limitations:
+
+1. *Instrumentation Performance*. The process of instrumenting code 
+   can require a significant amount of RAM (up to 16GB). 
+   See the [Teamscale Documentation](https://docs.teamscale.com/howto/recording-test-coverage-for-javascript/#instrumenter-runs-out-of-memory) for more details.
+2. *Runtime Performance*. The added statements for recording coverage can decrease
+the performance of the code considerably—by a factor of 2 to 10. 
+   However, this neglectable for most application scenarios—for example, if the application
+is idling most of the time and waiting for user inputs. 
+   In many cases, it is possible to exclude parts of the application from being
+instrumented. See the [Teamscale
+Documentation](https://docs.teamscale.com/howto/recording-test-coverage-for-javascript/#instrumented-app-is-slow). 
+3. *Bundle Sizes.* The bundle sizes are inreased consierably by adding the
+   coverage statements and the data structures for collecting coverage and mapping back to the original code.
+4. *Shipping Original Code.* The instrumented variants of the code currently require to
+   include the source map, and with that the original source code the JavaScript code was
+transpiled (or bundled) from.
+
 ## Releasing
 
 Whenever there is a tested version that should be released, the following steps should be 

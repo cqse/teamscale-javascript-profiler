@@ -48,17 +48,22 @@ As any other software, the Teamscale JavaScript Profiler has known limitations:
    can require a significant amount of RAM (up to 16GB). 
    See the [Teamscale Documentation](https://docs.teamscale.com/howto/recording-test-coverage-for-javascript/#instrumenter-runs-out-of-memory) for more details.
 2. *Runtime Performance*. The added statements for recording coverage can decrease
-the performance of the code considerably—by a factor of 2 to 10. 
-   However, this neglectable for most application scenarios—for example, if the application
-is idling most of the time and waiting for user inputs. 
+   the performance of the code considerably—by a factor of 2 to 10. 
+   However, this is negligible for most application scenarios—for example, 
+   if the application is idling most of the time and waiting for user inputs. 
    In many cases, it is possible to exclude parts of the application from being
-instrumented. See the [Teamscale
-Documentation](https://docs.teamscale.com/howto/recording-test-coverage-for-javascript/#instrumented-app-is-slow). 
-3. *Bundle Sizes.* The bundle sizes are inreased consierably by adding the
+   instrumented. See the [Teamscale Documentation](https://docs.teamscale.com/howto/recording-test-coverage-for-javascript/#instrumented-app-is-slow). 
+3. *Bundle Sizes.* The bundle sizes increase considerably by adding the
    coverage statements and the data structures for collecting coverage and mapping back to the original code.
 4. *Shipping Original Code.* The instrumented variants of the code currently require to
    include the source map, and with that the original source code the JavaScript code was
-transpiled (or bundled) from.
+   transpiled (or bundled) from.
+5. *Bi-Directional Channel.* The instrumented application sends coverage information via WebSockets. 
+   This is a bidirectional data channel, and therefore considered to be a security risk by some organizations.
+
+Note that we have planed features to address all of above limitations. 
+However, their prioritization depends on our users needs, so feel 
+free to ask for addressing limitations or adding features via support@teamscale.com.   
 
 ## Releasing
 

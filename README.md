@@ -61,7 +61,7 @@ As any other software, the Teamscale JavaScript Profiler has known limitations:
 5. *Bi-Directional Channel.* The instrumented application sends coverage information via WebSockets. 
    This is a bidirectional data channel and therefore considered to be a security risk by some organizations.
 
-Note that we have planed features to address all of above limitations. 
+We have planed features to address all of above limitations. 
 However, their prioritization depends on our users needs, so feel 
 free to ask for addressing limitations or adding features via support@teamscale.com.   
 

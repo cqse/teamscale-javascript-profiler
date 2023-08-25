@@ -104,6 +104,22 @@ const caseStudies = [
 ];
 
 /**
+ * Extensive casestudies to check on memory/time complexity of the profiler
+ */
+const release_casestudies = [{
+	name: 'grafana',
+	rootDir: 'test/casestudies/grafana',
+	distDir: 'public/build',
+	expectCoveredLines: {
+	},
+	expectUncoveredLines: {
+	},
+	excludeOrigins: ["**/public/build/*.*"],
+	includeOrigins: ["**/public/app/**/*.*"],
+	maxNormTimeFraction: 8.0
+}]
+
+/**
  * Identify the next available port.
  */
 async function identifyNextAvailablePort() {
@@ -603,22 +619,11 @@ await (async function runSystemTest() {
 	const perfStore = {};
 
 	if(ARGS.includes(RELEASE_TEST)){
-		// Add grafana as additional benchmark casestudie
-		caseStudies.push({
-			name: 'grafana',
-			rootDir: 'test/casestudies/grafana',
-			distDir: 'public/build',
-			expectCoveredLines: {
-			},
-			expectUncoveredLines: {
-			},
-			excludeOrigins: ["**/public/build/*.*"],
-			includeOrigins: ["**/public/app/**/*.*"],
-			maxNormTimeFraction: 8.0
-		})
+		// Add additional benchmark casestudies
+		caseStudies.push(...release_casestudies)
 	}
 	for (const study of caseStudies) {
-		if (!fs.existsSync(path.join(CASESTUDIES_DIR, study.name))) {
+		if (release_casestudies.includes(study) && !fs.existsSync(path.join(CASESTUDIES_DIR, study.name))) {
 			unzipProject(study.name);
 		}
 		const collectorPort = await identifyNextAvailablePort();

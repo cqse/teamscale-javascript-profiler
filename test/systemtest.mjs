@@ -531,7 +531,7 @@ function buildGrafana(study) {
 function buildStudy(study) {
 	console.log('## Build the case study');
 	execSync('npm install', { cwd: study.rootDir });
-	execSync('npm run clean', { cwd: study.rootDir });
+	execSync('npm run clean', { cwd: study.rootDir , stdio: 'inherit'});
 	execSync('npm run build', { cwd: study.rootDir });
 }
 
@@ -586,8 +586,9 @@ async function startTeamscaleMockServer(study) {
 }
 
 
-function unzipProjects() {
-	execSync('unzip *.zip', {cwd: CASESTUDIES_DIR, stdio: 'ignore'});
+function unzipProject(study) {
+	const command = 'unzip ' + study + '.zip';
+	execSync(command, {cwd: CASESTUDIES_DIR, stdio: 'ignore'});
 }
 function checkTeamscaleServerMockInteractions(mockInstance, study) {
 	const mockedRequests = mockInstance.requests({ method: 'POST' }).length;
@@ -616,8 +617,11 @@ await (async function runSystemTest() {
 			maxNormTimeFraction: 8.0
 		})
 	}
-	unzipProjects()
 	for (const study of caseStudies) {
+
+		if (!fs.existsSync(folderName)) {
+			unzipProject(study);
+		}
 		const collectorPort = await identifyNextAvailablePort();
 		const sessionId = `session-${collectorPort}`;
 

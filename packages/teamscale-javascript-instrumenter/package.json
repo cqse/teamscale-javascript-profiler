@@ -54,8 +54,6 @@
     "@babel/types": "^7.22.5",
     "@cqse/commons": "workspace:../cqse-commons",
     "@types/micromatch": "^4.0.2",
-    "acorn": "^8.8.2",
-    "acorn-walk": "^8.2.0",
     "argparse": "^2.0.1",
     "async": "^3.2.4",
     "bunyan": "^1.8.15",

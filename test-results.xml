@@ -1,9 +1,0 @@
-<?xml version="1.0" encoding="UTF-8"?>
-<testsuites name="Mocha Tests" time="2.223" tests="1" failures="0">
-  <testsuite name="Root Suite" timestamp="2023-05-09T09:10:43" tests="0" file="test/integration/angular-realworld-example-app/run-app.spec.js" time="0.000" failures="0">
-  </testsuite>
-  <testsuite name="Angular real world App" timestamp="2023-05-09T09:10:43" tests="1" time="2.198" failures="0">
-    <testcase name="Angular real world App Produces Coverage" time="2.175" classname="Produces Coverage">
-    </testcase>
-  </testsuite>
-</testsuites>

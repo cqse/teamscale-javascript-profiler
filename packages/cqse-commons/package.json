@@ -1,6 +1,6 @@
 {
   "name": "@cqse/commons",
-  "version": "0.0.1-beta.56",
+  "version": "0.0.1-beta.59",
   "description": "A collection of generic functionality for TypeScript projects.",
   "author": "CQSE GmbH",
   "main": "lib/index.js",

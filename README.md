@@ -59,7 +59,9 @@ Only use official releases in production.
 
 ### Approach 2: Automated
 
-Call `pnpm release` to perform all release steps automatically.
+Call `pnpm release` to perform all release steps automatically. 
+Run `pnpm release --help` to see the list of available command line options, 
+for example, `--minor` to create and release a new minor version.
 
 ### Versioning
 

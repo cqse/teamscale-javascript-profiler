@@ -2,6 +2,7 @@ const fs = require('fs').promises;
 const path = require('path');
 const { execSync } = require('child_process');
 const readline = require('readline');
+const { program } = require('commander');
 
 const PACKAGES_DIR = './packages';
 const CHANGELOG_FILENAME = 'CHANGELOG.md';
@@ -29,15 +30,25 @@ async function fileExists(filePath) {
 	}
 }
 
-function incrementVersion(currentVersion) {
-	if (currentVersion.includes('beta')) {
+function incrementVersion(currentVersion, majorRelease, minorRelease) {
+	if (majorRelease || minorRelease) {
+		const [major, minor, patch] = currentVersion.match(/(\d+)\.(\d+)\.(\d+)/).slice(1);
+		if (majorRelease) {
+			// MAJOR
+			return `${parseInt(major, 10) + 1}.0.0`;
+		} else if (minorRelease) {
+			// MINOR
+			return `${major}.${parseInt(minor, 10) + 1}.0`;
+		}
+	} else if (currentVersion.includes('beta')) {
+		// BETA
 		const [major, minor, patch, beta] = currentVersion.match(/(\d+)\.(\d+)\.(\d+)-beta\.(\d+)/).slice(1);
 		const newBetaVersion = parseInt(beta, 10) + 1;
 		return `${major}.${minor}.${patch}-beta.${newBetaVersion}`;
 	} else {
+		// PATCH
 		const [major, minor, patch] = currentVersion.match(/(\d+)\.(\d+)\.(\d+)/).slice(1);
-		const newPatchVersion = parseInt(patch, 10) + 1;
-		return `${major}.${minor}.${newPatchVersion}`;
+		return `${major}.${minor}.${parseInt(patch, 10) + 1}`;
 	}
 }
 
@@ -104,9 +115,14 @@ function checkForUncommittedChangesInPackages() {
 	}
 }
 
-(async function release() {
-	checkForUncommittedChangesInPackages();
+async function determineCurrentVersion() {
+	const firstPackageJsonPath = path.join(PACKAGES_DIR, 'cqse-commons', 'package.json');
+	const firstPackageJsonRaw = await fs.readFile(firstPackageJsonPath, 'utf8');
+	const firstPackageJson = JSON.parse(firstPackageJsonRaw);
+	return firstPackageJson.version;
+}
 
+function checkReleaseBranch() {
 	const currentBranch = getCurrentGitBranch();
 	if (currentBranch !== 'master' && currentBranch !== 'main') {
 		console.error(
@@ -114,13 +130,28 @@ function checkForUncommittedChangesInPackages() {
 		);
 		process.exit(1);
 	}
+}
 
-	const firstPackageJsonPath = path.join(PACKAGES_DIR, 'cqse-commons', 'package.json');
-	const firstPackageJsonRaw = await fs.readFile(firstPackageJsonPath, 'utf8');
-	const firstPackageJson = JSON.parse(firstPackageJsonRaw);
-	const currentVersion = firstPackageJson.version;
+(async function release() {
+	const currentVersion = await determineCurrentVersion();
 
-	const newVersion = incrementVersion(currentVersion);
+	program
+		.version(currentVersion)
+		.description('Teamscale JavaScript Profiler Releases Helper')
+		.option('--major', 'Create a major release')
+		.option('--minor', 'Create a minor release')
+		.parse();
+
+	const options = program.opts();
+	if (options.major && options.minor) {
+		console.error("Error: You can't specify both --major and --minor. Choose one.");
+		process.exit(1);
+	}
+
+	checkForUncommittedChangesInPackages();
+	checkReleaseBranch();
+
+	const newVersion = incrementVersion(currentVersion, options.major, options.minor);
 	await incrementVersionOfAllPackages(newVersion);
 
 	const answer = await askQuestion(`Do you want to create a tag and push for version ${newVersion}? (yes/no) `);

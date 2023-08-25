@@ -137,7 +137,7 @@ function checkReleaseBranch() {
 
 	program
 		.version(currentVersion)
-		.description('Teamscale JavaScript Profiler Releases Helper')
+		.description('Teamscale JavaScript Profiler Release Helper')
 		.option('--major', 'Create a major release')
 		.option('--minor', 'Create a minor release')
 		.parse();

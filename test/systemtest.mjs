@@ -618,9 +618,8 @@ await (async function runSystemTest() {
 		})
 	}
 	for (const study of caseStudies) {
-
-		if (!fs.existsSync(folderName)) {
-			unzipProject(study);
+		if (!fs.existsSync(path.join(CASESTUDIES_DIR, study.name))) {
+			unzipProject(study.name);
 		}
 		const collectorPort = await identifyNextAvailablePort();
 		const sessionId = `session-${collectorPort}`;

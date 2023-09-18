@@ -116,7 +116,9 @@ const release_casestudies = [{
 	},
 	excludeOrigins: ["**/public/build/*.*"],
 	includeOrigins: ["**/public/app/**/*.*"],
-	maxNormTimeFraction: 8.0
+	maxNormTimeFraction: 8.0,
+	// Only necessary for non-generic casestudies
+	customScriptPrefix: "grafana_"
 }]
 
 /**
@@ -475,7 +477,9 @@ function averagePerformance(samples) {
 	return { duration_secs: durationSum / samples.length, memory_mb_peak: memorySum / samples.length };
 }
 
-function profileTestingInBrowser(studyName) {
+function profileTestingInBrowser(study) {
+	const studyName = study.name;
+	const prefix = study.customScriptPrefix ?? "";
 	const runTestsOnSubjectInBrowser = studyName => {
 		const browserPerformanceFile = tempfile({ extension: '.json' });
 		console.log('## Running Cypress tests on the subject');
@@ -483,7 +487,7 @@ function profileTestingInBrowser(studyName) {
 			PROFILER_ROOT_DIR,
 			'test',
 			'scripts',
-			'profile_testing.sh'
+			prefix + 'profile_testing.sh'
 		)} ${studyName} ${SERVER_PORT} ${browserPerformanceFile}`;
 		execSync(command, { cwd: PROFILER_ROOT_DIR, stdio: 'inherit' });
 		return JSON.parse(fs.readFileSync(browserPerformanceFile));
@@ -640,7 +644,7 @@ await (async function runSystemTest() {
 			const webserverProcess = startStudyWebServer(study);
 
 			// Run the tests in the browser on the version without instrumentation
-			const notInstrumentedRuntimePerf = profileTestingInBrowser(study.name);
+			const notInstrumentedRuntimePerf = profileTestingInBrowser(study);
 			storePerfResult(perfStore, study.name, KEY_PERF_TESTING_NO_INSTRUMENTATION, notInstrumentedRuntimePerf);
 
 			const instrumentationPerformance = instrumentStudy(study, collectorPort);
@@ -657,7 +661,7 @@ await (async function runSystemTest() {
 
 					// Run the tests in the browser on the instrumented version
 					try {
-						const runtimePerformance = profileTestingInBrowser(study.name);
+						const runtimePerformance = profileTestingInBrowser(study);
 						storePerfResult(
 							perfStore,
 							study.name,

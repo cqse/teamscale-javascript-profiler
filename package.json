@@ -8,8 +8,8 @@
     "build": "pnpm -r --filter='./packages/*' run build",
     "test": "pnpm -r --filter='./packages/*' run test",
     "systemtest": "pnpm build && node ./test/systemtest.mjs",
-    "systemtest_release": "pnpm build && node ./test/systemtest.mjs release",
-    "systemtest_docker": "docker build -t javascript-profiler . && docker compose run javascript-profiler",
+    "systemtest:release": "pnpm build && node ./test/systemtest.mjs release",
+    "systemtest:docker": "docker build -t javascript-profiler . -f systemtest.dockerfile && docker compose -f systemtest-docker-compose.yml run javascript-profiler ",
     "release": "node ./release.js",
     "lint": "pnpm exec eslint . --ext .ts"
   },

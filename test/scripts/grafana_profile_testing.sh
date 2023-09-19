@@ -21,5 +21,4 @@ gnutime -o "$PROFILING_RESULTS_FILE"  -f "%M %e" \
 
 ./scripts/grafana-server/kill-server
 
-
 store_results "$PROFILING_RESULTS_FILE"

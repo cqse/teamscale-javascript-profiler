@@ -26,7 +26,6 @@ then
   rm $PROFILING_RESULTS_FILE
 fi
 
-
 npx cypress install
 # Run the test with the memory profiler attached
 gnutime -o "$PROFILING_RESULTS_FILE"  -f "%M %e" \

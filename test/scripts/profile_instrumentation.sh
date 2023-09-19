@@ -38,7 +38,7 @@ fi
 
 # Run the instrumenter with the memory profiler attached
 gnutime -o "$PROFILING_RESULTS_FILE"  -f "%M %e" \
-    node ./dist/src/main.js \
+    node --max-old-space-size=12000 ./dist/src/main.js \
         --in-place "${DIST_DIR}" \
         --collector "ws://localhost:$COLLECTOR_PORT" \
         "${@:4}"

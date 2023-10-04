@@ -9,6 +9,6 @@
       "instrument": "npx nyc instrument --all=true --source-map ./dist/ ./dist-instrumented"
   },
   "devDependencies": {
-    "typescript": "^4.3.4"
+    "typescript": "^5.2.2"
   }
 }

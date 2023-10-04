@@ -114,7 +114,7 @@ jobs:
           password: ${{ secrets.DOCKERHUB_TOKEN }}
       - run: ls
       - name: Build and push
-        uses: docker/build-push-action@v4
+        uses: docker/build-push-action@v5
         with:
           context: ./packages/teamscale-coverage-collector
           file: ./packages/teamscale-coverage-collector/Dockerfile

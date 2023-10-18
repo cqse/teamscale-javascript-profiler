@@ -120,7 +120,7 @@ importers:
   packages/teamscale-coverage-collector:
     dependencies:
       '@cqse/commons':
-        specifier: workspace:../cqse-commons
+        specifier: 0.0.1-beta.59
         version: link:../cqse-commons
       argparse:
         specifier: ^2.0.1
@@ -235,7 +235,7 @@ importers:
         specifier: ^7.23.0
         version: 7.23.0
       '@cqse/commons':
-        specifier: workspace:../cqse-commons
+        specifier: 0.0.1-beta.59
         version: link:../cqse-commons
       '@types/micromatch':
         specifier: ^4.0.3

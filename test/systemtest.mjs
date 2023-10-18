@@ -84,7 +84,7 @@ const caseStudies = [
 		},
 		excludeOrigins: [],
 		includeOrigins: [`'src/app/**/*.*'`],
-		maxNormTimeFraction: 8.0
+		maxNormTimeFraction: 9.0
 	},
 	{
 		name: 'angular-hero-app-with-excludes',

@@ -38,9 +38,9 @@
   "pnpm": {
     "overrides": {
       "@types/istanbul-lib-instrument>source-map": "0.7.4",
-      "@babel/traverse>@babel/types": "7.22.5",
-      "@babel/parser>@babel/types": "7.22.5",
-      "@types/babel__traverse>@babel/types": "7.22.5"
+      "@babel/traverse>@babel/types": "7.23.0",
+      "@babel/parser>@babel/types": "7.23.0",
+      "@types/babel__traverse>@babel/types": "7.23.0"
     },
     "patchedDependencies": {
       "mockttp@3.9.4": "patches/mockttp@3.9.4.patch"

@@ -6,13 +6,13 @@ settings:
 
 overrides:
   '@types/istanbul-lib-instrument>source-map': 0.7.4
-  '@babel/traverse>@babel/types': 7.22.5
-  '@babel/parser>@babel/types': 7.22.5
-  '@types/babel__traverse>@babel/types': 7.22.5
+  '@babel/traverse>@babel/types': 7.23.0
+  '@babel/parser>@babel/types': 7.23.0
+  '@types/babel__traverse>@babel/types': 7.23.0
 
 patchedDependencies:
   mockttp@3.9.4:
-    hash: 7c264mrqpgc5xkwnoh2dn2wdum
+    hash: myz33pm5ol5bzbqsvm2ydtjvcu
     path: patches/mockttp@3.9.4.patch
 
 importers:
@@ -206,7 +206,7 @@ importers:
         version: 29.7.0(@types/node@20.8.6)(ts-node@10.9.1)
       mockttp:
         specifier: ^3.9.4
-        version: 3.9.4(patch_hash=7c264mrqpgc5xkwnoh2dn2wdum)
+        version: 3.9.4(patch_hash=myz33pm5ol5bzbqsvm2ydtjvcu)
       rimraf:
         specifier: ^5.0.5
         version: 5.0.5
@@ -594,10 +594,6 @@ packages:
     resolution: {integrity: sha512-Y4OZ+ytlatR8AI+8KZfKuL5urKp7qey08ha31L8b3BwewJAoJamTzyvxPR/5D+KkdJCGPq/+8TukHBlY10FX9A==}
     engines: {node: '>=6.9.0'}
 
-  /@babel/helper-validator-identifier@7.22.5:
-    resolution: {integrity: sha512-aJXu+6lErq8ltp+JhkJUfk1MTGyuA4v7f3pA+BJ5HLfNC6nAQ0Cpi9uOquUj8Hehg0aUiHzWQbOVJGao6ztBAQ==}
-    engines: {node: '>=6.9.0'}
-
   /@babel/helper-validator-option@7.22.15:
     resolution: {integrity: sha512-bMn7RmyFjY/mdECUbgn9eoSY4vqvacUnS9i9vGAGttgFWesO6B4CYWA7XlpbWgBt71iv/hfbPlynohStqnu5hA==}
     engines: {node: '>=6.9.0'}
@@ -634,7 +630,7 @@ packages:
     engines: {node: '>=6.0.0'}
     hasBin: true
     dependencies:
-      '@babel/types': 7.22.5
+      '@babel/types': 7.23.0
 
   /@babel/plugin-bugfix-safari-id-destructuring-collision-in-function-expression@7.22.15(@babel/core@7.23.2):
     resolution: {integrity: sha512-FB9iYlz7rURmRJyXRKEnalYPPdn87H5no108cyuQQyMwlpJ2SJtpIUBI27kdTin956pz+LPypkPVPUTlxOmrsg==}
@@ -1538,19 +1534,11 @@ packages:
       '@babel/helper-hoist-variables': 7.22.5
       '@babel/helper-split-export-declaration': 7.22.6
       '@babel/parser': 7.23.0
-      '@babel/types': 7.22.5
+      '@babel/types': 7.23.0
       debug: 4.3.4(supports-color@8.1.1)
       globals: 11.12.0
     transitivePeerDependencies:
       - supports-color
-
-  /@babel/types@7.22.5:
-    resolution: {integrity: sha512-zo3MIHGOkPOfoRXitsgHLjEXmlDaD/5KU1Uzuc9GNiZPhSqVxVRtxuPaSBZDsYZ9qV88AjtMtWW7ww98loJ9KA==}
-    engines: {node: '>=6.9.0'}
-    dependencies:
-      '@babel/helper-string-parser': 7.22.5
-      '@babel/helper-validator-identifier': 7.22.5
-      to-fast-properties: 2.0.0
 
   /@babel/types@7.23.0:
     resolution: {integrity: sha512-0oIyUfKoI3mSqMvsxBdclDwxXKXAUA8v/apZbc+iSyARYou1o8ZGDxbUYyLFoW2arqS2jDGqJuZvv1d/io1axg==}
@@ -2374,7 +2362,7 @@ packages:
   /@types/babel__traverse@7.20.3:
     resolution: {integrity: sha512-Lsh766rGEFbaxMIDH7Qa+Yha8cMVI3qAK6CHt3OR0YfxOIn5Z54iHiyDRycHrBqeIiqGa20Kpsv1cavfBKkRSw==}
     dependencies:
-      '@babel/types': 7.22.5
+      '@babel/types': 7.23.0
     dev: true
 
   /@types/body-parser@1.19.2:
@@ -6833,7 +6821,7 @@ packages:
       - supports-color
     dev: true
 
-  /mockttp@3.9.4(patch_hash=7c264mrqpgc5xkwnoh2dn2wdum):
+  /mockttp@3.9.4(patch_hash=myz33pm5ol5bzbqsvm2ydtjvcu):
     resolution: {integrity: sha512-EagdyT83RqAKWB2c+g3NdL1hEBcXl4Oeg6zIWDk9mq6JCAqsaIHySE78lvgGja2QjWOgosQaS1YtCaWkKaCFkw==}
     engines: {node: '>=14.14.0'}
     hasBin: true

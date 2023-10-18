@@ -53,7 +53,7 @@
     "@babel/traverse": "^7.23.2",
     "@babel/types": "^7.23.0",
     "@cqse/commons": "0.0.1-beta.59",
-    "@types/micromatch": "^4.0.3",
+    "@types/micromatch": "^4.0.4",
     "argparse": "^2.0.1",
     "async": "^3.2.4",
     "bunyan": "^1.8.15",

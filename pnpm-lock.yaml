@@ -238,8 +238,8 @@ importers:
         specifier: 0.0.1-beta.59
         version: link:../cqse-commons
       '@types/micromatch':
-        specifier: ^4.0.3
-        version: 4.0.3
+        specifier: ^4.0.4
+        version: 4.0.4
       argparse:
         specifier: ^2.0.1
         version: 2.0.1
@@ -2472,8 +2472,8 @@ packages:
     resolution: {integrity: sha512-dRLjCWHYg4oaA77cxO64oO+7JwCwnIzkZPdrrC71jQmQtlhM556pwKo5bUzqvZndkVbeFLIIi+9TC40JNF5hNQ==}
     dev: true
 
-  /@types/micromatch@4.0.3:
-    resolution: {integrity: sha512-QX1czv7QoLU76Asb1NSVSlu5zTMx/TFNswUDtQSbH9hgvCg+JHvIEoVvVSzBf1WNCT8XsK515W+p3wFOCuvhCg==}
+  /@types/micromatch@4.0.4:
+    resolution: {integrity: sha512-ZeDgs/tFSdUqkAZmgdnu5enRwFXJ+nIF4TxK5ENw6x0bvfcgMD1H3GnTS+fIkBUcvijQNF7ZOa2tuOtOaEjt3w==}
     dependencies:
       '@types/braces': 3.0.2
     dev: false

@@ -4,7 +4,7 @@ index 30cb120091f0cd968e8bea42cc3807b4caaec923..4913b9b34490105d60af2287cd8d7c8e
 +++ b/package.json
 @@ -2,34 +2,6 @@
    "name": "mockttp",
-   "version": "3.7.6",
+   "version": "3.9.4",
    "description": "Mock HTTP server for testing HTTP clients and stubbing webservices",
 -  "exports": {
 -    ".": {

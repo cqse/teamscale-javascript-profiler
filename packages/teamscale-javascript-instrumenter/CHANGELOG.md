@@ -2,6 +2,8 @@ We use [Semantic Versioning](https://semver.org/).
 
 # New Release
 
+- [security] Critical security issue in the Babel dependency.
+
 # 0.0.1-beta.55
 
 - [feature] Support for instrumenting GWT (Google Web Toolkit) bundles added.

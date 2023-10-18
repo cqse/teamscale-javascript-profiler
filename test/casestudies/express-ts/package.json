@@ -9,8 +9,8 @@
     "serve": "node dist/index.js"
   },
   "devDependencies": {
-    "@types/express": "^4.17.18",
-    "@types/node": "^18.18.3",
+    "@types/express": "^4.17.20",
+    "@types/node": "^18.18.5",
     "typescript": "^5.2.2"
   },
   "dependencies": {

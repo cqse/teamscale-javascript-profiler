@@ -52,7 +52,7 @@
     "@babel/parser": "^7.23.0",
     "@babel/traverse": "^7.23.2",
     "@babel/types": "^7.23.0",
-    "@cqse/commons": "workspace:../cqse-commons",
+    "@cqse/commons": "0.0.1-beta.59",
     "@types/micromatch": "^4.0.3",
     "argparse": "^2.0.1",
     "async": "^3.2.4",

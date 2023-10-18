@@ -12,7 +12,7 @@
   "license": "Apache 2.0",
   "dependencies": {
     "mkdirp": "^3.0.1",
-    "rimraf": "^5.0.1",
+    "rimraf": "^5.0.5",
     "touch": "^3.1.0"
   },
   "devDependencies": {

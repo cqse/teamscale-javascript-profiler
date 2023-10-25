@@ -2,6 +2,8 @@ We use [Semantic Versioning](https://semver.org/).
 
 # New Release
 
+- [security] Critical security issue in the Babel dependency (CVE-2023-45133). 
+
 # 0.0.1-beta.49
 
 - [feature] Coverage uploading via proxy is now supported.

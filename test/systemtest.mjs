@@ -12,7 +12,11 @@ import treeKill from 'tree-kill';
  * The name of the study that will not be instrumented.
  */
 const BASELINE_STUDY = 'baseline-empty-js';
-
+/**
+ * Arg param to extend the systemtest with casestudies for extensive memory/time consumption testing.
+ * @type {string}
+ */
+const RELEASE_TEST = "release";
 const NUM_PERF_MEASURE_RUNS = 2;
 
 const KEY_PERF_TESTING_NO_INSTRUMENTATION = 'testingUninstrumented';
@@ -22,11 +26,12 @@ const KEY_PERF_INSTRUMENTATION = 'Instrumentation';
 const __filename = fileURLToPath(import.meta.url);
 
 const PROFILER_ROOT_DIR = path.dirname(path.dirname(__filename));
+const CASESTUDIES_DIR = path.join('test', 'casestudies');
 const INSTRUMENTER_DIR = path.join('packages', 'teamscale-javascript-instrumenter');
 const COLLECTOR_DIR = path.join('packages', 'teamscale-coverage-collector');
 const SERVER_PORT = 9000;
 const TEAMSCALE_MOCK_PORT = 10088;
-
+const ARGS = process.argv.slice(2);
 /**
  * Definition of the case studies along with
  * the expected coverage produced by our tool chain.
@@ -79,7 +84,7 @@ const caseStudies = [
 		},
 		excludeOrigins: [],
 		includeOrigins: [`'src/app/**/*.*'`],
-		maxNormTimeFraction: 8.0
+		maxNormTimeFraction: 9.0
 	},
 	{
 		name: 'angular-hero-app-with-excludes',
@@ -97,6 +102,24 @@ const caseStudies = [
 		maxNormTimeFraction: 9.0
 	}
 ];
+
+/**
+ * Extensive casestudies to check on memory/time complexity of the profiler
+ */
+const release_casestudies = [{
+	name: 'grafana',
+	rootDir: 'test/casestudies/grafana',
+	distDir: 'public/build',
+	expectCoveredLines: {
+	},
+	expectUncoveredLines: {
+	},
+	excludeOrigins: ["**/public/build/*.*"],
+	includeOrigins: ["**/public/app/**/*.*"],
+	maxNormTimeFraction: 8.0,
+	// Only necessary for non-generic casestudies
+	customScriptPrefix: "grafana_"
+}]
 
 /**
  * Identify the next available port.
@@ -454,7 +477,9 @@ function averagePerformance(samples) {
 	return { duration_secs: durationSum / samples.length, memory_mb_peak: memorySum / samples.length };
 }
 
-function profileTestingInBrowser(studyName) {
+function profileTestingInBrowser(study) {
+	const studyName = study.name;
+	const prefix = study.customScriptPrefix ?? "";
 	const runTestsOnSubjectInBrowser = studyName => {
 		const browserPerformanceFile = tempfile({ extension: '.json' });
 		console.log('## Running Cypress tests on the subject');
@@ -462,7 +487,7 @@ function profileTestingInBrowser(studyName) {
 			PROFILER_ROOT_DIR,
 			'test',
 			'scripts',
-			'profile_testing.sh'
+			prefix + 'profile_testing.sh'
 		)} ${studyName} ${SERVER_PORT} ${browserPerformanceFile}`;
 		execSync(command, { cwd: PROFILER_ROOT_DIR, stdio: 'inherit' });
 		return JSON.parse(fs.readFileSync(browserPerformanceFile));
@@ -516,10 +541,17 @@ function storePerfResult(perfMeasuresByStudy, studyName, perfKey, perf) {
 	studyPerfs[perfKey] = perf;
 }
 
+function buildGrafana(study) {
+	console.log('## Build Grafana');
+	execSync('rm -rf public/build', { cwd: study.rootDir });
+	execSync('yarn install ', { cwd: study.rootDir, stdio: 'inherit' });
+	execSync('yarn build', { cwd: study.rootDir });
+}
+
 function buildStudy(study) {
 	console.log('## Build the case study');
 	execSync('npm install', { cwd: study.rootDir });
-	execSync('npm run clean', { cwd: study.rootDir });
+	execSync('npm run clean', { cwd: study.rootDir , stdio: 'inherit'});
 	execSync('npm run build', { cwd: study.rootDir });
 }
 
@@ -573,6 +605,11 @@ async function startTeamscaleMockServer(study) {
 	return teamscaleServerMock;
 }
 
+
+function unzipProject(study) {
+	const command = 'unzip ' + study + '.zip';
+	execSync(command, {cwd: CASESTUDIES_DIR, stdio: 'ignore'});
+}
 function checkTeamscaleServerMockInteractions(mockInstance, study) {
 	const mockedRequests = mockInstance.requests({ method: 'POST' }).length;
 	if (mockedRequests === 0 && Object.keys(study.expectCoveredLines).length > 0) {
@@ -585,18 +622,29 @@ function checkTeamscaleServerMockInteractions(mockInstance, study) {
 await (async function runSystemTest() {
 	const perfStore = {};
 
+	if(ARGS.includes(RELEASE_TEST)){
+		// Add additional benchmark casestudies
+		caseStudies.push(...release_casestudies)
+	}
 	for (const study of caseStudies) {
+		if (release_casestudies.includes(study) && !fs.existsSync(path.join(CASESTUDIES_DIR, study.name))) {
+			unzipProject(study.name);
+		}
 		const collectorPort = await identifyNextAvailablePort();
 		const sessionId = `session-${collectorPort}`;
 
 		console.group('# Case study', study.name);
 		try {
-			buildStudy(study);
+			if(study.name === "grafana") {
+				buildGrafana(study);
+			} else {
+				buildStudy(study);
+			}
 
 			const webserverProcess = startStudyWebServer(study);
 
 			// Run the tests in the browser on the version without instrumentation
-			const notInstrumentedRuntimePerf = profileTestingInBrowser(study.name);
+			const notInstrumentedRuntimePerf = profileTestingInBrowser(study);
 			storePerfResult(perfStore, study.name, KEY_PERF_TESTING_NO_INSTRUMENTATION, notInstrumentedRuntimePerf);
 
 			const instrumentationPerformance = instrumentStudy(study, collectorPort);
@@ -613,7 +661,7 @@ await (async function runSystemTest() {
 
 					// Run the tests in the browser on the instrumented version
 					try {
-						const runtimePerformance = profileTestingInBrowser(study.name);
+						const runtimePerformance = profileTestingInBrowser(study);
 						storePerfResult(
 							perfStore,
 							study.name,

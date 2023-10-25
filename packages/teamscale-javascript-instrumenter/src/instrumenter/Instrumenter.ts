@@ -161,7 +161,7 @@ export class IstanbulInstrumenter implements IInstrumenter {
 
 				// In case of a bundle, the initial instrumentation step might have added
 				// too much and undesired instrumentations. Remove them now.
-				const instrumentedSourcemap = instrumenter.lastSourceMap();
+				const instrumentedSourcemap = instrumenter.lastSourceMap()!;
 
 				let instrumentedAndCleanedSource = await this.removeUnwantedInstrumentation(
 					taskElement,

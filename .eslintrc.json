@@ -32,6 +32,7 @@
   ],
   "rules": {
     // All of those would probably make sense, but needs to be enabled and fixed one by one
+    "@typescript-eslint/ban-ts-comment": "off",
     "@typescript-eslint/consistent-type-definitions": "off",
     "@typescript-eslint/no-unsafe-assignment": "off",
     "@typescript-eslint/no-unsafe-argument": "off",

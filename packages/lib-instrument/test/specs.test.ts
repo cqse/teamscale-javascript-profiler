@@ -1,13 +1,13 @@
-/* globals describe, it */
+// @ts-nocheck
+// @ts-ignore
 
-const path = require('path');
-const fs = require('fs');
-const yaml = require('js-yaml');
-const { assert } = require('chai');
-const verifier = require('./util/verifier');
-const guards = require('./util/guards');
-
-const clone = require('clone');
+import path from "path";
+import fs from "fs";
+import yaml from "js-yaml";
+import { assert } from "chai";
+import { create } from "./util/verifier";
+import * as guards from "./util/guards";
+import clone from "clone";
 
 const dir = path.resolve(__dirname, 'specs');
 const files = fs.readdirSync(dir).filter(f => {
@@ -79,7 +79,7 @@ function generateTests(docs) {
                                 doc.inputSourceMap
                             );
                         }
-                        const v = verifier.create(
+                        const v = create(
                             doc.code,
                             doc.opts || {},
                             doc.instrumentOpts,

@@ -1,12 +1,13 @@
-/* globals describe, it */
+// @ts-nocheck
+// @ts-ignore
 
-const { assert } = require('chai');
-const Instrumenter = require('../src/instrumenter');
-const verifier = require('./util/verifier');
+import {assert} from "chai";
+import { Instrumenter } from "../src/instrumenter";
+import { create } from "./util/verifier";
 
 describe('varia', () => {
     it('debug/ walkDebug should not cause errors', async () => {
-        const v = verifier.create('output = args[0];', {}, { debug: true });
+        const v = create('output = args[0];', {}, { debug: true });
         assert.ok(!v.err);
         await v.verify(['X'], 'X', {
             lines: { 1: 1 },
@@ -15,7 +16,7 @@ describe('varia', () => {
     });
 
     it('auto-generates filename', async () => {
-        const v = verifier.create('output = args[0];', { file: null });
+        const v = create('output = args[0];', { file: null });
         assert.ok(!v.err);
         await v.verify(['X'], 'X', {
             lines: { 1: 1 },
@@ -24,7 +25,7 @@ describe('varia', () => {
     });
 
     it('handles windows-style paths in file names', async () => {
-        const v = verifier.create('output = args[0];', { file: 'c:\\x\\y.js' });
+        const v = create('output = args[0];', { file: 'c:\\x\\y.js' });
         assert.ok(!v.err);
         await v.verify(['X'], 'X', {
             lines: { 1: 1 },
@@ -36,7 +37,7 @@ describe('varia', () => {
     });
 
     it('preserves comments when requested', async () => {
-        const v = verifier.create(
+        const v = create(
             '/* hello */\noutput = args[0];',
             {},
             { preserveComments: true }
@@ -53,7 +54,7 @@ describe('varia', () => {
 
     it('preserves function names for named export arrow functions', () => {
         /* https://github.com/istanbuljs/babel-plugin-istanbul/issues/125 */
-        const v = verifier.create(
+        const v = create(
             'export const func = () => true;',
             { generateOnly: true },
             { esModules: true }
@@ -68,7 +69,7 @@ describe('varia', () => {
 
     it('honors ignore next for exported functions', () => {
         /* https://github.com/istanbuljs/istanbuljs/issues/297 */
-        const v = verifier.create(
+        const v = create(
             '/* istanbul ignore next*/ export function fn1() {}' +
                 '/* istanbul ignore next*/ export default function() {}',
             { generateOnly: true },
@@ -86,7 +87,7 @@ describe('varia', () => {
 
     it('instruments exported functions', () => {
         /* https://github.com/istanbuljs/istanbuljs/issues/297 */
-        const v = verifier.create(
+        const v = create(
             'export function fn1() {}' + 'export default function() {}',
             { generateOnly: true },
             { esModules: true }
@@ -191,7 +192,7 @@ describe('varia', () => {
     // TODO: it feels like we should be inserting line counters
     // for class exports and class declarations.
     it('properly exports named classes', () => {
-        const v = verifier.create(
+        const v = create(
             'export class App extends Component {};',
             { generateOnly: true },
             { esModules: true }
@@ -207,7 +208,7 @@ describe('varia', () => {
     });
 
     it('declares Function when needed', () => {
-        const v = verifier.create(
+        const v = create(
             'function Function() {}',
             { generateOnly: true },
             { esModules: true }
@@ -219,7 +220,7 @@ describe('varia', () => {
     });
 
     it('does not declare Function when not needed', () => {
-        const v = verifier.create(
+        const v = create(
             'function differentFunction() {}',
             { generateOnly: true },
             { esModules: true }
@@ -231,7 +232,7 @@ describe('varia', () => {
     });
 
     it('does not add extra parenthesis when superclass is an identifier', () => {
-        const v = verifier.create('class App extends Component {};', {
+        const v = create('class App extends Component {};', {
             generateOnly: true
         });
         assert.ok(!v.err);
@@ -247,7 +248,7 @@ describe('varia', () => {
     it('can store coverage object in alternative scope', () => {
         const opts = { generateOnly: true };
         const instrumentOpts = { coverageGlobalScope: 'window.top' };
-        const v = verifier.create('console.log("test");', opts, instrumentOpts);
+        const v = create('console.log("test");', opts, instrumentOpts);
         assert.ok(!v.err);
 
         const code = v.getGeneratedCode();
@@ -264,7 +265,7 @@ describe('varia', () => {
             coverageGlobalScope: 'window.top',
             coverageGlobalScopeFunc: false
         };
-        const v = verifier.create('console.log("test");', opts, instrumentOpts);
+        const v = create('console.log("test");', opts, instrumentOpts);
         assert.ok(!v.err);
 
         const code = v.getGeneratedCode();

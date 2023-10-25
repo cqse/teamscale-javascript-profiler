@@ -1,20 +1,26 @@
 {
     "compilerOptions": {
+      "types": ["mocha", "node"],
       "target": "ES2020",
       "module": "commonjs",
-      "allowJs": true,       // Allows the TypeScript compiler to compile JavaScript files
-      "checkJs": false,     // Do not type-check the JavaScript files (You can set this to true if you want TypeScript to type-check your existing JavaScript)
-      "outDir": "./dist",   // Output directory for compiled JavaScript
-      "rootDir": "./src",   // Source code directory
-      "esModuleInterop": true,
-      "strict": true,       // Enables a wide range of type checking behavior
-      "skipLibCheck": true, // Skips type checking of declaration files.
+      "declaration": true,                         /* Generates corresponding '.d.ts' file. */
+      "declarationMap": true,                      /* Generates a sourcemap for each corresponding '.d.ts' file. */
+      "composite": true,                           /* Enable project compilation */
+      "allowJs": true,
+      "checkJs": false,
+      "outDir": "./lib",                               /* Redirect output structure to the directory. */
+      "rootDir": "./src",                               /* Specify the root directory of input files. Use to control the output directory structure with --outDir. */
+      "strict": true,                                 /* Enable all strict type-checking options. */
+      "skipLibCheck": true,                           /* Skip type checking of declaration files. */
+      "esModuleInterop": true,                        /* Enables emit interoperability between CommonJS and ES Modules via creation of namespace objects for all imports. Implies 'allowSyntheticDefaultImports'. */
       "forceConsistentCasingInFileNames": true,
-      "declaration": true
+      "moduleResolution": "node",
+      "resolveJsonModule": true,
+      "noImplicitAny": false
     },
     "include": [
-      "src/**/*.ts",        // Include TypeScript files
-      "src/**/*.js",        // Include JavaScript files
-      "src/**/*.d.ts"       // Include TypeScript type definition files
+      "src/**/*.ts",
+      "src/**/*.js",
+      "src/**/*.d.ts"
     ]
   }  

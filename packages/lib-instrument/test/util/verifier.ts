@@ -1,13 +1,16 @@
-const { classes } = require('istanbul-lib-coverage');
-const { assert } = require('chai');
-const clone = require('clone');
-const Instrumenter = require('../../src/instrumenter');
-const readInitialCoverage = require('../../src/read-coverage');
+// @ts-nocheck
+// @ts-ignore
+
+import {classes} from "istanbul-lib-coverage";
+import {assert} from "chai";
+import clone from "clone";
+import { Instrumenter } from "../../src/instrumenter";
+import { readInitialCoverage } from "../../src/read-coverage";
 
 const FileCoverage = classes.FileCoverage;
 const AsyncFunction = Object.getPrototypeOf(async () => {}).constructor;
 
-function pad(str, len) {
+function pad(str: string, len: number) {
     const blanks = '                                             ';
     if (str.length >= len) {
         return str;
@@ -114,7 +117,7 @@ function extractTestOption(opts, name, defaultValue) {
     return v;
 }
 
-function create(code, opts, instrumenterOpts, inputSourceMap) {
+export function create(code, opts, instrumenterOpts, inputSourceMap) {
     opts = opts || {};
     instrumenterOpts = instrumenterOpts || {};
     instrumenterOpts.coverageVariable =
@@ -198,5 +201,3 @@ function create(code, opts, instrumenterOpts, inputSourceMap) {
         emptyCoverage: instrumenter.lastFileCoverage()
     });
 }
-
-module.exports = { create };

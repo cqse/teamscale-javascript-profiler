@@ -1,11 +1,38 @@
-const { parseSync, traverse } = require('@babel/core');
-const { defaults } = require('@istanbuljs/schema');
-const { MAGIC_KEY, MAGIC_VALUE } = require('./constants');
+// @ts-nocheck
+// @ts-ignore
 
-function getAst(code) {
-    if (typeof code === 'object' && typeof code.type === 'string') {
+import {ParseResult, parseSync, traverse} from '@babel/core';
+import { defaults } from '@istanbuljs/schema';
+import {BranchMapping, FunctionMapping, Range} from "istanbul-lib-coverage";
+
+import { MAGIC_KEY, MAGIC_VALUE } from './constants';
+
+export type IstanbulCoverageObject = {
+    path: string;
+    hash: string;
+    gcv: string;
+    coverageData: CoverageData;
+}
+
+export type CoverageData = {
+    path: string;
+    statementMap: { [key: string]: Range };
+    fnMap: { [key: string]: FunctionMapping };
+    branchMap: { [key: string]: BranchMapping };
+    s: { [key: string]: number };
+    f: { [key: string]: number };
+    b: { [key: string]: number[] };
+    inputSourceMap: object,
+    _coverageSchema?: string,
+    hash?: string
+}
+
+function getAst(code: string | object) {
+    if (typeof code === 'object' &&
+        'type' in code &&
+        typeof code.type === 'string') {
         // Assume code is already a babel ast.
-        return code;
+        return code as ParseResult;
     }
 
     if (typeof code !== 'string') {
@@ -27,8 +54,11 @@ function getAst(code) {
     });
 }
 
-module.exports = function readInitialCoverage(code) {
+export function readInitialCoverage(code: string | object): IstanbulCoverageObject | null {
     const ast = getAst(code);
+    if (!ast) {
+        return null;
+    }
 
     let covScope;
     traverse(ast, {
@@ -37,6 +67,7 @@ module.exports = function readInitialCoverage(code) {
             if (
                 !node.computed &&
                 path.get('key').isIdentifier() &&
+                'name' in node.key &&
                 node.key.name === MAGIC_KEY
             ) {
                 const magicValue = path.get('value').evaluate();
@@ -55,7 +86,7 @@ module.exports = function readInitialCoverage(code) {
         return null;
     }
 
-    const result = {};
+    const result: Partial<IstanbulCoverageObject> = {};
 
     for (const key of ['path', 'hash', 'gcv', 'coverageData']) {
         const binding = covScope.getOwnBinding(key);
@@ -70,8 +101,9 @@ module.exports = function readInitialCoverage(code) {
         result[key] = value.value;
     }
 
-    delete result.coverageData[MAGIC_KEY];
-    delete result.coverageData.hash;
 
-    return result;
-};
+    delete result.coverageData?.[MAGIC_KEY];
+    delete result.coverageData?.hash;
+
+    return result as IstanbulCoverageObject;
+}

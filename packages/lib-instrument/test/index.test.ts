@@ -1,14 +1,16 @@
-/* globals describe, it */
-const { assert } = require('chai');
-const index = require('../src/index');
+// @ts-nocheck
+// @ts-ignore
+
+import { assert } from "chai";
+import { createInstrumenter, programVisitor } from "../src/index";
 
 describe('external interface', () => {
     it('exposes the correct objects', () => {
-        const i = index.createInstrumenter();
+        const i = createInstrumenter();
         assert.ok(i);
         assert.ok(i.instrumentSync);
         assert.ok(i.instrument);
-        const pc = index.programVisitor;
+        const pc = programVisitor;
         assert.ok(pc);
         assert.isFunction(pc);
     });
@@ -19,7 +21,7 @@ describe('instrumenter', () => {
         // This test has frequent timeout on Windows.
         this.timeout(5000);
 
-        const instrumenter = index.createInstrumenter({
+        const instrumenter = createInstrumenter({
             preserveComments: false
         });
         const instrumentedCode = instrumenter.instrumentSync(

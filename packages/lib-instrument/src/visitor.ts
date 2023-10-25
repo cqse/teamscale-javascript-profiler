@@ -1,8 +1,12 @@
-const { createHash } = require('crypto');
-const { template } = require('@babel/core');
-const { defaults } = require('@istanbuljs/schema');
-const { SourceCoverage } = require('./source-coverage');
-const { SHA, MAGIC_KEY, MAGIC_VALUE } = require('./constants');
+// @ts-nocheck
+// @ts-ignore
+
+import { createHash } from 'crypto';
+import {Node, NodePath, template} from '@babel/core';
+import { defaults } from '@istanbuljs/schema';
+
+import {SourceCoverage} from './source-coverage';
+import { SHA, MAGIC_KEY, MAGIC_VALUE } from './constants';
 
 // pattern for istanbul to ignore a section
 const COMMENT_RE = /^\s*istanbul\s+ignore\s+(if|else|next)(?=\W|$)/;
@@ -18,9 +22,26 @@ function genVar(filename) {
     return 'cov_' + parseInt(hash.digest('hex').substr(0, 12), 16).toString(36);
 }
 
+export type VisitorOutput = {
+    fileCoverage?: unknown;
+    sourceMappingURL?: unknown;
+} | undefined;
+
+type CovNode = Node & { __cov__?: object };
+
+
 // VisitState holds the state of the visitor, provides helper functions
 // and is the `this` for the individual coverage visitors.
 class VisitState {
+
+    varName: string;
+    attrs: Record<string, unknown>;
+    nextIgnore: null;
+    cov: SourceCoverage;
+    ignoreClassMethods: string[];
+    sourceMappingURL: string | null;
+    reportLogic: boolean;
+
     constructor(
         types,
         sourceFilePath,
@@ -44,7 +65,7 @@ class VisitState {
 
     // should we ignore the node? Yes, if specifically ignoring
     // or if the node is generated.
-    shouldIgnore(path) {
+    shouldIgnore(path: NodePath): boolean {
         return this.nextIgnore || !path.node.loc;
     }
 
@@ -136,7 +157,7 @@ class VisitState {
     }
 
     // all the generic stuff on exit of a node,
-    // including reseting ignores and custom node attrs
+    // including resetting ignores and custom node attrs
     onExit(path) {
         // restore ignore status, if needed
         if (path.node === this.nextIgnore) {
@@ -167,7 +188,7 @@ class VisitState {
         const wrap =
             index !== null
                 ? // If `index` present, turn `x` into `x[index]`.
-                  x => T.memberExpression(x, T.numericLiteral(index), true)
+                x => T.memberExpression(x, T.numericLiteral(index), true)
                 : x => x;
         return T.updateExpression(
             '++',
@@ -745,7 +766,7 @@ function shouldIgnoreFile(programNode) {
  * @param {object} [opts.inputSourceMap=undefined] the input source map, that maps the uninstrumented code back to the
  * original code.
  */
-function programVisitor(types, sourceFilePath = 'unknown.js', opts = {}) {
+export function programVisitor(types, sourceFilePath = 'unknown.js', opts = {}) {
     const T = types;
     opts = {
         ...defaults.instrumentVisitor,
@@ -759,7 +780,7 @@ function programVisitor(types, sourceFilePath = 'unknown.js', opts = {}) {
         opts.reportLogic
     );
     return {
-        enter(path) {
+        enter(path): void {
             if (shouldIgnoreFile(path.find(p => p.isProgram()))) {
                 return;
             }
@@ -770,8 +791,9 @@ function programVisitor(types, sourceFilePath = 'unknown.js', opts = {}) {
         },
         exit(path) {
             if (alreadyInstrumented(path, visitState)) {
-                return;
+                return undefined;
             }
+
             visitState.cov.freeze();
             const coverageData = visitState.cov.toJSON();
             if (shouldIgnoreFile(path.find(p => p.isProgram()))) {
@@ -788,7 +810,7 @@ function programVisitor(types, sourceFilePath = 'unknown.js', opts = {}) {
             if (
                 coverageData.inputSourceMap &&
                 Object.getPrototypeOf(coverageData.inputSourceMap) !==
-                    Object.prototype
+                Object.prototype
             ) {
                 coverageData.inputSourceMap = {
                     ...coverageData.inputSourceMap
@@ -839,5 +861,3 @@ function programVisitor(types, sourceFilePath = 'unknown.js', opts = {}) {
         }
     };
 }
-
-module.exports = programVisitor;

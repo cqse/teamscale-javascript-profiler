@@ -1,7 +1,8 @@
-/* globals describe, it, context */
+// @ts-nocheck
+// @ts-ignore
 
-const { assert } = require('chai');
-const Instrumenter = require('../src/instrumenter');
+import { assert } from "chai";
+import { Instrumenter } from "../src/instrumenter";
 
 const codeNeedDecoratorPlugin = `
   @decorator

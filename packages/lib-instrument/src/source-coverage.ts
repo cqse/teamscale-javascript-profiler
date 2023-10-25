@@ -1,17 +1,15 @@
-const { classes } = require('istanbul-lib-coverage');
+// @ts-nocheck
+// @ts-ignore
 
-function cloneLocation(loc) {
-    return {
-        start: {
-            line: loc && loc.start.line,
-            column: loc && loc.start.column
-        },
-        end: {
-            line: loc && loc.end.line,
-            column: loc && loc.end.column
-        }
-    };
-}
+// eslint-disable-next-line @typescript-eslint/no-var-requires
+const { classes } = require('istanbul-lib-coverage');
+import { CoverageData } from "./read-coverage";
+
+export type CodeRange = {
+    start: { line?: number; column?: number };
+    end: { line?: number; column?: number };
+};
+
 /**
  * SourceCoverage provides mutation methods to manipulate the structure of
  * a file coverage object. Used by the instrumenter to create a full coverage
@@ -22,7 +20,11 @@ function cloneLocation(loc) {
  * @extends FileCoverage
  * @constructor
  */
-class SourceCoverage extends classes.FileCoverage {
+export class SourceCoverage extends classes.FileCoverage {
+
+    private meta: { last: { s: number; f: number; b: number; }; };
+    public data!: CoverageData & { bT?: Record<string, number[]> };
+
     constructor(pathOrObj) {
         super(pathOrObj);
         this.meta = {
@@ -50,14 +52,14 @@ class SourceCoverage extends classes.FileCoverage {
             decl: cloneLocation(decl),
             loc: cloneLocation(loc),
             // DEPRECATED: some legacy reports require this info.
-            line: loc && loc.start.line
+            line: loc?.start.line
         };
         this.data.f[f] = 0;
         this.meta.last.f += 1;
         return f;
     }
 
-    newBranch(type, loc, isReportLogic = false) {
+    newBranch(type: string, loc: CodeRange | undefined, isReportLogic = false) {
         const b = this.meta.last.b;
         this.data.b[b] = [];
         this.data.branchMap[b] = {
@@ -65,14 +67,14 @@ class SourceCoverage extends classes.FileCoverage {
             type,
             locations: [],
             // DEPRECATED: some legacy reports require this info.
-            line: loc && loc.start.line
+            line: loc?.start.line
         };
         this.meta.last.b += 1;
-        this.maybeNewBranchTrue(type, b, isReportLogic);
+        this.maybeNewBranchTrue(type, `${b}`, isReportLogic);
         return b;
     }
 
-    maybeNewBranchTrue(type, name, isReportLogic) {
+    maybeNewBranchTrue(type: string, name: string, isReportLogic) {
         if (!isReportLogic) {
             return;
         }
@@ -83,7 +85,7 @@ class SourceCoverage extends classes.FileCoverage {
         this.data.bT[name] = [];
     }
 
-    addBranchPath(name, location) {
+    addBranchPath(name: string, location: CodeRange | undefined) {
         const bMeta = this.data.branchMap[name];
         const counts = this.data.b[name];
 
@@ -97,7 +99,7 @@ class SourceCoverage extends classes.FileCoverage {
         return counts.length - 1;
     }
 
-    maybeAddBranchTrue(name) {
+    maybeAddBranchTrue(name: string) {
         if (!this.data.bT) {
             return;
         }
@@ -132,4 +134,15 @@ class SourceCoverage extends classes.FileCoverage {
     }
 }
 
-module.exports = { SourceCoverage };
+function cloneLocation(loc: CodeRange | undefined): CodeRange {
+    return {
+        start: {
+            line: loc?.start.line,
+            column: loc?.start.column
+        },
+        end: {
+            line: loc?.end.line,
+            column: loc?.end.column
+        }
+    };
+}

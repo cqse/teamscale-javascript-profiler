@@ -72,7 +72,7 @@ export function createDefaultInstrumenterOptions(): InstrumenterOptions {
     };
 }
 
-/**f
+/**
  * Instrumenter is the public API for the instrument library.
  * It is typically used for ES5 code. For ES6 code that you
  * are already running under `babel` use the coverage plugin
@@ -93,8 +93,9 @@ export class Instrumenter {
         this.fileCoverage = null;
         this.sourceMap = null;
     }
+
     /**
-     * instrument the supplied code and track coverage against the supplied
+     * Instrument the supplied code and track coverage against the supplied
      * filename. It throws if invalid code is passed to it. ES5 and ES6 syntax
      * is supported. To instrument ES6 modules, make sure that you set the
      * `esModules` property to `true` when creating the instrumenter.

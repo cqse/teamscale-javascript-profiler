@@ -9,7 +9,6 @@ import { FileCoverage, FileCoverageData, Range } from 'istanbul-lib-coverage';
 import { RawSourceMap } from 'source-map';
 import * as babelTypes from 'babel-types';
 
-
 export type InstrumenterCallback = (error: Error | null, code: string) => void;
 
 export class Instrumenter {

@@ -1,4 +1,5 @@
 import { Instrumenter } from './instrumenter';
+export { InstrumenterOptions } from './instrumenter';
 export { programVisitor } from './visitor';
 export { readInitialCoverage } from './read-coverage';
 

@@ -27,9 +27,6 @@ export type VisitorOutput = {
     sourceMappingURL?: unknown;
 } | undefined;
 
-type CovNode = Node & { __cov__?: object };
-
-
 // VisitState holds the state of the visitor, provides helper functions
 // and is the `this` for the individual coverage visitors.
 class VisitState {

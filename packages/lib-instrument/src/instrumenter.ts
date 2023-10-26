@@ -12,6 +12,9 @@ import {RawSourceMap} from "source-map";
 import {programVisitor, VisitorOutput} from './visitor';
 import {IstanbulCoverageObject, readInitialCoverage} from './read-coverage';
 
+/**
+ * Options for configuring the coverage instrumenter.
+ */
 export interface InstrumenterOptions {
     /** Name of global coverage variable */
     coverageVariable: string;
@@ -53,6 +56,9 @@ export interface InstrumenterOptions {
     coverageGlobalScopeFunc: boolean;
 }
 
+/**
+ * The default configuration options.
+ */
 export function createDefaultInstrumenterOptions(): InstrumenterOptions {
     return {
         coverageVariable: '__coverage__',

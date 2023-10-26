@@ -27,6 +27,9 @@ export type CoverageData = {
     hash?: string
 }
 
+/**
+ * Return an AST for the given code object, which might already be an AST.
+ */
 function getAst(code: string | object) {
     if (typeof code === 'object' &&
         'type' in code &&

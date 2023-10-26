@@ -48,6 +48,11 @@ jobs:
         run: | 
           pnpm build
           pnpm test
+      - name: Build and test our Lib Instrument
+        working-directory: ./packages/lib-instrument
+        run: |
+          pnpm build
+          pnpm test
       - name: Build and test the Instrumenter
         working-directory: ./packages/teamscale-javascript-instrumenter
         run: |

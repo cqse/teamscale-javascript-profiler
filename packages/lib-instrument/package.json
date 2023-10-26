@@ -1,8 +1,9 @@
 {
   "name": "@teamscale/lib-instrument",
-  "version": "6.0.0",
-  "description": "Core istanbul API for JS code coverage",
+  "version": "0.0.1-beta.59",
+  "description": "Library for adding coverage statements to JS code; forked from istanbul-lib-coverage",
   "author": "Krishnan Anantheswaran <kananthmail-github@yahoo.com>",
+  "maintainers": [{ "name":  "CQSE GmbH" } ],
   "main": "lib/index.js",
   "types": "lib/index.d.ts",
   "files": [
@@ -44,9 +45,6 @@
     "rimraf": "^5.0.5"
   },
   "license": "BSD-3-Clause",
-  "bugs": {
-    "url": "https://github.com/istanbuljs/istanbuljs/issues"
-  },
   "repository": {
     "type": "git",
     "url": "https://github.com/cqse/teamscale-javascript-profiler.git",

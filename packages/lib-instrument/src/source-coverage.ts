@@ -1,6 +1,7 @@
 // eslint-disable-next-line @typescript-eslint/no-var-requires
 import {SourceLocation} from "@babel/types";
 
+// eslint-disable-next-line @typescript-eslint/no-var-requires
 const {classes} = require('istanbul-lib-coverage');
 import {CoverageData} from "./read-coverage";
 

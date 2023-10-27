@@ -6,7 +6,7 @@ import {
     ArrowFunctionExpression,
     BlockStatement, ClassMethod, Comment, ConditionalExpression,
     Expression, FunctionDeclaration, FunctionExpression,
-    Identifier, IfStatement, isIdentifier,
+    Identifier, IfStatement,
     LogicalExpression, ObjectMethod, Program,
     SequenceExpression, SourceLocation, Statement, SwitchCase,
     UpdateExpression
@@ -16,6 +16,7 @@ type BabelTypes = typeof import("@babel/types")
 
 import {CodeRange, SourceCoverage} from './source-coverage';
 import {SHA, MAGIC_KEY, MAGIC_VALUE} from './constants';
+import {RawSourceMap} from "source-map";
 
 // pattern for istanbul to ignore a section
 const COMMENT_RE = /^\s*istanbul\s+ignore\s+(if|else|next)(?=\W|$)/;
@@ -25,7 +26,7 @@ const COMMENT_FILE_RE = /^\s*istanbul\s+ignore\s+(file)(?=\W|$)/;
 const SOURCE_MAP_RE = /[#@]\s*sourceMappingURL=(.*)\s*$/m;
 
 // generate a variable name from hashing the supplied file path
-function genVar(filename) {
+function genVar(filename: string) {
     const hash = createHash(SHA);
     hash.update(filename);
     return 'cov_' + parseInt(hash.digest('hex').substr(0, 12), 16).toString(36);
@@ -56,7 +57,7 @@ class VisitState {
     constructor(
         types: BabelTypes,
         sourceFilePath: string,
-        inputSourceMap: object,
+        inputSourceMap: RawSourceMap | undefined,
         ignoreClassMethods: string[] = [],
         reportLogic = false
     ) {
@@ -819,7 +820,7 @@ export type ProgramVisitorOptions = {
     ignoreClassMethods: string[];
 
     /** the input source map, that maps the uninstrumented code back to the original code */
-    inputSourceMap: object;
+    inputSourceMap?: RawSourceMap;
 };
 
 /**

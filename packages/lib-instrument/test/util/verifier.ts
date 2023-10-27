@@ -1,7 +1,5 @@
-// @ts-nocheck
-// @ts-ignore
-
-import {classes} from "istanbul-lib-coverage";
+// eslint-disable-next-line @typescript-eslint/no-var-requires
+const {classes} = require('istanbul-lib-coverage');
 import {assert} from "chai";
 import clone from "clone";
 import { Instrumenter } from "../../src/instrumenter";
@@ -9,6 +7,15 @@ import { readInitialCoverage } from "../../src/read-coverage";
 
 const FileCoverage = classes.FileCoverage;
 const AsyncFunction = Object.getPrototypeOf(async () => {}).constructor;
+
+type ExpectedCoverage = {
+    lines: Record<any, any>;
+    statements: Record<any, any>;
+    functions: Record<any, any>;
+    branches: Record<any, any>;
+    branchesTrue: Record<any, any>;
+    inputSourceMap: object;
+}
 
 function pad(str: string, len: number) {
     const blanks = '                                             ';
@@ -18,12 +25,12 @@ function pad(str: string, len: number) {
     return blanks.substring(0, len - str.length) + str;
 }
 
-function annotatedCode(code) {
+function annotatedCode(code: string) {
     const codeArray = code.split('\n');
     let line = 0;
     const annotated = codeArray.map(str => {
         line += 1;
-        return pad(line, 6) + ': ' + str;
+        return pad(`${line}`, 6) + ': ' + str;
     });
     return annotated.join('\n');
 }
@@ -33,11 +40,13 @@ function getGlobalObject() {
 }
 
 class Verifier {
-    constructor(result) {
+    result: any;
+
+    constructor(result: object) {
         this.result = result;
     }
 
-    async verify(args, expectedOutput, expectedCoverage) {
+    async verify(args: unknown[], expectedOutput: string, expectedCoverage: ExpectedCoverage) {
         assert.ok(!this.result.err, (this.result.err || {}).message);
         getGlobalObject()[this.result.coverageVariable] = clone(
             this.result.baseline
@@ -82,13 +91,13 @@ class Verifier {
         );
         const initial = readInitialCoverage(this.getGeneratedCode());
         assert.ok(initial);
-        assert.deepEqual(initial.coverageData, this.result.emptyCoverage);
-        assert.ok(initial.path);
+        assert.deepEqual(initial!.coverageData, this.result.emptyCoverage);
+        assert.ok(initial!.path);
         if (this.result.file) {
-            assert.equal(initial.path, this.result.file);
+            assert.equal(initial!.path, this.result.file);
         }
-        assert.equal(initial.gcv, this.result.coverageVariable);
-        assert.ok(initial.hash);
+        assert.equal(initial!.gcv, this.result.coverageVariable);
+        assert.ok(initial!.hash);
     }
 
     getCoverage() {
@@ -109,7 +118,7 @@ class Verifier {
     }
 }
 
-function extractTestOption(opts, name, defaultValue) {
+function extractTestOption(opts: any, name: string, defaultValue: any) {
     let v = defaultValue;
     if (Object.prototype.hasOwnProperty.call(opts, name)) {
         v = opts[name];
@@ -117,7 +126,7 @@ function extractTestOption(opts, name, defaultValue) {
     return v;
 }
 
-export function create(code, opts, instrumenterOpts, inputSourceMap) {
+export function create(code: string, opts: any, instrumenterOpts: any, inputSourceMap: any) {
     opts = opts || {};
     instrumenterOpts = instrumenterOpts || {};
     instrumenterOpts.coverageVariable =
@@ -158,7 +167,7 @@ export function create(code, opts, instrumenterOpts, inputSourceMap) {
                 '========================================================================'
             );
         }
-    } catch (ex) {
+    } catch (ex: any) {
         if (!quiet) {
             console.error(ex.stack);
         }
@@ -179,7 +188,7 @@ export function create(code, opts, instrumenterOpts, inputSourceMap) {
             } else {
                 fn = new Function('args', wrapped);
             }
-        } catch (ex) {
+        } catch (ex: any) {
             console.error(ex.stack);
             verror = new Error(
                 'Error compiling\n' + annotatedCode(code) + '\n' + ex.message

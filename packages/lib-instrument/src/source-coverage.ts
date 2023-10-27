@@ -4,6 +4,7 @@ import {SourceLocation} from "@babel/types";
 // eslint-disable-next-line @typescript-eslint/no-var-requires
 const {classes} = require('istanbul-lib-coverage');
 import {CoverageData} from "./read-coverage";
+import {RawSourceMap} from "source-map";
 
 export type CodeRange = {
     start: { line?: number; column?: number };
@@ -14,18 +15,13 @@ export type CodeRange = {
  * SourceCoverage provides mutation methods to manipulate the structure of
  * a file coverage object. Used by the instrumenter to create a full coverage
  * object for a file incrementally.
- *
- * @private
- * @param pathOrObj {String|Object} - see the argument for {@link FileCoverage}
- * @extends FileCoverage
- * @constructor
  */
 export class SourceCoverage extends classes.FileCoverage {
 
     private meta: { last: { s: number; f: number; b: number; }; };
     public data!: CoverageData & { bT?: Record<string, number[]> };
 
-    constructor(pathOrObj) {
+    constructor(pathOrObj: string | object) {
         super(pathOrObj);
         this.meta = {
             last: {
@@ -113,9 +109,10 @@ export class SourceCoverage extends classes.FileCoverage {
     /**
      * Assigns an input source map to the coverage that can be used
      * to remap the coverage output to the original source
-     * @param sourceMap {object} the source map
+     *
+     * @param sourceMap the source map
      */
-    inputSourceMap(sourceMap) {
+    inputSourceMap(sourceMap: RawSourceMap) {
         this.data.inputSourceMap = sourceMap;
     }
 

@@ -16,7 +16,8 @@
       "forceConsistentCasingInFileNames": true,
       "moduleResolution": "node",
       "resolveJsonModule": true,
-      "noImplicitAny": false
+      "noImplicitAny": false,
+      "isolatedModules": true
     },
     "include": [
       "src/**/*.ts",

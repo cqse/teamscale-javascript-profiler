@@ -112,7 +112,7 @@ export class Instrumenter {
      * coverage to the untranspiled source.
      * @returns the instrumented code.
      */
-    instrumentSync(code: string, filename: string, inputSourceMap: RawSourceMap | undefined): string {
+    instrumentSync(code: string, filename: string | undefined, inputSourceMap: RawSourceMap | undefined): string {
         if (typeof code !== 'string') {
             throw new Error('Code must be a string');
         }
@@ -188,18 +188,19 @@ export class Instrumenter {
      * as opposed to throwing one. Note that in the current implementation,
      * the callback will be called in the same process tick and is not asynchronous.
      *
-     * @param {string} code - the code to instrument
-     * @param {string} filename - the filename against which to track coverage.
-     * @param {Function} callback - the callback
-     * @param {Object} inputSourceMap - the source map that maps the not instrumented code back to it's original form.
+     * @param code - the code to instrument
+     * @param filename - the filename against which to track coverage.
+     * @param callback - the callback
+     * @param inputSourceMap - the source map that maps the not instrumented code back to it's original form.
      * Is assigned to the coverage object and therefore, is available in the json output and can be used to remap the
      * coverage to the untranspiled source.
      */
-    instrument(code, filename, callback, inputSourceMap) {
+    instrument(code: string, filename: string | undefined, callback: (error: unknown, result?: string) => void, inputSourceMap: RawSourceMap) {
         if (!callback && typeof filename === 'function') {
             callback = filename;
-            filename = null;
+            filename = undefined;
         }
+
         try {
             const out = this.instrumentSync(code, filename, inputSourceMap);
             callback(null, out);

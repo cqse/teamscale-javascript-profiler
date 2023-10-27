@@ -87,7 +87,7 @@ export function createDefaultInstrumenterOptions(): InstrumenterOptions {
 export class Instrumenter {
 
     private fileCoverage: unknown;
-    private sourceMap: RawSourceMap | null;
+    private sourceMap?: RawSourceMap;
     private readonly opts: InstrumenterOptions;
 
     constructor(opts?: Partial<InstrumenterOptions>) {
@@ -96,7 +96,7 @@ export class Instrumenter {
             ...opts
         };
         this.fileCoverage = null;
-        this.sourceMap = null;
+        this.sourceMap = undefined;
     }
 
     /**
@@ -105,14 +105,14 @@ export class Instrumenter {
      * is supported. To instrument ES6 modules, make sure that you set the
      * `esModules` property to `true` when creating the instrumenter.
      *
-     * @param {string} code - the code to instrument
-     * @param {string} filename - the filename against which to track coverage.
-     * @param {object} [inputSourceMap] - the source map that maps the not instrumented code back to it's original form.
+     * @param code - the code to instrument
+     * @param filename - the filename against which to track coverage.
+     * @param [inputSourceMap] - the source map that maps the not instrumented code back to it's original form.
      * Is assigned to the coverage object and therefore, is available in the json output and can be used to remap the
      * coverage to the untranspiled source.
-     * @returns {string} the instrumented code.
+     * @returns the instrumented code.
      */
-    instrumentSync(code, filename, inputSourceMap): string {
+    instrumentSync(code: string, filename: string, inputSourceMap: RawSourceMap | undefined): string {
         if (typeof code !== 'string') {
             throw new Error('Code must be a string');
         }
@@ -220,7 +220,7 @@ export class Instrumenter {
      * returns the source map produced for the last file instrumented.
      * @returns {null|Object} the source map object.
      */
-    lastSourceMap(): RawSourceMap | null {
+    lastSourceMap(): RawSourceMap | undefined {
         return this.sourceMap;
     }
 }

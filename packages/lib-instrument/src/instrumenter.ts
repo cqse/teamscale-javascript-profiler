@@ -1,12 +1,10 @@
-// @ts-nocheck
-// @ts-ignore
-
 /*
  Copyright 2012-2015, Yahoo Inc.
  Copyrights licensed under the New BSD License. See the accompanying LICENSE file for terms.
  */
-import { transformSync } from '@babel/core';
-import { defaults } from '@istanbuljs/schema';
+import {transformSync} from '@babel/core';
+import {ParserPlugin as PluginConfig} from '@babel/parser';
+import {defaults} from '@istanbuljs/schema';
 import {RawSourceMap} from "source-map";
 
 import {programVisitor, VisitorOutput} from './visitor';
@@ -47,7 +45,7 @@ export interface InstrumenterOptions {
     debug: boolean;
 
     /** Set babel parser plugins */
-    parserPlugins: object[];
+    parserPlugins: PluginConfig[];
 
     /** The global coverage variable scope */
     coverageGlobalScope: string;
@@ -70,7 +68,8 @@ export function createDefaultInstrumenterOptions(): InstrumenterOptions {
         produceSourceMap: false,
         ignoreClassMethods: [],
         // eslint-disable-next-line @typescript-eslint/no-unused-vars
-        sourceMapUrlCallback: (filename: string, url: string) => { /* implementation of this function might vary */ },
+        sourceMapUrlCallback: (filename: string, url: string) => { /* implementation of this function might vary */
+        },
         debug: false,
         parserPlugins: [],
         coverageGlobalScope: 'this',
@@ -119,7 +118,7 @@ export class Instrumenter {
         }
 
         filename = filename || String(new Date().getTime()) + '.js';
-        const { opts } = this;
+        const {opts} = this;
         let output: VisitorOutput;
 
         const babelOpts = {
@@ -138,13 +137,13 @@ export class Instrumenter {
             },
             plugins: [
                 [
-                    ({ types }) => {
+                    ({types}) => {
                         const ee = programVisitor(types, filename, {
                             coverageVariable: opts.coverageVariable,
                             reportLogic: opts.reportLogic,
                             coverageGlobalScope: opts.coverageGlobalScope,
                             coverageGlobalScopeFunc:
-                                opts.coverageGlobalScopeFunc,
+                            opts.coverageGlobalScopeFunc,
                             ignoreClassMethods: opts.ignoreClassMethods,
                             inputSourceMap
                         });
@@ -208,6 +207,7 @@ export class Instrumenter {
             callback(ex);
         }
     }
+
     /**
      * returns the file coverage object for the last file instrumented.
      * @returns {Object} the file coverage object.
@@ -215,6 +215,7 @@ export class Instrumenter {
     lastFileCoverage(): unknown {
         return this.fileCoverage;
     }
+
     /**
      * returns the source map produced for the last file instrumented.
      * @returns {null|Object} the source map object.

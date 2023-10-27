@@ -1,9 +1,8 @@
-// @ts-nocheck
-// @ts-ignore
-
 // eslint-disable-next-line @typescript-eslint/no-var-requires
-const { classes } = require('istanbul-lib-coverage');
-import { CoverageData } from "./read-coverage";
+import {SourceLocation} from "@babel/types";
+
+const {classes} = require('istanbul-lib-coverage');
+import {CoverageData} from "./read-coverage";
 
 export type CodeRange = {
     start: { line?: number; column?: number };
@@ -36,7 +35,7 @@ export class SourceCoverage extends classes.FileCoverage {
         };
     }
 
-    newStatement(loc) {
+    newStatement(loc: CodeRange): number {
         const s = this.meta.last.s;
         this.data.statementMap[s] = cloneLocation(loc);
         this.data.s[s] = 0;
@@ -44,12 +43,12 @@ export class SourceCoverage extends classes.FileCoverage {
         return s;
     }
 
-    newFunction(name, decl, loc) {
+    newFunction(name: string, declarationLocation: CodeRange | undefined, loc: CodeRange | undefined): number {
         const f = this.meta.last.f;
         name = name || '(anonymous_' + f + ')';
         this.data.fnMap[f] = {
             name,
-            decl: cloneLocation(decl),
+            decl: cloneLocation(declarationLocation),
             loc: cloneLocation(loc),
             // DEPRECATED: some legacy reports require this info.
             line: loc?.start.line
@@ -59,7 +58,7 @@ export class SourceCoverage extends classes.FileCoverage {
         return f;
     }
 
-    newBranch(type: string, loc: CodeRange | undefined, isReportLogic = false) {
+    newBranch(type: string, loc: SourceLocation | null | undefined, isReportLogic = false): number {
         const b = this.meta.last.b;
         this.data.b[b] = [];
         this.data.branchMap[b] = {
@@ -74,7 +73,7 @@ export class SourceCoverage extends classes.FileCoverage {
         return b;
     }
 
-    maybeNewBranchTrue(type: string, name: string, isReportLogic) {
+    maybeNewBranchTrue(type: string, name: string, isReportLogic: boolean) {
         if (!isReportLogic) {
             return;
         }
@@ -85,25 +84,25 @@ export class SourceCoverage extends classes.FileCoverage {
         this.data.bT[name] = [];
     }
 
-    addBranchPath(name: string, location: CodeRange | undefined) {
-        const bMeta = this.data.branchMap[name];
-        const counts = this.data.b[name];
+    addBranchPath(branchId: string | number, location: CodeRange | undefined) {
+        const bMeta = this.data.branchMap[branchId];
+        const counts = this.data.b[branchId];
 
         /* istanbul ignore if: paranoid check */
         if (!bMeta) {
-            throw new Error('Invalid branch ' + name);
+            throw new Error('Invalid branch ' + branchId);
         }
         bMeta.locations.push(cloneLocation(location));
         counts.push(0);
-        this.maybeAddBranchTrue(name);
+        this.maybeAddBranchTrue(branchId as string);
         return counts.length - 1;
     }
 
-    maybeAddBranchTrue(name: string) {
+    maybeAddBranchTrue(branchId: string) {
         if (!this.data.bT) {
             return;
         }
-        const countsTrue = this.data.bT[name];
+        const countsTrue = this.data.bT[branchId];
         if (!countsTrue) {
             return;
         }
@@ -134,7 +133,7 @@ export class SourceCoverage extends classes.FileCoverage {
     }
 }
 
-function cloneLocation(loc: CodeRange | undefined): CodeRange {
+function cloneLocation(loc: CodeRange | null | undefined): CodeRange {
     return {
         start: {
             line: loc?.start.line,

@@ -1,11 +1,8 @@
-// @ts-nocheck
-// @ts-ignore
-
 import {ParseResult, parseSync, traverse} from '@babel/core';
-import { defaults } from '@istanbuljs/schema';
-import {BranchMapping, FunctionMapping, Range} from "istanbul-lib-coverage";
+import {defaults} from '@istanbuljs/schema';
 
-import { MAGIC_KEY, MAGIC_VALUE } from './constants';
+import {MAGIC_KEY, MAGIC_VALUE} from './constants';
+import {CodeRange} from "./source-coverage";
 
 export type IstanbulCoverageObject = {
     path: string;
@@ -14,9 +11,23 @@ export type IstanbulCoverageObject = {
     coverageData: CoverageData;
 }
 
+export interface BranchMapping {
+    loc: CodeRange;
+    type: string;
+    locations: CodeRange[];
+    line?: number;
+}
+
+export interface FunctionMapping {
+    name: string;
+    decl: CodeRange;
+    loc: CodeRange;
+    line?: number;
+}
+
 export type CoverageData = {
     path: string;
-    statementMap: { [key: string]: Range };
+    statementMap: { [key: string]: CodeRange };
     fnMap: { [key: string]: FunctionMapping };
     branchMap: { [key: string]: BranchMapping };
     s: { [key: string]: number };
@@ -66,7 +77,7 @@ export function readInitialCoverage(code: string | object): IstanbulCoverageObje
     let covScope;
     traverse(ast, {
         ObjectProperty(path) {
-            const { node } = path;
+            const {node} = path;
             if (
                 !node.computed &&
                 path.get('key').isIdentifier() &&

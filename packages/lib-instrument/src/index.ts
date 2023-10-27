@@ -1,7 +1,8 @@
-import { Instrumenter } from './instrumenter';
-export { InstrumenterOptions } from './instrumenter';
-export { programVisitor } from './visitor';
-export { readInitialCoverage } from './read-coverage';
+import {Instrumenter} from './instrumenter';
+
+export {InstrumenterOptions} from './instrumenter';
+export {programVisitor} from './visitor';
+export {readInitialCoverage} from './read-coverage';
 
 /**
  * Creates a new instrumenter with the supplied options.

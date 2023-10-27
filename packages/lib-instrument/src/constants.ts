@@ -1,4 +1,4 @@
-import { createHash } from 'crypto';
+import {createHash} from 'crypto';
 
 // ATTENTION: increment this version if there are schema changes
 // that are not backwards compatible:

@@ -346,28 +346,28 @@ class VisitState {
             path.insertBefore(T.expressionStatement(increment));
         } else if (
             this.counterNeedsHoisting(path) &&
-            T.isVariableDeclarator(path.parentPath)
+            T.isVariableDeclarator(path.parent)
         ) {
             // make an attempt to hoist the statement counter, so that
             // function names are maintained.
-            const parent = path.parentPath.parentPath;
-            if (parent && T.isExportNamedDeclaration(parent.parentPath)) {
-                parent.parentPath.insertBefore(
+            const grandParentPath = path.parentPath?.parentPath;
+            if (grandParentPath && T.isExportNamedDeclaration(grandParentPath.parent)) {
+                grandParentPath.parentPath?.insertBefore(
                     T.expressionStatement(increment)
                 );
             } else if (
-                parent &&
-                (T.isProgram(parent.parentPath) ||
-                    T.isBlockStatement(parent.parentPath))
+                grandParentPath &&
+                (T.isProgram(grandParentPath.parent) ||
+                    T.isBlockStatement(grandParentPath.parent))
             ) {
-                parent.insertBefore(T.expressionStatement(increment));
+                grandParentPath.insertBefore(T.expressionStatement(increment));
             } else {
                 path.replaceWith(T.sequenceExpression([increment, path.node as Expression]));
             }
         } /* istanbul ignore else: not expected */ else if (
             path.isExpression()
         ) {
-            path.replaceWith(T.sequenceExpression([increment, path.node as Expression]));
+            path.replaceWith(T.sequenceExpression([increment, path.node]));
         } else {
             console.error(
                 'Unable to insert counter for node type:',
@@ -789,14 +789,17 @@ function shouldIgnoreFile(programNodePath: NodePath | null): boolean {
     return getParentComments(programNodePath).some(c => COMMENT_FILE_RE.test(c.value));
 }
 
-function getName(node: Node): string {
-    if ('id' in node && isIdentifier((node.id))) {
-        return node.id.name;
+function getName(node: Node | null): string | undefined {
+    if (node) {
+        if ('id' in node && node.id && 'name' in node.id!) {
+            return node.id.name;
+        }
+        if ('name' in node) {
+            return node.name as string;
+        }
     }
-    if ('name' in node) {
-        return node.name as string;
-    }
-    throw new Error("No proper name attribute found.");
+
+    return undefined;
 }
 
 export type ProgramVisitorOptions = {

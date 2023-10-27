@@ -43,7 +43,7 @@ export class SourceCoverage extends classes.FileCoverage {
         return s;
     }
 
-    newFunction(name: string, declarationLocation: CodeRange | undefined, loc: CodeRange | undefined): number {
+    newFunction(name: string | undefined, declarationLocation: CodeRange | undefined, loc: CodeRange | undefined): number {
         const f = this.meta.last.f;
         name = name || '(anonymous_' + f + ')';
         this.data.fnMap[f] = {

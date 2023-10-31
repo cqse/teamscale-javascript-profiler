@@ -38,7 +38,7 @@
     "chai": "^4.2.0",
     "clone": "^2.1.2",
     "debug": "^4.1.1",
-    "documentation": "^12.1.4",
+    "documentation": "^14.0.2",
     "js-yaml": "^3.13.1",
     "mocha": "^6.2.3",
     "nopt": "^4.0.1",

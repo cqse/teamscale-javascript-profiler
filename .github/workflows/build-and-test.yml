@@ -79,7 +79,7 @@ jobs:
           pnpm publish --ignore-scripts --no-git-checks
         env:
           NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
-      - name: Publish the Lib Instrument
+      - name: Publish the Instrumentation Library
         if: startsWith(github.ref, 'refs/tags/v')
         working-directory: ./packages/lib-instrument
         run: |

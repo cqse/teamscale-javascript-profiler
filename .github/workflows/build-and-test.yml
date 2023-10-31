@@ -48,7 +48,7 @@ jobs:
         run: | 
           pnpm build
           pnpm test
-      - name: Build and test our Lib Instrument
+      - name: Build and test our Instrumentation Library
         working-directory: ./packages/lib-instrument
         run: |
           pnpm build

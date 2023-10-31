@@ -48,6 +48,11 @@ jobs:
         run: | 
           pnpm build
           pnpm test
+      - name: Build and test our Instrumentation Library
+        working-directory: ./packages/lib-instrument
+        run: |
+          pnpm build
+          pnpm test
       - name: Build and test the Instrumenter
         working-directory: ./packages/teamscale-javascript-instrumenter
         run: |
@@ -69,6 +74,14 @@ jobs:
       - name: Publish the Commons Library
         if: startsWith(github.ref, 'refs/tags/v')
         working-directory: ./packages/cqse-commons
+        run: |
+          pnpm config set //registry.npmjs.org/:_authToken ${NPM_TOKEN}
+          pnpm publish --ignore-scripts --no-git-checks
+        env:
+          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+      - name: Publish the Instrumentation Library
+        if: startsWith(github.ref, 'refs/tags/v')
+        working-directory: ./packages/lib-instrument
         run: |
           pnpm config set //registry.npmjs.org/:_authToken ${NPM_TOKEN}
           pnpm publish --ignore-scripts --no-git-checks

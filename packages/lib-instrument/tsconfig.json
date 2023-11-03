@@ -1,0 +1,27 @@
+{
+    "compilerOptions": {
+      "types": ["mocha", "node"],
+      "target": "ES2020",
+      "module": "commonjs",
+      "declaration": true,                         /* Generates corresponding '.d.ts' file. */
+      "declarationMap": true,                      /* Generates a sourcemap for each corresponding '.d.ts' file. */
+      "composite": true,                           /* Enable project compilation */
+      "allowJs": true,
+      "checkJs": false,
+      "outDir": "./lib",                               /* Redirect output structure to the directory. */
+      "rootDir": "./src",                               /* Specify the root directory of input files. Use to control the output directory structure with --outDir. */
+      "strict": true,                                 /* Enable all strict type-checking options. */
+      "skipLibCheck": true,                           /* Skip type checking of declaration files. */
+      "esModuleInterop": true,                        /* Enables emit interoperability between CommonJS and ES Modules via creation of namespace objects for all imports. Implies 'allowSyntheticDefaultImports'. */
+      "forceConsistentCasingInFileNames": true,
+      "moduleResolution": "node",
+      "resolveJsonModule": true,
+      "noImplicitAny": false,
+      "isolatedModules": true
+    },
+    "include": [
+      "src/**/*.ts",
+      "src/**/*.js",
+      "src/**/*.d.ts"
+    ]
+  }  

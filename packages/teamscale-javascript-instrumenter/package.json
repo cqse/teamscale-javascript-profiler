@@ -48,11 +48,12 @@
     "typescript": "^5.2.2"
   },
   "dependencies": {
+    "@cqse/commons": "0.0.1-beta.59",
+    "@teamscale/lib-instrument": "workspace:../lib-instrument",
     "@babel/generator": "^7.23.0",
     "@babel/parser": "^7.23.0",
     "@babel/traverse": "^7.23.2",
     "@babel/types": "^7.23.0",
-    "@cqse/commons": "0.0.1-beta.59",
     "@types/micromatch": "^4.0.3",
     "argparse": "^2.0.1",
     "async": "^3.2.4",
@@ -60,7 +61,6 @@
     "convert-source-map": "^2.0.0",
     "foreground-child": "^3.1.1",
     "glob": "^10.3.10",
-    "istanbul-lib-instrument": "^6.0.1",
     "micromatch": "4.0.5",
     "mkdirp": "^3.0.1",
     "source-map": "0.7.4",

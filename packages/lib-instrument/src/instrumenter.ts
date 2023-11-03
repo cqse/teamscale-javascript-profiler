@@ -7,8 +7,7 @@ import {ParserPlugin as PluginConfig} from '@babel/parser';
 import {defaults} from '@istanbuljs/schema';
 import {RawSourceMap} from "source-map";
 
-import {programVisitor, VisitorOutput} from './visitor';
-import {IstanbulCoverageObject, readInitialCoverage} from './read-coverage';
+import { programVisitor } from './visitor';
 
 /**
  * Options for configuring the coverage instrumenter.
@@ -38,9 +37,6 @@ export interface InstrumenterOptions {
     /** Set to array of class method names to ignore for coverage */
     ignoreClassMethods: string[];
 
-    /** A callback function that is called when a source map URL is found in the original code. Called with source file name and source map URL */
-    sourceMapUrlCallback(filename: string, url: string | null): void;
-
     /** Turn debugging on */
     debug: boolean;
 
@@ -67,9 +63,6 @@ export function createDefaultInstrumenterOptions(): InstrumenterOptions {
         autoWrap: false,
         produceSourceMap: false,
         ignoreClassMethods: [],
-        // eslint-disable-next-line @typescript-eslint/no-unused-vars
-        sourceMapUrlCallback: (filename: string, url: string) => { /* implementation of this function might vary */
-        },
         debug: false,
         parserPlugins: [],
         coverageGlobalScope: 'this',
@@ -79,10 +72,8 @@ export function createDefaultInstrumenterOptions(): InstrumenterOptions {
 
 /**
  * Instrumenter is the public API for the instrument library.
- * It is typically used for ES5 code. For ES6 code that you
- * are already running under `babel` use the coverage plugin
- * instead.
- * @param {Object} opts optional.
+ * It is typically used for ES5 code. For ES6 code that you are already
+ * running under `babel` use the coverage plugin instead.
  */
 export class Instrumenter {
 
@@ -113,13 +104,8 @@ export class Instrumenter {
      * @returns the instrumented code.
      */
     instrumentSync(code: string, filename: string | undefined, inputSourceMap: RawSourceMap | undefined): string {
-        if (typeof code !== 'string') {
-            throw new Error('Code must be a string');
-        }
-
         filename = filename || String(new Date().getTime()) + '.js';
         const {opts} = this;
-        let output: VisitorOutput;
 
         const babelOpts = {
             configFile: false,
@@ -153,7 +139,7 @@ export class Instrumenter {
                                 Program: {
                                     enter: ee.enter,
                                     exit(path) {
-                                        output = ee.exit(path)!;
+                                        ee.exit(path);
                                     }
                                 }
                             }
@@ -163,24 +149,7 @@ export class Instrumenter {
             ]
         };
 
-        const codeMap = transformSync(code, babelOpts);
-
-        if (!output?.fileCoverage) {
-            const initialCoverage: IstanbulCoverageObject | null =
-                readInitialCoverage(codeMap!.ast!);
-            this.fileCoverage = initialCoverage?.coverageData;
-            this.sourceMap = inputSourceMap;
-            return code;
-        }
-
-        this.fileCoverage = output.fileCoverage;
-        this.sourceMap = codeMap!.map as RawSourceMap;
-        const cb = this.opts.sourceMapUrlCallback;
-        if (cb && output.sourceMappingURL) {
-            cb(filename, output.sourceMappingURL as string);
-        }
-
-        return codeMap!.code!;
+        return transformSync(code, babelOpts)!.code!;
     }
 
     /**

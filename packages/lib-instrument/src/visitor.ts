@@ -1,5 +1,5 @@
 import {createHash} from 'crypto';
-import {Node, NodePath, template} from '@babel/core';
+import {Node, NodePath} from '@babel/core';
 import {Visitor} from "@babel/traverse";
 import {defaults} from '@istanbuljs/schema';
 import {
@@ -15,17 +15,26 @@ import {
 type BabelTypes = typeof import("@babel/types")
 
 import {CodeRange, SourceCoverage} from './source-coverage';
-import {SHA, MAGIC_KEY, MAGIC_VALUE} from './constants';
+import { SHA } from './constants';
 import {RawSourceMap} from "source-map";
+import {
+    newBranchCoverageExpression,
+    newFunctionCoverageExpression,
+    newStatementCoverageExpression,
+    newStringConstDeclarationNode
+} from "./statements";
+import {SourceOrigins} from "./origins";
 
-// pattern for istanbul to ignore a section
+// Pattern for istanbul to ignore a section
 const COMMENT_RE = /^\s*istanbul\s+ignore\s+(if|else|next)(?=\W|$)/;
-// pattern for istanbul to ignore the whole file
+
+// Pattern for istanbul to ignore the whole file
 const COMMENT_FILE_RE = /^\s*istanbul\s+ignore\s+(file)(?=\W|$)/;
-// source map URL pattern
+
+// Pattern for identifying source map comments
 const SOURCE_MAP_RE = /[#@]\s*sourceMappingURL=(.*)\s*$/m;
 
-// generate a variable name from hashing the supplied file path
+// Generate a variable name from hashing the supplied file path
 function genVar(filename: string) {
     const hash = createHash(SHA);
     hash.update(filename);
@@ -37,7 +46,7 @@ type CovNode = Node & { __cov__?: Record<string, unknown> };
 type LeafNode = { node: Node, parent: Node, property: string };
 
 export type VisitorOutput = {
-    fileCoverage?: unknown;
+    originFiles?: SourceOrigins;
     sourceMappingURL?: unknown;
 } | undefined;
 
@@ -54,6 +63,8 @@ class VisitState {
     sourceMappingURL: string | null;
     reportLogic: boolean;
 
+    public readonly origins: SourceOrigins;
+
     constructor(
         types: BabelTypes,
         sourceFilePath: string,
@@ -65,6 +76,7 @@ class VisitState {
         this.attrs = {};
         this.nextIgnore = null;
         this.cov = new SourceCoverage(sourceFilePath);
+        this.origins = new SourceOrigins(sourceFilePath);
 
         if (typeof inputSourceMap !== 'undefined') {
             this.cov.inputSourceMap(inputSourceMap);
@@ -382,8 +394,10 @@ class VisitState {
         if (!(path.node?.loc)) {
             return;
         }
-        const index = this.cov.newStatement(path.node.loc);
-        const increment = this.increase('s', index, null);
+
+        const originFileId = this.origins.ensureKnownOrigin(path.node.loc);
+        const increment = newStatementCoverageExpression(originFileId, path.node.loc);
+
         this.insertCounter(path, increment);
     }
 
@@ -414,13 +428,11 @@ class VisitState {
             };
         }
 
-        const name = getName(path.node);
-        const index = this.cov.newFunction(name, declarationLocation, path.node.body.loc ?? undefined);
-        const increment = this.increase('f', index, null);
-        const body = path.get('body') as NodePath;
-
         /* istanbul ignore else: not expected */
+        const body = path.get('body') as NodePath;
         if (body.isBlockStatement()) {
+            const originFileId = this.origins.ensureKnownOrigin(path.node.loc);
+            const increment = newFunctionCoverageExpression(originFileId, path.node.loc, declarationLocation);
             body.node.body.unshift(T.expressionStatement(increment));
         } else {
             console.error(
@@ -444,10 +456,9 @@ class VisitState {
     }
 
     insertBranchCounter(path: NodePath, branchName: number, loc: SourceLocation | null | undefined) {
-        const increment = this.getBranchIncrement(
-            branchName,
-            loc ?? path.node.loc
-        );
+        loc = loc ?? path.node.loc!;
+        const originFileId = this.origins.ensureKnownOrigin(loc);
+        const increment = newBranchCoverageExpression(originFileId, loc)
         this.insertCounter(path, increment);
     }
 
@@ -723,43 +734,6 @@ const codeVisitor: Visitor = {
     LogicalExpression: entries(coverLogicalExpression)
 };
 
-const globalTemplateAlteredFunction = template(`
-        var Function = (function(){}).constructor;
-        var global = (new Function(GLOBAL_COVERAGE_SCOPE))();
-`);
-const globalTemplateFunction = template(`
-        var global = (new Function(GLOBAL_COVERAGE_SCOPE))();
-`);
-const globalTemplateVariable = template(`
-        var global = GLOBAL_COVERAGE_SCOPE;
-`);
-// the template to insert at the top of the program.
-const coverageTemplate = template(
-    `
-    function COVERAGE_FUNCTION () {
-        var path = PATH;
-        var hash = HASH;
-        GLOBAL_COVERAGE_TEMPLATE
-        var gcv = GLOBAL_COVERAGE_VAR;
-        var coverageData = INITIAL;
-        var coverage = global[gcv] || (global[gcv] = {});
-        if (!coverage[path] || coverage[path].hash !== hash) {
-            coverage[path] = coverageData;
-        }
-
-        var actualCoverage = coverage[path];
-        {
-            // @ts-ignore
-            COVERAGE_FUNCTION = function () {
-                return actualCoverage;
-            }
-        }
-
-        return actualCoverage;
-    }
-`,
-    {preserveComments: true}
-);
 // the rewire plugin (and potentially other babel middleware)
 // may cause files to be instrumented twice, see:
 // https://github.com/istanbuljs/babel-plugin-istanbul/issues/94
@@ -790,19 +764,6 @@ function shouldIgnoreFile(programNodePath: NodePath | null): boolean {
     return getParentComments(programNodePath).some(c => COMMENT_FILE_RE.test(c.value));
 }
 
-function getName(node: Node | null): string | undefined {
-    if (node) {
-        if ('id' in node && node.id && 'name' in node.id!) {
-            return node.id.name;
-        }
-        if ('name' in node) {
-            return node.name as string;
-        }
-    }
-
-    return undefined;
-}
-
 export type ProgramVisitorOptions = {
     /** the global coverage variable name */
     coverageVariable: string;
@@ -829,6 +790,7 @@ export type ProgramVisitorOptions = {
  * It returns an object with two methods `enter` and `exit`.
  * These should be assigned to or called from `Program` entry and exit functions
  * in a babel visitor.
+ *
  * These functions do not make assumptions about the state set by Babel and thus
  * can be used in a context other than a Babel plugin.
  *
@@ -842,7 +804,6 @@ export type ProgramVisitorOptions = {
  * @param opts - additional options.
  */
 export function programVisitor(types: BabelTypes, sourceFilePath = 'unknown.js', opts: ProgramVisitorOptions) {
-    const T = types;
     opts = {
         ...defaults.instrumentVisitor,
         ...opts
@@ -867,76 +828,23 @@ export function programVisitor(types: BabelTypes, sourceFilePath = 'unknown.js',
         },
         exit(path: NodePath<Program>) {
             if (alreadyInstrumented(path, visitState)) {
-                return undefined;
+                return;
             }
 
             visitState.cov.freeze();
-            const coverageData = visitState.cov.toJSON();
+            const originData = visitState.origins;
             if (shouldIgnoreFile(path.find(p => p.isProgram()))) {
-                return {
-                    fileCoverage: coverageData,
-                    sourceMappingURL: visitState.sourceMappingURL
-                };
+                return;
             }
-            coverageData[MAGIC_KEY] = MAGIC_VALUE;
-            const hash = createHash(SHA)
-                .update(JSON.stringify(coverageData))
-                .digest('hex');
-            coverageData.hash = hash;
-            if (
-                coverageData.inputSourceMap &&
-                Object.getPrototypeOf(coverageData.inputSourceMap) !==
-                Object.prototype
-            ) {
-                coverageData.inputSourceMap = {
-                    ...coverageData.inputSourceMap
-                };
-            }
-            const coverageNode = T.valueToNode(coverageData);
-            delete coverageData[MAGIC_KEY];
-            delete coverageData.hash;
-            let gvTemplate;
-            if (opts.coverageGlobalScopeFunc) {
-                if (path.scope.getBinding('Function')) {
-                    gvTemplate = globalTemplateAlteredFunction({
-                        GLOBAL_COVERAGE_SCOPE: T.stringLiteral(
-                            'return ' + opts.coverageGlobalScope
-                        )
-                    });
-                } else {
-                    gvTemplate = globalTemplateFunction({
-                        GLOBAL_COVERAGE_SCOPE: T.stringLiteral(
-                            'return ' + opts.coverageGlobalScope
-                        )
-                    });
-                }
-            } else {
-                gvTemplate = globalTemplateVariable({
-                    GLOBAL_COVERAGE_SCOPE: opts.coverageGlobalScope
-                });
-            }
-            const cv = coverageTemplate({
-                GLOBAL_COVERAGE_VAR: T.stringLiteral(opts.coverageVariable),
-                GLOBAL_COVERAGE_TEMPLATE: gvTemplate,
-                COVERAGE_FUNCTION: T.identifier(visitState.varName),
-                PATH: T.stringLiteral(sourceFilePath),
-                INITIAL: coverageNode,
-                HASH: T.stringLiteral(hash)
-            });
 
-            // explicitly call this.varName to ensure coverage is always initialized
+            originData.hash = originData.computeHash();
+
+            // Add a variable definition for each origin file on top of the file
             const body = path.node.body;
-            body.unshift(
-                T.expressionStatement(
-                    T.callExpression(T.identifier(visitState.varName), [])
-                )
-            );
-            body.unshift(cv as Statement);
-
-            return {
-                fileCoverage: coverageData,
-                sourceMappingURL: visitState.sourceMappingURL
-            };
+            for (const [originPath, originId] of originData.originToIdMap.entries()) {
+                const declaration = newStringConstDeclarationNode(originId, originPath);
+                body.unshift(declaration);
+            }
         }
     };
 }

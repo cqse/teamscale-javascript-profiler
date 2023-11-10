@@ -8,17 +8,12 @@ import {defaults} from '@istanbuljs/schema';
 import {RawSourceMap} from "source-map";
 
 import { programVisitor } from './visitor';
+import {InstrumentationOptions} from "./types";
 
 /**
  * Options for configuring the coverage instrumenter.
  */
-export interface InstrumenterOptions {
-    /** Name of global coverage variable */
-    coverageVariable: string;
-
-    /** Report boolean value of logical expressions */
-    reportLogic: boolean;
-
+export type InstrumenterOptions = InstrumentationOptions & Partial<{
     /** Preserve comments in output */
     preserveComments: boolean;
 
@@ -31,43 +26,24 @@ export interface InstrumenterOptions {
     /** Set to true to allow `return` statements outside of functions */
     autoWrap: boolean;
 
-    /** Set to true to produce a source map for the instrumented code */
-    produceSourceMap: boolean;
-
-    /** Set to array of class method names to ignore for coverage */
-    ignoreClassMethods: string[];
+    /** Approach to produce a source map for the instrumented code */
+    produceSourceMap: 'none' | 'inline' | 'external';
 
     /** Turn debugging on */
     debug: boolean;
 
     /** Set babel parser plugins */
     parserPlugins: PluginConfig[];
+}>;
 
-    /** The global coverage variable scope */
-    coverageGlobalScope: string;
-
-    /** Use an evaluated function to find coverageGlobalScope */
-    coverageGlobalScopeFunc: boolean;
-}
-
-/**
- * The default configuration options.
- */
-export function createDefaultInstrumenterOptions(): InstrumenterOptions {
-    return {
-        coverageVariable: '__coverage__',
-        reportLogic: false,
-        preserveComments: false,
-        compact: true,
-        esModules: false,
-        autoWrap: false,
-        produceSourceMap: false,
-        ignoreClassMethods: [],
-        debug: false,
-        parserPlugins: [],
-        coverageGlobalScope: 'this',
-        coverageGlobalScopeFunc: true,
-    };
+function mapSourceMapsOption(produceSourceMap: "none" | "inline" | "external" | undefined): boolean | "inline" | "both" | null | undefined {
+    if (produceSourceMap == "none") {
+        return false;
+    }
+    if (produceSourceMap === "external") {
+        return "both";
+    }
+    return produceSourceMap;
 }
 
 /**
@@ -113,7 +89,7 @@ export class Instrumenter {
             ast: true,
             filename: filename || String(new Date().getTime()) + '.js',
             inputSourceMap,
-            sourceMaps: opts.produceSourceMap,
+            sourceMaps: mapSourceMapsOption(opts.produceSourceMap),
             compact: opts.compact,
             comments: opts.preserveComments,
             parserOpts: {
@@ -125,13 +101,14 @@ export class Instrumenter {
                 [
                     ({types}) => {
                         const ee = programVisitor(types, filename, {
-                            coverageVariable: opts.coverageVariable,
                             reportLogic: opts.reportLogic,
-                            coverageGlobalScope: opts.coverageGlobalScope,
                             coverageGlobalScopeFunc:
                             opts.coverageGlobalScopeFunc,
                             ignoreClassMethods: opts.ignoreClassMethods,
-                            inputSourceMap
+                            inputSourceMap,
+                            isInstrumentedToken: opts.isInstrumentedToken,
+                            codeToPrepend: opts.codeToPrepend,
+                            coveragePrecision: opts.coveragePrecision
                         });
 
                         return {

@@ -1,5 +1,5 @@
 import {createHash} from 'crypto';
-import {Node, NodePath} from '@babel/core';
+import {Node, NodePath, parse} from '@babel/core';
 import {Visitor} from "@babel/traverse";
 import {defaults} from '@istanbuljs/schema';
 import {
@@ -24,6 +24,7 @@ import {
     newStringConstDeclarationNode
 } from "./statements";
 import {SourceOrigins} from "./origins";
+import {InstrumentationOptions} from "./types";
 
 // Pattern for istanbul to ignore a section
 const COMMENT_RE = /^\s*istanbul\s+ignore\s+(if|else|next)(?=\W|$)/;
@@ -764,25 +765,6 @@ function shouldIgnoreFile(programNodePath: NodePath | null): boolean {
     return getParentComments(programNodePath).some(c => COMMENT_FILE_RE.test(c.value));
 }
 
-export type ProgramVisitorOptions = {
-    /** the global coverage variable name */
-    coverageVariable: string;
-
-    /** report boolean value of logical expressions */
-    reportLogic: boolean;
-
-    /** the global coverage variable scope (default: `this`) */
-    coverageGlobalScope: string;
-
-    /** use an evaluated function to find coverageGlobalScope */
-    coverageGlobalScopeFunc: boolean;
-
-    /** names of methods to ignore by default on classes */
-    ignoreClassMethods: string[];
-
-    /** the input source map, that maps the uninstrumented code back to the original code */
-    inputSourceMap?: RawSourceMap;
-};
 
 /**
  * programVisitor is a `babel` adaptor for instrumentation.
@@ -803,7 +785,7 @@ export type ProgramVisitorOptions = {
  * @param sourceFilePath - the path to source file.
  * @param opts - additional options.
  */
-export function programVisitor(types: BabelTypes, sourceFilePath = 'unknown.js', opts: ProgramVisitorOptions) {
+export function programVisitor(types: BabelTypes, sourceFilePath = 'unknown.js', opts: InstrumentationOptions) {
     opts = {
         ...defaults.instrumentVisitor,
         ...opts
@@ -839,8 +821,20 @@ export function programVisitor(types: BabelTypes, sourceFilePath = 'unknown.js',
 
             originData.hash = originData.computeHash();
 
-            // Add a variable definition for each origin file on top of the file
+            if (opts.isInstrumentedToken) {
+                throw new Error("Implement me");
+            }
+
             const body = path.node.body;
+
+            if (opts.codeToPrepend) {
+                const codeToPrependAst = parse(opts.codeToPrepend, { sourceType: 'script' });
+                if (codeToPrependAst !== null) {
+                    body.unshift(...codeToPrependAst.program.body);
+                }
+            }
+
+            // Add a variable definition for each origin file on top of the file
             for (const [originPath, originId] of originData.originToIdMap.entries()) {
                 const declaration = newStringConstDeclarationNode(originId, originPath);
                 body.unshift(declaration);

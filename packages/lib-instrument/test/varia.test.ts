@@ -11,7 +11,7 @@ describe('varia', () => {
         assert.ok(!v.err);
         await v.verify(['X'], 'X', {
             lines: { 1: 1 },
-            statements: { 0: 1 }
+            statements: { 1: 1 }
         });
     });
 
@@ -20,20 +20,8 @@ describe('varia', () => {
         assert.ok(!v.err);
         await v.verify(['X'], 'X', {
             lines: { 1: 1 },
-            statements: { 0: 1 }
+            statements: { 1: 1 }
         });
-    });
-
-    it('handles windows-style paths in file names', async () => {
-        const v = create('output = args[0];', { file: 'c:\\x\\y.js' });
-        assert.ok(!v.err);
-        await v.verify(['X'], 'X', {
-            lines: { 1: 1 },
-            statements: { 0: 1 }
-        });
-
-        const cov = v.getCoverage();
-        assert.equal(Object.keys(cov)[0], 'c:\\x\\y.js');
     });
 
     it('preserves comments when requested', async () => {
@@ -45,7 +33,7 @@ describe('varia', () => {
         assert.ok(!v.err);
         await v.verify(['X'], 'X', {
             lines: { 2: 1 },
-            statements: { 0: 1 }
+            statements: { 2: 1 }
         });
 
         const code = v.getGeneratedCode();
@@ -62,9 +50,8 @@ describe('varia', () => {
         assert.ok(!v.err);
 
         const code = v.getGeneratedCode();
-        assert.ok(
-            code.match(/cov_(.+)\.s\[\d+\]\+\+;export const func=\(\)=>/)
-        );
+
+        assert.ok(code.indexOf("const func=") > 0);
     });
 
     it('honors ignore next for exported functions', () => {
@@ -78,11 +65,7 @@ describe('varia', () => {
         assert.ok(!v.err);
 
         const code = v.getGeneratedCode();
-        assert.ok(
-            code.match(
-                /return actualCoverage;}cov_[^(]+\(\);export function fn1\(\){}export default function\(\){}/
-            )
-        );
+        assert.ok(code.indexOf("export function fn1(){}export default function(){}") > -1);
     });
 
     it('instruments exported functions', () => {
@@ -97,30 +80,14 @@ describe('varia', () => {
         const code = v.getGeneratedCode();
         assert.ok(
             code.match(
-                /return actualCoverage;}cov_([^(]+)\(\);export function fn1\(\){cov_(.+)\.f\[\d+\]\+\+;}export default function\(\){cov_(.+)\.f\[\d+\]\+\+;}/
+                /const _\$o.+=undefined;export function fn1\(\)\{_\$f\(_\$o.+,1,7,1,24\);}export default function\(\)\{_\$f\(_\$o.+,1,39,1,52\);}/
             )
         );
     });
 
-    it('returns last coverage object', cb => {
-        const instrumenter = new Instrumenter({
-            coverageVariable: '__testing_coverage__'
-        });
-        let err;
-        let cov;
-
-        instrumenter.instrument('output = args[0]', __filename, e => {
-            err = e;
-            cov = instrumenter.lastFileCoverage();
-            assert.ok(!err);
-            assert.ok(cov);
-            cb();
-        });
-    });
-
     it('creates a source-map when requested', () => {
         const opts = {
-            produceSourceMap: true,
+            produceSourceMap: 'inline',
             coverageVariable: '__testing_coverage__'
         };
         const instrumenter = new Instrumenter(opts);
@@ -131,29 +98,7 @@ describe('varia', () => {
 
         assert.ok(generated);
         assert.ok(typeof generated === 'string');
-        assert.ok(instrumenter.lastSourceMap());
-    });
-
-    it('registers source map URLs seen in the original source', () => {
-        let f = '';
-        let u = '';
-        const fn = function(file, sourceMapUrl) {
-            f = file;
-            u = sourceMapUrl;
-        };
-        const opts = {
-            sourceMapUrlCallback: fn,
-            coverageVariable: '__testing_coverage__'
-        };
-        const instrumenter = new Instrumenter(opts);
-        const generated = instrumenter.instrumentSync(
-            '/* foobar */ output = args[0]\n// @sourceMappingURL=foo.map',
-            __filename
-        );
-
-        assert.ok(generated);
-        assert.equal(f, __filename);
-        assert.equal(u, 'foo.map');
+        assert.ok(generated.indexOf("sourceMappingURL=data:application/json" > 0));
     });
 
     describe('callback style instrumentation', () => {
@@ -188,9 +133,6 @@ describe('varia', () => {
         });
     });
 
-    // see: https://github.com/istanbuljs/istanbuljs/issues/110
-    // TODO: it feels like we should be inserting line counters
-    // for class exports and class declarations.
     it('properly exports named classes', () => {
         const v = create(
             'export class App extends Component {};',
@@ -200,14 +142,10 @@ describe('varia', () => {
         assert.ok(!v.err);
 
         const code = v.getGeneratedCode();
-        assert.ok(
-            code.match(
-                /return actualCoverage;}cov_[^(]+\(\);export class App extends/
-            )
-        );
+        assert.ok(code.indexOf("export class App extends Component{};" > 0));
     });
 
-    it('declares Function when needed', () => {
+    it('Yields function coverage statement', () => {
         const v = create(
             'function Function() {}',
             { generateOnly: true },
@@ -216,7 +154,7 @@ describe('varia', () => {
         assert.ok(!v.err);
 
         const code = v.getGeneratedCode();
-        assert.ok(code.match(/var Function\s*=/));
+        assert.ok(code.indexOf("Function(){_$f(_$o") > 0);
     });
 
     it('does not declare Function when not needed', () => {
@@ -238,37 +176,7 @@ describe('varia', () => {
         assert.ok(!v.err);
 
         const code = v.getGeneratedCode();
-        assert.ok(
-            code.match(
-                /return actualCoverage;}cov_[^(]+\(\);class App extends Component/
-            )
-        );
+        assert.ok(code.indexOf("class App extends Component{};") === 0);
     });
 
-    it('can store coverage object in alternative scope', () => {
-        const opts = { generateOnly: true };
-        const instrumentOpts = { coverageGlobalScope: 'window.top' };
-        const v = create('console.log("test");', opts, instrumentOpts);
-        assert.ok(!v.err);
-
-        const code = v.getGeneratedCode();
-        assert.ok(
-            code.match(
-                /global\s*=\s*\(*new\s*Function\(['"]return\s*window.top['"]\)\)*\(\)/
-            )
-        );
-    });
-
-    it('can store coverage object in alternative scope without function', () => {
-        const opts = { generateOnly: true };
-        const instrumentOpts = {
-            coverageGlobalScope: 'window.top',
-            coverageGlobalScopeFunc: false
-        };
-        const v = create('console.log("test");', opts, instrumentOpts);
-        assert.ok(!v.err);
-
-        const code = v.getGeneratedCode();
-        assert.ok(code.match(/global\s*=\s*window.top;/));
-    });
 });

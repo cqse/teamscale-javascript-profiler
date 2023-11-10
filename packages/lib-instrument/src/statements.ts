@@ -32,7 +32,7 @@ export function insertNodeBefore(path: NodePath<Node>, toInsert: Expression | Ex
  */
 export function newBranchCoverageExpression(originFileId: string, range: CodeRange): CallExpression {
     // TODO: Use the source map to determine the original code
-    return newRangeCoverageExpression('_$br', originFileId, range);
+    return newRangeCoverageExpression('_$b', originFileId, range);
 }
 
 /**
@@ -40,7 +40,7 @@ export function newBranchCoverageExpression(originFileId: string, range: CodeRan
  */
 export function newStatementCoverageExpression(originFileId: string, range: CodeRange): CallExpression {
     // TODO: Use the source map to determine the original code
-    return newRangeCoverageExpression('_$stmt', originFileId, range);
+    return newRangeCoverageExpression('_$s', originFileId, range);
 }
 
 /**
@@ -49,7 +49,7 @@ export function newStatementCoverageExpression(originFileId: string, range: Code
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 export function newFunctionCoverageExpression(originFileId: string, range: CodeRange, declarationRange: CodeRange): CallExpression {
     // TODO: Use the source map to determine the original code
-    return newRangeCoverageExpression('_$fn', originFileId, range);
+    return newRangeCoverageExpression('_$f', originFileId, range);
 }
 
 /**
@@ -114,7 +114,7 @@ export function newLineRangeCoverageExpression(
 export function newSingleLineCoverageExpression(originFileId: string, line: number): Expression {
     return {
         type: 'CallExpression',
-        callee: { type: 'Identifier', name: '_$ln' } as Identifier,
+        callee: { type: 'Identifier', name: '_$l' } as Identifier,
         arguments: [
             { type: 'Identifier', name: originFileId } as Identifier,
             { type: 'NumericLiteral', value: line } as NumericLiteral,

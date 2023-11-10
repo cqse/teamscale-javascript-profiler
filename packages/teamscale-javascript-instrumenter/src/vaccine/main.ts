@@ -33,10 +33,10 @@ const coverageBuffer = createCoverageBuffer(250,(buffer: Map<string, FileCoverag
 });
 
 // Sets the handler for signaling the coverage of a particular statement.
-universe()._$stmtCov = coverageBuffer.putStatementCoverage;
+universe()._$stmt = coverageBuffer.putStatementCoverage;
 
 // Sets the handler for signaling the coverage of a particular branch.
-universe()._$brCov = coverageBuffer.putBranchCoverage;
+universe()._$br = coverageBuffer.putBranchCoverage;
 
 const interceptedStores: Set<string> = new Set<string>();
 

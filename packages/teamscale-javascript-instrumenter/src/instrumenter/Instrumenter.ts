@@ -24,6 +24,7 @@ import Logger from 'bunyan';
 import async from 'async';
 import { determineGwtFileUid, extractGwtCallInfos, isGwtBundle, loadInputSourceMapsGwt } from './WebToolkit';
 import { sourceMapFromMapFile } from './FileSystem';
+import {InstrumenterOptions} from "@teamscale/lib-instrument";
 
 export const IS_INSTRUMENTED_TOKEN = '/** $IS_JS_PROFILER_INSTRUMENTED=true **/';
 
@@ -289,10 +290,7 @@ export class IstanbulInstrumenter implements IInstrumenter {
 				instrumentedSources.length === 1,
 				'Assuming only one code fragment to be passed as argument for JavaScript bundles.'
 			);
-			writeToFile(
-				toFile,
-				`${IS_INSTRUMENTED_TOKEN} ${this.vaccineSource} ${instrumentedSources[0]} \n${finalSourceMaps[0]}`
-			);
+			writeToFile(toFile, instrumentedSources[0]);
 		}
 	}
 
@@ -369,12 +367,14 @@ export class IstanbulInstrumenter implements IInstrumenter {
 	 * Determine the list of configurations to try conducting the
 	 * given task element.
 	 */
-	private configurationAlternativesFor(taskElement: TaskElement): Record<string, unknown>[] {
+	private configurationAlternativesFor(taskElement: TaskElement): InstrumenterOptions[] {
 		this.logger.debug(`Determining configuration alternatives for ${taskElement.fromFile}`);
 
-		const baseConfig = {
-			coverageVariable: '__coverage__',
-			produceSourceMap: 'both'
+		const baseConfig: InstrumenterOptions = {
+			isInstrumentedToken: IS_INSTRUMENTED_TOKEN,
+			coveragePrecision: 'branch',
+			produceSourceMap: 'external',
+			codeToPrepend: this.vaccineSource
 		};
 
 		return [

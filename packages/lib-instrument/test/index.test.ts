@@ -18,9 +18,6 @@ describe('external interface', () => {
 
 describe('instrumenter', () => {
     it('should remove comments when asked to', function() {
-        // This test has frequent timeout on Windows.
-        this.timeout(5000);
-
         const instrumenter = createInstrumenter({
             preserveComments: false
         });
@@ -38,5 +35,5 @@ describe('instrumenter', () => {
             -1,
             'line comment not removed'
         );
-    });
+    }, 5000);
 });

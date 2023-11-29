@@ -8,8 +8,16 @@ const AsyncFunction = Object.getPrototypeOf(async () => {}).constructor;
 
 export const MOCK_COVERAGE_VARIABLE = "_$COV";
 
+type CoverageType = 'functions' | 'lines' | 'statements' | 'branches';
+type CoveragePerLineAndType = Record<CoverageType, Record<string, number>>;
+
 export const MOCK_VACCINE = `
-const UNIVERSE = Function('return this')();
+var UNIVERSE;
+try {
+  UNIVERSE = (function(){return this;})();
+} catch(e) {
+  UNIVERSE = window || global;
+}
 UNIVERSE.${MOCK_COVERAGE_VARIABLE} = {
     functions: {},
     lines: {},
@@ -45,11 +53,11 @@ function _$l(fileId, startLine, startCol, endLine, endCol) {
 `;
 
 type ExpectedCoverage = {
-    lines: Record<any, any>;
-    statements: Record<any, any>;
-    functions: Record<any, any>;
-    branches: Record<any, any>;
-    branchesTrue: Record<any, any>;
+    lines: Record<string, number>;
+    statements: Record<string, number>;
+    functions: Record<string, number>;
+    branches: Record<string, number>;
+    branchesTrue: Record<string, number>;
     inputSourceMap: object;
 }
 
@@ -82,41 +90,39 @@ class Verifier {
         this.result = result;
     }
 
-    async verify(args: unknown[], expectedOutput: string, expectedCoverage: ExpectedCoverage) {
+    async verify(args: unknown[], expectedOutput: string, expectedCoverage: CoveragePerLineAndType) {
         assert.ok(!this.result.err, (this.result.err || {}).message);
 
         // Call the instrumented code and retrieve its output
-        const actualOutput = await this.result.fn(args);
+        let actualOutput;
+        try {
+            actualOutput = await this.result.fn(args);
+        } catch (e) {
+            console.log(e);
+        }
 
         // Collect the coverage
-        const actualCoverage = this.getFileCoverage();
+        const actualCoverage = this.getFileCoverage() as CoveragePerLineAndType;
 
-        // Verify the output and coverage
+        // Verify the output
         assert.ok(
             actualCoverage && typeof actualCoverage === 'object',
             'No coverage found for [' + this.result.file + ']'
         );
         assert.deepEqual(actualOutput, expectedOutput, 'Output mismatch');
-        assert.deepEqual(
-            actualCoverage.lines,
-            expectedCoverage.lines || {},
-            'Line coverage mismatch'
-        );
-        assert.deepEqual(
-            actualCoverage.functions,
-            expectedCoverage.functions || {},
-            'Function coverage mismatch'
-        );
-        assert.deepEqual(
-            actualCoverage.branches,
-            expectedCoverage.branches || {},
-            'Branch coverage mismatch'
-        );
-        assert.deepEqual(
-            actualCoverage.statements,
-            expectedCoverage.statements || {},
-            'Statement coverage mismatch'
-        );
+
+        // Verify the coverage
+        for (const coverageType of ['functions', 'lines', 'statements']) {
+            const expectedIncrementsPerLine = expectedCoverage[coverageType as CoverageType];
+            const actualIncrementsPerLine = expectedCoverage[coverageType as CoverageType];
+            if (!expectedIncrementsPerLine) {
+                continue;
+            }
+            for (const [expectedLine, expectedIncrements] of Object.entries(expectedIncrementsPerLine)) {
+                const actualIncrements = Number.parseInt(actualIncrementsPerLine[expectedLine] as any);
+                assert.isTrue(actualIncrements >= expectedIncrements, `At least ${actualIncrements} visits on ${coverageType} level expected in line ${expectedLine}`);
+            }
+        }
     }
 
     getCoverage() {

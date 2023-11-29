@@ -1,4 +1,3 @@
-import {createHash} from 'crypto';
 import {Node, NodePath, parse} from '@babel/core';
 import {Visitor} from "@babel/traverse";
 import {defaults} from '@istanbuljs/schema';
@@ -8,14 +7,12 @@ import {
     Expression, FunctionDeclaration, FunctionExpression,
     Identifier, IfStatement,
     LogicalExpression, ObjectMethod, Program,
-    SequenceExpression, SourceLocation, Statement, SwitchCase,
-    UpdateExpression
+    SourceLocation, Statement, SwitchCase
 } from "@babel/types";
 
 type BabelTypes = typeof import("@babel/types")
 
 import {CodeRange, SourceCoverage} from './source-coverage';
-import { SHA } from './constants';
 import {RawSourceMap} from "source-map";
 import {
     newBranchCoverageExpression,
@@ -35,13 +32,6 @@ const COMMENT_FILE_RE = /^\s*istanbul\s+ignore\s+(file)(?=\W|$)/;
 // Pattern for identifying source map comments
 const SOURCE_MAP_RE = /[#@]\s*sourceMappingURL=(.*)\s*$/m;
 
-// Generate a variable name from hashing the supplied file path
-function genVar(filename: string) {
-    const hash = createHash(SHA);
-    hash.update(filename);
-    return 'cov_' + parseInt(hash.digest('hex').substr(0, 12), 16).toString(36);
-}
-
 type CovNode = Node & { __cov__?: Record<string, unknown> };
 
 type LeafNode = { node: Node, parent: Node, property: string };
@@ -56,7 +46,6 @@ export type VisitorOutput = {
 class VisitState {
 
     types: BabelTypes;
-    varName: string;
     attrs: Record<string, unknown>;
     nextIgnore: Node | null;
     cov: SourceCoverage;
@@ -73,7 +62,6 @@ class VisitState {
         ignoreClassMethods: string[] = [],
         reportLogic = false
     ) {
-        this.varName = genVar(sourceFilePath);
         this.attrs = {};
         this.nextIgnore = null;
         this.cov = new SourceCoverage(sourceFilePath);
@@ -210,148 +198,6 @@ class VisitState {
         return c[name];
     }
 
-    //
-    increase(type: string, id: string | number, index: number | null): UpdateExpression {
-        const T = this.types;
-        const wrap: (expr: Expression) => Expression =
-            index !== null
-                ? // If `index` present, turn `x` into `x[index]`.
-                x => T.memberExpression(x, T.numericLiteral(index), true)
-                : x => x;
-        return this.types.updateExpression(
-            '++',
-            wrap(
-                T.memberExpression(
-                    T.memberExpression(
-                        T.callExpression(T.identifier(this.varName), []),
-                        T.identifier(type)
-                    ),
-                    T.numericLiteral(id as number),
-                    true
-                )
-            )
-        );
-    }
-
-    // Reads the logic expression conditions and conditionally increments truthy counter.
-    increaseTrue(type: string, id: string | number, index: number, node: Node): SequenceExpression {
-        const T = this.types;
-        const tempName = `${this.varName}_temp`;
-
-        return T.sequenceExpression([
-            T.assignmentExpression(
-                '=',
-                T.memberExpression(
-                    T.callExpression(T.identifier(this.varName), []),
-                    T.identifier(tempName)
-                ),
-                node as Expression // Only evaluates once.
-            ),
-            T.parenthesizedExpression(
-                T.conditionalExpression(
-                    this.validateTrueNonTrivial(T, tempName),
-                    this.increase(type, id, index),
-                    T.nullLiteral()
-                )
-            ),
-            T.memberExpression(
-                T.callExpression(T.identifier(this.varName), []),
-                T.identifier(tempName)
-            )
-        ]);
-    }
-
-    validateTrueNonTrivial(T: BabelTypes, tempName: string): LogicalExpression {
-        return T.logicalExpression(
-            '&&',
-            T.memberExpression(
-                T.callExpression(T.identifier(this.varName), []),
-                T.identifier(tempName)
-            ),
-            T.logicalExpression(
-                '&&',
-                T.parenthesizedExpression(
-                    T.logicalExpression(
-                        '||',
-                        T.unaryExpression(
-                            '!',
-                            T.callExpression(
-                                T.memberExpression(
-                                    T.identifier('Array'),
-                                    T.identifier('isArray')
-                                ),
-                                [
-                                    T.memberExpression(
-                                        T.callExpression(
-                                            T.identifier(this.varName),
-                                            []
-                                        ),
-                                        T.identifier(tempName)
-                                    )
-                                ]
-                            )
-                        ),
-                        T.memberExpression(
-                            T.memberExpression(
-                                T.callExpression(
-                                    T.identifier(this.varName),
-                                    []
-                                ),
-                                T.identifier(tempName)
-                            ),
-                            T.identifier('length')
-                        )
-                    )
-                ),
-                T.parenthesizedExpression(
-                    T.logicalExpression(
-                        '||',
-                        T.binaryExpression(
-                            '!==',
-                            T.callExpression(
-                                T.memberExpression(
-                                    T.identifier('Object'),
-                                    T.identifier('getPrototypeOf')
-                                ),
-                                [
-                                    T.memberExpression(
-                                        T.callExpression(
-                                            T.identifier(this.varName),
-                                            []
-                                        ),
-                                        T.identifier(tempName)
-                                    )
-                                ]
-                            ),
-                            T.memberExpression(
-                                T.identifier('Object'),
-                                T.identifier('prototype')
-                            )
-                        ),
-                        T.memberExpression(
-                            T.callExpression(
-                                T.memberExpression(
-                                    T.identifier('Object'),
-                                    T.identifier('values')
-                                ),
-                                [
-                                    T.memberExpression(
-                                        T.callExpression(
-                                            T.identifier(this.varName),
-                                            []
-                                        ),
-                                        T.identifier(tempName)
-                                    )
-                                ]
-                            ),
-                            T.identifier('length')
-                        )
-                    )
-                )
-            )
-        );
-    }
-
     insertCounter(path: NodePath, increment: Expression): void {
         const T = this.types;
         if (path.isBlockStatement()) {
@@ -398,7 +244,6 @@ class VisitState {
 
         const originFileId = this.origins.ensureKnownOrigin(path.node.loc);
         const increment = newStatementCoverageExpression(originFileId, path.node.loc);
-
         this.insertCounter(path, increment);
     }
 
@@ -443,24 +288,13 @@ class VisitState {
         }
     }
 
-    getBranchIncrement(branchId: string | number, loc) {
-        const index = this.cov.addBranchPath(branchId, loc);
-        return this.increase('b', branchId, index);
-    }
-
-    getBranchLogicIncrement(path: { node: Node }, branchId: string | number, loc: SourceLocation | null | undefined) {
-        const index = this.cov.addBranchPath(branchId, loc ?? undefined);
-        return [
-            this.increase('b', branchId, index),
-            this.increaseTrue('bT', branchId, index, path.node)
-        ];
-    }
-
     insertBranchCounter(path: NodePath, branchName: number, loc: SourceLocation | null | undefined) {
         loc = loc ?? path.node.loc!;
-        const originFileId = this.origins.ensureKnownOrigin(loc);
-        const increment = newBranchCoverageExpression(originFileId, loc)
-        this.insertCounter(path, increment);
+        if (loc) {
+            const originFileId = this.origins.ensureKnownOrigin(loc);
+            const increment = newBranchCoverageExpression(originFileId, loc)
+            this.insertCounter(path, increment);
+        }
     }
 
     findLeaves(node: Node, accumulator: LeafNode[], parent: Node | undefined, property: string | undefined) {
@@ -626,8 +460,11 @@ function coverSwitchCase(this: VisitState, path: NodePath<SwitchCase>) {
         throw new Error('Unable to get switch branch name');
     }
 
-    const increment = this.getBranchIncrement(b, path.node.loc);
-    path.node.consequent.unshift(T.expressionStatement(increment));
+    if (path.node.loc) {
+        const originFileId = this.origins.ensureKnownOrigin(path.node.loc);
+        const increment = newBranchCoverageExpression(originFileId, path.node.loc);
+        path.node.consequent.unshift(T.expressionStatement(increment));
+    }
 }
 
 function coverTernary(this: VisitState, path: NodePath<ConditionalExpression>) {
@@ -654,35 +491,18 @@ function coverLogicalExpression(this: VisitState, path: NodePath<LogicalExpressi
     const leaves: LeafNode[] = [];
     this.findLeaves(path.node, leaves, undefined, undefined);
 
-    const branchId = this.cov.newBranch(
-        'binary-expr',
-        path.node.loc,
-        this.reportLogic
-    );
-
     for (const leaf of leaves) {
         const hint = this.hintFor(leaf.node);
         if (hint === 'next') {
             continue;
         }
 
-        if (this.reportLogic) {
-            const increment = this.getBranchLogicIncrement(
-                leaf,
-                branchId,
-                leaf.node.loc
-            );
-            if (!increment[0]) {
-                continue;
-            }
-            leaf.parent[leaf.property] = T.sequenceExpression([
-                increment[0],
-                increment[1]
-            ]);
+        if (!path.node.loc) {
             continue;
         }
 
-        const increment = this.getBranchIncrement(branchId, leaf.node.loc);
+        const originFileId = this.origins.ensureKnownOrigin(path.node.loc);
+        const increment = newBranchCoverageExpression(originFileId, path.node.loc);
         if (!increment) {
             continue;
         }

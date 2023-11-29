@@ -5,7 +5,7 @@ import path from "path";
 import fs from "fs";
 import yaml from "js-yaml";
 import { assert } from "chai";
-import {create, MOCK_COVERAGE_VARIABLE} from "./util/verifier";
+import {create, MOCK_VACCINE} from "./util/verifier";
 import * as guards from "./util/guards";
 import clone from "clone";
 
@@ -82,7 +82,7 @@ function generateTests(docs) {
                         const v = create(
                             doc.code,
                             doc.opts || {},
-                            {codeToPrepend: DUMMY_VACCINE, ...doc.instrumentOpts},
+                            {codeToPrepend: MOCK_VACCINE, ...doc.instrumentOpts},
                             doc.inputSourceMap
                         );
                         const test = clone(t);

@@ -1,6 +1,8 @@
 import {SourceLocation, VariableDeclaration} from "@babel/types";
 import {createHash} from "crypto";
 import {SHA} from "./constants";
+import {NullableMappedPosition, SourceMapConsumer} from "source-map";
+import {CodeRange} from "./source-coverage";
 
 /**
  * Creates a new string constant AST node.
@@ -61,18 +63,37 @@ export class SourceOrigins {
 
     public readonly originToIdMap: Map<string, string>;
 
-    constructor(bundleName: string) {
+    public readonly sourceMap?: SourceMapConsumer;
+
+    constructor(bundleName: string, sourceMap: SourceMapConsumer | undefined) {
         this.originToIdMap = new Map();
         this.bundleName = bundleName;
+        this.sourceMap = sourceMap;
     }
 
-    ensureKnownOrigin(loc: SourceLocation): string {
-        let id = this.originToIdMap.get(loc.filename)
+    ensureKnownOrigin(loc: SourceLocation): [string, CodeRange] {
+        let startPos: NullableMappedPosition | undefined = undefined;
+        let endPos: NullableMappedPosition | undefined = undefined;
+        let filename = loc.filename ?? '';
+
+        if (this.sourceMap) {
+            startPos = this.sourceMap.originalPositionFor({line: loc.start.line, column: loc.start.column});
+            endPos = this.sourceMap.originalPositionFor({line: loc.end.line, column: loc.end.column});
+            filename = startPos.source ?? loc.filename;
+        }
+
+        if (!startPos || !endPos) {
+            startPos = { line: loc.start.line, column: loc.start.column, source: null, name: null };
+            endPos = { line: loc.end.line, column: loc.end.column, source: null, name: null }
+        }
+
+        let id = this.originToIdMap.get(filename)
         if (!id) {
             id = `_$o${fileIdSeqGenerator.next()}`;
-            this.originToIdMap.set(loc.filename, id);
+            this.originToIdMap.set(filename, id);
         }
-        return id;
+
+        return [id, { start: { line: startPos.line!, column: startPos.column! }, end: { line: endPos.line!, column: endPos.column! }}];
     }
 
     public computeHash(): string {

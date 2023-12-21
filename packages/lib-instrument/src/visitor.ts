@@ -13,7 +13,7 @@ import {
 type BabelTypes = typeof import("@babel/types")
 
 import {CodeRange, SourceCoverage} from './source-coverage';
-import {RawSourceMap} from "source-map";
+import {RawSourceMap, SourceMapConsumer} from "source-map";
 import {
     newBranchCoverageExpression,
     newFunctionCoverageExpression,
@@ -51,6 +51,7 @@ class VisitState {
     cov: SourceCoverage;
     ignoreClassMethods: string[];
     sourceMappingURL: string | null;
+    sourceMap: SourceMapConsumer | undefined;
     reportLogic: boolean;
     shouldInstrumentCallback?: (path: NodePath, loc: SourceLocation) => boolean;
 
@@ -60,6 +61,7 @@ class VisitState {
         types: BabelTypes,
         sourceFilePath: string,
         inputSourceMap: RawSourceMap | undefined,
+        inputSourceMapConsumer: SourceMapConsumer | undefined,
         ignoreClassMethods: string[] = [],
         reportLogic = false,
         shouldInstrumentCallback?: (path: NodePath, loc: SourceLocation) => boolean
@@ -67,7 +69,6 @@ class VisitState {
         this.attrs = {};
         this.nextIgnore = null;
         this.cov = new SourceCoverage(sourceFilePath);
-        this.origins = new SourceOrigins(sourceFilePath);
 
         if (typeof inputSourceMap !== 'undefined') {
             this.cov.inputSourceMap(inputSourceMap);
@@ -77,6 +78,8 @@ class VisitState {
         this.sourceMappingURL = null;
         this.reportLogic = reportLogic;
         this.shouldInstrumentCallback = shouldInstrumentCallback;
+        this.origins = new SourceOrigins(sourceFilePath, inputSourceMapConsumer);
+
     }
 
     shouldInstrument(path: NodePath, loc: SourceLocation): boolean {
@@ -253,8 +256,8 @@ class VisitState {
             return;
         }
 
-        const originFileId = this.origins.ensureKnownOrigin(loc);
-        const increment = newStatementCoverageExpression(originFileId, loc);
+        const [originFileId, originPos] = this.origins.ensureKnownOrigin(loc);
+        const increment = newStatementCoverageExpression(originFileId, originPos);
         this.insertCounter(path, increment);
     }
 
@@ -289,8 +292,8 @@ class VisitState {
         const body = path.get('body') as NodePath;
         const loc = path.node.loc;
         if (body.isBlockStatement() && this.shouldInstrument(path, loc)) {
-            const originFileId = this.origins.ensureKnownOrigin(loc);
-            const increment = newFunctionCoverageExpression(originFileId, loc, declarationLocation);
+            const [originFileId, originPos] = this.origins.ensureKnownOrigin(loc);
+            const increment = newFunctionCoverageExpression(originFileId, originPos, declarationLocation);
             body.node.body.unshift(T.expressionStatement(increment));
         }
     }
@@ -298,8 +301,8 @@ class VisitState {
     insertBranchCounter(path: NodePath, branchName: number, loc: SourceLocation | null | undefined) {
         loc = loc ?? path.node.loc!;
         if (loc && this.shouldInstrument(path, loc)) {
-            const originFileId = this.origins.ensureKnownOrigin(loc);
-            const increment = newBranchCoverageExpression(originFileId, loc)
+            const [originFileId, originPos] = this.origins.ensureKnownOrigin(loc);
+            const increment = newBranchCoverageExpression(originFileId, originPos)
             this.insertCounter(path, increment);
         }
     }
@@ -469,8 +472,8 @@ function coverSwitchCase(this: VisitState, path: NodePath<SwitchCase>) {
 
     const loc = path.node.loc;
     if (loc && this.shouldInstrument(path, loc)) {
-        const originFileId = this.origins.ensureKnownOrigin(loc);
-        const increment = newBranchCoverageExpression(originFileId, loc);
+        const [originFileId, originPos] = this.origins.ensureKnownOrigin(loc);
+        const increment = newBranchCoverageExpression(originFileId, originPos);
         path.node.consequent.unshift(T.expressionStatement(increment));
     }
 }
@@ -511,8 +514,8 @@ function coverLogicalExpression(this: VisitState, path: NodePath<LogicalExpressi
             continue;
         }
 
-        const originFileId = this.origins.ensureKnownOrigin(loc);
-        const increment = newBranchCoverageExpression(originFileId, loc);
+        const [originFileId, originPos] = this.origins.ensureKnownOrigin(loc);
+        const increment = newBranchCoverageExpression(originFileId, originPos);
         if (!increment) {
             continue;
         }
@@ -615,15 +618,19 @@ function shouldIgnoreFile(programNodePath: NodePath | null): boolean {
  * @param sourceFilePath - the path to source file.
  * @param opts - additional options.
  */
-export function programVisitor(types: BabelTypes, sourceFilePath = 'unknown.js', opts: InstrumentationOptions) {
+export function programVisitor(types: BabelTypes, sourceFilePath = 'unknown.js',
+                               inputSourceMapConsumer: SourceMapConsumer | undefined,
+                               opts: InstrumentationOptions) {
     opts = {
         ...defaults.instrumentVisitor,
         ...opts
     };
+
     const visitState = new VisitState(
         types,
         sourceFilePath,
         opts.inputSourceMap,
+        inputSourceMapConsumer,
         opts.ignoreClassMethods,
         opts.reportLogic,
         opts.shouldInstrumentCallback

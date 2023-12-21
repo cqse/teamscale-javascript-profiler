@@ -20,7 +20,7 @@ test('Test if the Istanbul Instrumentation updates the SourceMap infos', () => {
 
 	expect(bundleSourcemap).not.toBeNull();
 
-	const instrumentedSource = instrumenter.instrumentSync(bundleJsCode, inputFileName, bundleSourcemap as any);
+	const instrumentedSource = instrumenter.instrument(bundleJsCode, inputFileName, bundleSourcemap as any);
 
 	const instrumentedSourcemap: RawSourceMap | undefined = loadInputSourceMap(
 		instrumentedSource,

@@ -5,7 +5,7 @@
 import {NodePath, transformSync} from '@babel/core';
 import {ParserPlugin as PluginConfig} from '@babel/parser';
 import {defaults} from '@istanbuljs/schema';
-import {RawSourceMap} from "source-map";
+import {RawSourceMap, SourceMapConsumer} from "source-map";
 
 import { programVisitor } from './visitor';
 import {InstrumentationOptions} from "./types";
@@ -80,15 +80,23 @@ export class Instrumenter {
      * coverage to the untranspiled source.
      * @returns the instrumented code.
      */
-    instrumentSync(code: string, filename: string | undefined, inputSourceMap: RawSourceMap | undefined, shouldInstrumentCallback?: (path: NodePath, location: SourceLocation) => boolean): string {
-        filename = filename || String(new Date().getTime()) + '.js';
+    async instrument(code: string, filename: string | undefined, inputSourceMap: RawSourceMap | undefined,
+                     shouldInstrumentCallback?: (path: NodePath, location: SourceLocation) => boolean): Promise<string> {
+        filename = filename ?? String(new Date().getTime()) + '.js';
+
         const {opts} = this;
+
+        const sourceMapToUse = inputSourceMap ?? opts.inputSourceMap;
+        let inputSourceMapConsumer: SourceMapConsumer | undefined = undefined;
+        if (sourceMapToUse) {
+            inputSourceMapConsumer = await new SourceMapConsumer(sourceMapToUse);
+        }
 
         const babelOpts = {
             configFile: false,
             babelrc: false,
             ast: true,
-            filename: filename || String(new Date().getTime()) + '.js',
+            filename: filename,
             inputSourceMap,
             sourceMaps: mapSourceMapsOption(opts.produceSourceMap),
             compact: opts.compact,
@@ -101,7 +109,7 @@ export class Instrumenter {
             plugins: [
                 [
                     ({types}) => {
-                        const ee = programVisitor(types, filename, {
+                        const ee = programVisitor(types, filename, inputSourceMapConsumer, {
                             reportLogic: opts.reportLogic,
                             coverageGlobalScopeFunc:
                             opts.coverageGlobalScopeFunc,
@@ -129,32 +137,6 @@ export class Instrumenter {
         };
 
         return transformSync(code, babelOpts)!.code!;
-    }
-
-    /**
-     * callback-style instrument method that calls back with an error
-     * as opposed to throwing one. Note that in the current implementation,
-     * the callback will be called in the same process tick and is not asynchronous.
-     *
-     * @param code - the code to instrument
-     * @param filename - the filename against which to track coverage.
-     * @param callback - the callback
-     * @param inputSourceMap - the source map that maps the not instrumented code back to it's original form.
-     * Is assigned to the coverage object and therefore, is available in the json output and can be used to remap the
-     * coverage to the untranspiled source.
-     */
-    instrument(code: string, filename: string | undefined, callback: (error: unknown, result?: string) => void, inputSourceMap: RawSourceMap) {
-        if (!callback && typeof filename === 'function') {
-            callback = filename;
-            filename = undefined;
-        }
-
-        try {
-            const out = this.instrumentSync(code, filename, inputSourceMap);
-            callback(null, out);
-        } catch (ex) {
-            callback(ex);
-        }
     }
 
     /**

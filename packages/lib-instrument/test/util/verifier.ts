@@ -150,7 +150,7 @@ function extractTestOption(opts: any, name: string, defaultValue: any) {
     return v;
 }
 
-export function create(code: string, opts: any, instrumenterOpts: InstrumenterOptions, inputSourceMap: any) {
+export async function create(code: string, opts: any, instrumenterOpts: InstrumenterOptions, inputSourceMap: any) {
     opts = opts || {};
     instrumenterOpts = instrumenterOpts || {};
 
@@ -170,7 +170,7 @@ export function create(code: string, opts: any, instrumenterOpts: InstrumenterOp
     }
     const instrumenter = new Instrumenter(instrumenterOpts);
     try {
-        instrumenterOutput = instrumenter.instrumentSync(
+        instrumenterOutput = await instrumenter.instrument(
             code,
             file,
             inputSourceMap

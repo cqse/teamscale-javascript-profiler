@@ -7,7 +7,7 @@ import { create } from "./util/verifier";
 
 describe('varia', () => {
     it('debug/ walkDebug should not cause errors', async () => {
-        const v = create('output = args[0];', {}, { debug: true });
+        const v = await create('output = args[0];', {}, { debug: true });
         assert.ok(!v.err);
         await v.verify(['X'], 'X', {
             lines: { 1: 1 },
@@ -16,7 +16,7 @@ describe('varia', () => {
     });
 
     it('auto-generates filename', async () => {
-        const v = create('output = args[0];', { file: null });
+        const v = await create('output = args[0];', { file: null });
         assert.ok(!v.err);
         await v.verify(['X'], 'X', {
             lines: { 1: 1 },
@@ -25,7 +25,7 @@ describe('varia', () => {
     });
 
     it('preserves comments when requested', async () => {
-        const v = create(
+        const v = await create(
             '/* hello */\noutput = args[0];',
             {},
             { preserveComments: true }
@@ -40,9 +40,9 @@ describe('varia', () => {
         assert.ok(code.match(/\/* hello */));
     });
 
-    it('preserves function names for named export arrow functions', () => {
+    it('preserves function names for named export arrow functions', async () => {
         /* https://github.com/istanbuljs/babel-plugin-istanbul/issues/125 */
-        const v = create(
+        const v = await create(
             'export const func = () => true;',
             { generateOnly: true },
             { esModules: true }
@@ -54,9 +54,9 @@ describe('varia', () => {
         assert.ok(code.indexOf("const func=") > 0);
     });
 
-    it('honors ignore next for exported functions', () => {
+    it('honors ignore next for exported functions', async () => {
         /* https://github.com/istanbuljs/istanbuljs/issues/297 */
-        const v = create(
+        const v = await create(
             '/* istanbul ignore next*/ export function fn1() {}' +
                 '/* istanbul ignore next*/ export default function() {}',
             { generateOnly: true },
@@ -68,9 +68,9 @@ describe('varia', () => {
         assert.ok(code.indexOf("export function fn1(){}export default function(){}") > -1);
     });
 
-    it('instruments exported functions', () => {
+    it('instruments exported functions', async () => {
         /* https://github.com/istanbuljs/istanbuljs/issues/297 */
-        const v = create(
+        const v = await create(
             'export function fn1() {}' + 'export default function() {}',
             { generateOnly: true },
             { esModules: true }
@@ -85,13 +85,13 @@ describe('varia', () => {
         );
     });
 
-    it('creates a source-map when requested', () => {
+    it('creates a source-map when requested', async () => {
         const opts = {
             produceSourceMap: 'inline',
             coverageVariable: '__testing_coverage__'
         };
         const instrumenter = new Instrumenter(opts);
-        const generated = instrumenter.instrumentSync(
+        const generated = await instrumenter.instrument(
             'output = args[0]',
             __filename
         );
@@ -101,40 +101,8 @@ describe('varia', () => {
         assert.ok(generated.indexOf("sourceMappingURL=data:application/json" > 0));
     });
 
-    describe('callback style instrumentation', () => {
-        it('allows filename to be optional', cb => {
-            const instrumenter = new Instrumenter({
-                coverageVariable: '__testing_coverage__'
-            });
-            let generated;
-            let err;
-
-            instrumenter.instrument('output = args[0]', (e, c) => {
-                err = e;
-                generated = c;
-                assert.ok(!err);
-                assert.ok(generated);
-                cb();
-            });
-        });
-        it('returns instead of throwing errors', () => {
-            const instrumenter = new Instrumenter({
-                coverageVariable: '__testing_coverage__'
-            });
-            let generated = null;
-            let err = null;
-
-            instrumenter.instrument('output = args[0] : 1: 2', (e, c) => {
-                err = e;
-                generated = c;
-            });
-            assert.ok(err);
-            assert.ok(!generated);
-        });
-    });
-
-    it('properly exports named classes', () => {
-        const v = create(
+    it('properly exports named classes', async () => {
+        const v = await create(
             'export class App extends Component {};',
             { generateOnly: true },
             { esModules: true }
@@ -145,8 +113,8 @@ describe('varia', () => {
         assert.ok(code.indexOf("export class App extends Component{};" > 0));
     });
 
-    it('Yields function coverage statement', () => {
-        const v = create(
+    it('Yields function coverage statement', async () => {
+        const v = await create(
             'function Function() {}',
             { generateOnly: true },
             { esModules: true }
@@ -157,8 +125,8 @@ describe('varia', () => {
         assert.ok(code.indexOf("Function(){_$f(_$o") > 0);
     });
 
-    it('does not declare Function when not needed', () => {
-        const v = create(
+    it('does not declare Function when not needed', async () => {
+        const v = await create(
             'function differentFunction() {}',
             { generateOnly: true },
             { esModules: true }
@@ -169,8 +137,8 @@ describe('varia', () => {
         assert.ok(!code.match(/var Function\s*=/));
     });
 
-    it('does not add extra parenthesis when superclass is an identifier', () => {
-        const v = create('class App extends Component {};', {
+    it('does not add extra parenthesis when superclass is an identifier', async () => {
+        const v = await create('class App extends Component {};', {
             generateOnly: true
         });
         assert.ok(!v.err);

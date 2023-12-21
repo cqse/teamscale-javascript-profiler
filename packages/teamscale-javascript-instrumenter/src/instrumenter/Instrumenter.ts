@@ -250,7 +250,7 @@ export class IstanbulInstrumenter implements IInstrumenter {
 				return isToCover;
 			}
 
-			const instrumented = instrumenter.instrumentSync(
+			const instrumented: string = await instrumenter.instrument(
 				inputBundle.codeArguments[i],
 				taskElement.fromFile,
 				inputSourceMaps[i],

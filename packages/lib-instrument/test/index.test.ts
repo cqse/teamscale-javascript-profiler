@@ -8,7 +8,6 @@ describe('external interface', () => {
     it('exposes the correct objects', () => {
         const i = createInstrumenter();
         assert.ok(i);
-        assert.ok(i.instrumentSync);
         assert.ok(i.instrument);
         const pc = programVisitor;
         assert.ok(pc);
@@ -17,11 +16,11 @@ describe('external interface', () => {
 });
 
 describe('instrumenter', () => {
-    it('should remove comments when asked to', function() {
+    it('should remove comments when asked to', async () => {
         const instrumenter = createInstrumenter({
             preserveComments: false
         });
-        const instrumentedCode = instrumenter.instrumentSync(
+        const instrumentedCode = await instrumenter.instrument(
             '/*foo*/\n//bar\ncode = true',
             'somefile.js'
         );

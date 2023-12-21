@@ -139,7 +139,8 @@ export class WebSocketCollectingServer {
 				const range = line.substring(1, line.length-1).split(/,|-/).map(value => Number.parseInt(value));
 				if (line.startsWith("l") && range.length === 2) {
 					session.putLineCoverage(filename, range[0], range[1]);
-				} else if (range.length === 4) {
+				} else if (range.length === 4 && !line.startsWith("f")) {
+					// We do not want function coverage here since it is less precise than line coverage
 					session.putLineCoverage(filename, range[0], range[2]);
 				}
 			}

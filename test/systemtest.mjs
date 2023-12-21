@@ -91,7 +91,7 @@ const caseStudies = [
 		rootDir: 'test/casestudies/angular-hero-app',
 		distDir: 'dist',
 		expectCoveredLines: {
-			'src/app/hero-detail/hero-detail.component.ts': [13, 17, 18, 19]
+			'src/app/hero-detail/hero-detail.component.ts': [17, 18, 19]
 		},
 		expectUncoveredLines: {
 			'src/app/heroes/heroes.component.ts': [11, 12, 22, 35, 36],

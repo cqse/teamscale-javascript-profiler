@@ -18,11 +18,6 @@ export enum ProtocolMessageTypes {
 }
 
 /**
- * Separates the instrumentation subject from the coverage information.
- */
-const INSTRUMENTATION_SUBJECT_SEPARATOR = ':';
-
-/**
  * A WebSocket based implementation of a coverage receiver.
  * Receives coverage from instrumented JavaScript code.
  */
@@ -70,8 +65,6 @@ export class WebSocketCollectingServer {
 			// Handle disconnecting clients
 			webSocket.on('close', code => {
 				if (session) {
-					// Free the memory that is associated with the session (important!)
-					session.destroy();
 					session = null;
 					this.logger.debug(`Closing with code ${code}`);
 				}
@@ -107,9 +100,7 @@ export class WebSocketCollectingServer {
 	private async handleMessage(session: Session, message: Buffer) {
 		try {
 			const messageType = message.toString('utf8', 0, 1);
-			if (messageType.startsWith(ProtocolMessageTypes.TYPE_SOURCEMAP)) {
-				await this.handleSourcemapMessage(session, message.subarray(1));
-			} else if (messageType.startsWith(ProtocolMessageTypes.TYPE_COVERAGE)) {
+			if (messageType.startsWith(ProtocolMessageTypes.TYPE_COVERAGE)) {
 				await this.handleCoverageMessage(session, message.subarray(1));
 			}
 		} catch (e) {
@@ -125,53 +116,33 @@ export class WebSocketCollectingServer {
 	}
 
 	/**
-	 * Handle a source map message.
-	 *
-	 * @param session - The session to handle the message for.
-	 * @param body - The body of the message (to be parsed).
-	 */
-	private async handleSourcemapMessage(session: Session, body: Buffer) {
-		const fileIdSeparatorPosition = body.indexOf(INSTRUMENTATION_SUBJECT_SEPARATOR.charCodeAt(0));
-		if (fileIdSeparatorPosition > -1) {
-			const fileId = body.toString('utf8', 0, fileIdSeparatorPosition).trim();
-			this.logger.debug(`Received source map information for ${fileId}`);
-			const sourcemap = body.subarray(fileIdSeparatorPosition + 1);
-			await session.putSourcemap(fileId, sourcemap);
-		}
-	}
-
-	/**
 	 * Handle a message with coverage information.
 	 *
 	 * @param session - The session to handle the message for.
 	 * @param body - The body of the message (to be parsed).
 	 */
 	private async handleCoverageMessage(session: Session, body: Buffer) {
-		const bodyPattern = /(?<fileId>\S+) (?<positions>((\d+:\d+(:\d+:\d+)?\s+)*(\d+:\d+(:\d+:\d+)?)))/;
-		const matches = bodyPattern.exec(body.toString());
-		if (matches?.groups) {
-			const fileId = matches.groups.fileId;
-			const positions = (matches.groups.positions ?? '').split(/\s+/);
-			for (const position of positions) {
-				const positionParts = position.split(':');
-				if (positionParts.length === 2) {
-					session.putCoverage(
-						fileId,
-						Number.parseInt(positionParts[0]),
-						Number.parseInt(positionParts[1]),
-						Number.parseInt(positionParts[1]),
-						Number.parseInt(positionParts[2])
-					);
-				} else if (positionParts.length === 4) {
-					session.putCoverage(
-						fileId,
-						Number.parseInt(positionParts[0]),
-						Number.parseInt(positionParts[1]),
-						Number.parseInt(positionParts[2]),
-						Number.parseInt(positionParts[3])
-					);
+		// Replace semicolon separators with newline to make the splitting consistent.
+		const input = body.toString().replace(/;/g, '\n');
+
+		// Split the input into lines.
+		const lines = input.split('\n').map(line => line.trim());
+
+		// Placeholder for group/filename.
+		let filename = '';
+
+		lines.forEach(line => {
+			// Check if the line starts with '@' - indicating a new group/filename.
+			if (line.startsWith('@')) {
+				filename = line.substring(1).trim(); // Remove '@' character and extra spaces.
+			} else if (filename) {
+				const range = line.substring(1, line.length-1).split(/,|-/).map(value => Number.parseInt(value));
+				if (line.startsWith("l") && range.length === 2) {
+					session.putLineCoverage(filename, range[0], range[1]);
+				} else if (range.length === 4) {
+					session.putLineCoverage(filename, range[0], range[2]);
 				}
 			}
-		}
+		});
 	}
 }

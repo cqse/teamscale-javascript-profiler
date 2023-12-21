@@ -25,8 +25,10 @@ import async from 'async';
 import { determineGwtFileUid, extractGwtCallInfos, isGwtBundle, loadInputSourceMapsGwt } from './WebToolkit';
 import { sourceMapFromMapFile } from './FileSystem';
 import {InstrumenterOptions} from "@teamscale/lib-instrument";
+import {NodePath} from "@babel/traverse";
+import {SourceLocation} from "@babel/types";
 
-export const IS_INSTRUMENTED_TOKEN = '/** $IS_JS_PROFILER_INSTRUMENTED=true **/';
+export const IS_INSTRUMENTED_TOKEN = '$IS_JS_PROFILER_INSTRUMENTED=true';
 
 /**
  * An instrumenter that can conduct a {@code InstrumentationTask}.
@@ -142,7 +144,7 @@ export class IstanbulInstrumenter implements IInstrumenter {
 		const inputBundle = readBundle(bundleContent, taskElement);
 
 		// We skip files that we have already instrumented
-		if (inputBundle.content.startsWith(IS_INSTRUMENTED_TOKEN)) {
+		if (inputBundle.content.substring(0, Math.min(inputBundle.content.length, 100)).includes(IS_INSTRUMENTED_TOKEN)) {
 			if (!taskElement.isInPlace()) {
 				writeToFile(taskElement.toFile, inputBundle.content);
 			}
@@ -206,8 +208,6 @@ export class IstanbulInstrumenter implements IInstrumenter {
 		dumpOriginsFile: string | undefined,
 		sourcePattern: OriginSourcePattern
 	) {
-		const instrumenter = istanbul.createInstrumenter(configurationAlternative);
-
 		// Based on the source maps of the file to instrument, we can now
 		// decide if we should NOT write an instrumented version of it
 		// and use the original code instead and write it to the target path.
@@ -220,29 +220,48 @@ export class IstanbulInstrumenter implements IInstrumenter {
 		}
 
 		// The main instrumentation (adding coverage statements) is performed now:
+		const instrumenter = istanbul.createInstrumenter(configurationAlternative);
 		const instrumentedSources: string[] = [];
-		const finaleSourceMaps: string[] = [];
 		for (let i = 0; i < inputBundle.codeArguments.length; i++) {
+
+			let instrumentedSourceMapConsumer: SourceMapConsumer | undefined;
+			if (inputSourceMaps[i]) {
+				instrumentedSourceMapConsumer = await new SourceMapConsumer(inputSourceMaps[i]!);
+			}
+
+			const removedInstrumentationFor: Set<string> = new Set<string>();
+
+			const shouldInstrument = (node: NodePath, location: SourceLocation) => {
+				if (!instrumentedSourceMapConsumer) {
+					return true;
+				}
+				const originalPosition = instrumentedSourceMapConsumer.originalPositionFor({
+					line: location.start.line,
+					column: location.start.column
+				});
+				if (!originalPosition.source) {
+					return false;
+				}
+
+				const isToCover = sourcePattern.isAnyIncluded([originalPosition.source]);
+				if (!isToCover) {
+					removedInstrumentationFor.add(originalPosition.source);
+				}
+				return isToCover;
+			}
+
 			const instrumented = instrumenter.instrumentSync(
 				inputBundle.codeArguments[i],
 				taskElement.fromFile,
-				inputSourceMaps[i]
+				inputSourceMaps[i],
+				shouldInstrument
 			);
 
 			// In case of a bundle, the initial instrumentation step might have added
 			// too much and undesired instrumentations. Remove them now.
-			const instrumentedSourcemap = instrumenter.lastSourceMap()!;
+			// const instrumentedSourcemap = instrumenter.lastSourceMap()!;
 
-			let instrumentedAndCleanedSource = await this.removeUnwantedInstrumentation(
-				taskElement,
-				instrumented,
-				configurationAlternative,
-				sourcePattern,
-				instrumentedSourcemap
-			);
-
-			instrumentedAndCleanedSource = instrumentedAndCleanedSource
-				.replace(
+			const instrumentedAndCleanedSource = instrumented.replace(
 					/actualCoverage\s*=\s*coverage\[path\]/g,
 					'actualCoverage=_$registerCoverageObject(coverage[path])'
 				)
@@ -250,15 +269,10 @@ export class IstanbulInstrumenter implements IInstrumenter {
 
 			instrumentedSources.push(instrumentedAndCleanedSource);
 
-			// The process also can result in a new source map that we will append in the result.
-			//
-			// `lastSourceMap` === Sourcemap for the last file that was instrumented.
-			finaleSourceMaps.push(convertSourceMap.fromObject(instrumenter.lastSourceMap()).toComment());
-
 			this.logger.debug('Instrumentation source maps to:', instrumenter.lastSourceMap()?.sources);
 		}
 
-		this.writeBundleFile(taskElement.toFile, inputBundle, instrumentedSources, finaleSourceMaps);
+		this.writeBundleFile(taskElement.toFile, inputBundle, instrumentedSources);
 
 		return new TaskResult(1, 0, 0, 0, 0, 0, 0);
 	}
@@ -266,13 +280,8 @@ export class IstanbulInstrumenter implements IInstrumenter {
 	private writeBundleFile(
 		toFile: string,
 		inputBundle: Bundle,
-		instrumentedSources: string[],
-		finalSourceMaps: string[]
+		instrumentedSources: string[]
 	) {
-		Contract.require(
-			instrumentedSources.length === finalSourceMaps.length,
-			'Assuming alignment of source code and source map arrays.'
-		);
 		if (inputBundle.type === 'gwt') {
 			Contract.require(
 				instrumentedSources.length === 1,
@@ -374,13 +383,19 @@ export class IstanbulInstrumenter implements IInstrumenter {
 			isInstrumentedToken: IS_INSTRUMENTED_TOKEN,
 			coveragePrecision: 'branch',
 			produceSourceMap: 'external',
-			codeToPrepend: this.vaccineSource
+			codeToPrepend: this.vaccineSource,
+			shouldInstrumentCallback: this.shouldInstrument
 		};
 
 		return [
 			{ ...baseConfig, ...{ esModules: true } },
 			{ ...baseConfig, ...{ esModules: false } }
 		];
+	}
+
+	private shouldInstrument(node: NodePath, loc: SourceLocation): boolean {
+		console.log("Should", loc);
+		return true;
 	}
 
 	/** Appends all origins from the source map to a given file. Creates the file if it does not exist yet. */

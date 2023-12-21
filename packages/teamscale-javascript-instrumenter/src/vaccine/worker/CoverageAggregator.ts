@@ -1,6 +1,7 @@
-import { CachingSocket } from './CachingSocket';
+import { SocketWithRecovery } from './SocketWithRecovery';
 import { ProtocolMessageTypes } from '../protocol';
-import { CodeRange } from '../types';
+import {CoveredRanges} from '../types';
+import {Countdown} from "./Countdown";
 
 /**
  * The number of cache elements after that the cache should be flushed.
@@ -13,47 +14,6 @@ const FLUSH_AFTER_ELEMENTS = 20;
 const FLUSH_AFTER_MILLIS = 1000;
 
 /**
- * Countdown that can be reset to start counting from 0.
- */
-export class Countdown {
-	/**
-	 * The timer handle.
-	 */
-	private timerHandle: number | null = null;
-
-	/**
-	 * Constructor.
-	 *
-	 * @param milliseconds - The duration of the countdown in milliseconds.
-	 * @param onCountedToZero - The action to execute when the countdown reaches 0.
-	 */
-	// eslint-disable-next-line no-useless-constructor
-	constructor(private milliseconds: number, private onCountedToZero: () => void) {}
-
-	/**
-	 * Restart the countdown.
-	 */
-	restartCountdown(): void {
-		this.stopCountdown();
-		this.timerHandle = self.setTimeout(() => {
-			this.stopCountdown();
-			this.onCountedToZero();
-		}, this.milliseconds);
-	}
-
-	/**
-	 * Stop the countdown.
-	 */
-	stopCountdown(): void {
-		if (this.timerHandle === null) {
-			return;
-		}
-		self.clearTimeout(this.timerHandle);
-		this.timerHandle = null;
-	}
-}
-
-/**
  * Is supposed to exist once per app and might deal with
  * different JavaScript files that were instrumented upfront.
  */
@@ -61,17 +21,7 @@ export class CoverageAggregator {
 	/**
 	 * The socket to send the coverage with after flushing.
 	 */
-	private socket: CachingSocket;
-
-	/**
-	 * The actual cache with the coverage information by source file.
-	 */
-	private cachedCoveredRanges: Map<string, Set<CodeRange>>;
-
-	/**
-	 * Counter with the number of entries added to the cache since the last flush.
-	 */
-	private numberOfCachedPositions: number;
+	private socket: SocketWithRecovery;
 
 	/**
 	 * We flush after 1s, ensuring debouncing.
@@ -79,11 +29,21 @@ export class CoverageAggregator {
 	private flushCountdown: Countdown;
 
 	/**
+	 * The actual cache with the coverage information by source file.
+	 */
+	private cachedCoveredRanges: Map<string, CoveredRanges>;
+
+	/**
+	 * Counter with the number of entries added to the cache since the last flush.
+	 */
+	private numberOfCachedPositions: number;
+
+	/**
 	 * The constructor.
 	 *
 	 * @param socket - The socket to send collected coverage information to.
 	 */
-	constructor(socket: CachingSocket) {
+	constructor(socket: SocketWithRecovery) {
 		this.socket = socket;
 		this.cachedCoveredRanges = new Map();
 		this.numberOfCachedPositions = 0;
@@ -93,19 +53,17 @@ export class CoverageAggregator {
 	/**
 	 * Add coverage information.
 	 */
-	public addRange(fileId: string, range: CodeRange): void {
-		if (!range.start.line || !range.end.line) {
-			// Sometimes the range is not resolved.
-			return;
-		}
-
-		let coveredPositions: Set<CodeRange> | undefined = this.cachedCoveredRanges.get(fileId);
+	public addRanges(fileId: string, range: CoveredRanges): void {
+		let coveredPositions: CoveredRanges | undefined = this.cachedCoveredRanges.get(fileId);
 		if (!coveredPositions) {
-			coveredPositions = new Set();
+			coveredPositions = { branches: [], functions: [], statements: [], lines: [] };
 			this.cachedCoveredRanges.set(fileId, coveredPositions);
 		}
 
-		coveredPositions.add(range);
+		range.lines.forEach(value => coveredPositions!.lines.push(value));
+		range.branches.forEach(value => coveredPositions!.branches.push(value));
+		range.functions.forEach(value => coveredPositions!.functions.push(value));
+		range.statements.forEach(value => coveredPositions!.statements.push(value));
 
 		this.numberOfCachedPositions += 1;
 		this.flushCountdown.restartCountdown();
@@ -113,6 +71,39 @@ export class CoverageAggregator {
 			this.flush();
 		}
 	}
+
+	private arrayToLineColCov(coverageTypeAbbr: string, input: number[]) : string {
+		if (input.length % 4 !== 0) {
+			throw new Error("Unexpected length of input data.");
+		}
+
+		const result: string[] = [];
+		for (let i= 0; i<input.length; i=i+4) {
+			const startLine = input[i];
+			const startColumn = input[i+1];
+			const endLine = input[i+2];
+			const endColumn = input[i+3];
+			result.push(`${coverageTypeAbbr}${startLine},${startColumn}-${endLine},${endColumn}`);
+		}
+
+		return result.join(";");
+	}
+
+	private arrayToLineCov(input: number[]) : string {
+		if (input.length % 2 !== 0) {
+			throw new Error("Unexpected length of input data.");
+		}
+
+		const result: string[] = [];
+		for (let i= 0; i<input.length; i=i+2) {
+			const startLine = input[i];
+			const endLine = input[i+1];
+			result.push(`l${startLine}-${endLine}`);
+		}
+
+		return result.join(";");
+	}
+
 
 	/**
 	 * Flush the caches (send them to the collector).
@@ -123,13 +114,17 @@ export class CoverageAggregator {
 		}
 
 		this.flushCountdown.stopCountdown();
-		this.cachedCoveredRanges.forEach((rangeSet, fileId) => {
-			const rangeStrings = Array.from(rangeSet).map(
-				range => `${range.start.line}:${range.start.column}:${range.end.line}:${range.end.column}`
-			);
-			this.socket.send(`${ProtocolMessageTypes.MESSAGE_TYPE_COVERAGE} ${fileId} ${rangeStrings.join(' ')}`);
-			rangeSet.clear();
+
+		const fileCoverage: string[] = [];
+		this.cachedCoveredRanges.forEach((ranges, fileName) => {
+			fileCoverage.push(`@${fileName}`);
+			fileCoverage.push(this.arrayToLineColCov('s', ranges.statements));
+			fileCoverage.push(this.arrayToLineColCov('b', ranges.branches));
+			fileCoverage.push(this.arrayToLineColCov('f', ranges.functions));
+			fileCoverage.push(this.arrayToLineCov(ranges.lines));
 		});
+
+		this.socket.send(`${ProtocolMessageTypes.MESSAGE_TYPE_COVERAGE} ${fileCoverage.join(';')}`);
 
 		this.cachedCoveredRanges.clear();
 		this.numberOfCachedPositions = 0;

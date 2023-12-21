@@ -2,13 +2,14 @@
  Copyright 2012-2015, Yahoo Inc.
  Copyrights licensed under the New BSD License. See the accompanying LICENSE file for terms.
  */
-import {transformSync} from '@babel/core';
+import {NodePath, transformSync} from '@babel/core';
 import {ParserPlugin as PluginConfig} from '@babel/parser';
 import {defaults} from '@istanbuljs/schema';
 import {RawSourceMap} from "source-map";
 
 import { programVisitor } from './visitor';
 import {InstrumentationOptions} from "./types";
+import {SourceLocation} from "@babel/types";
 
 /**
  * Options for configuring the coverage instrumenter.
@@ -79,7 +80,7 @@ export class Instrumenter {
      * coverage to the untranspiled source.
      * @returns the instrumented code.
      */
-    instrumentSync(code: string, filename: string | undefined, inputSourceMap: RawSourceMap | undefined): string {
+    instrumentSync(code: string, filename: string | undefined, inputSourceMap: RawSourceMap | undefined, shouldInstrumentCallback?: (path: NodePath, location: SourceLocation) => boolean): string {
         filename = filename || String(new Date().getTime()) + '.js';
         const {opts} = this;
 
@@ -108,7 +109,8 @@ export class Instrumenter {
                             inputSourceMap,
                             isInstrumentedToken: opts.isInstrumentedToken,
                             codeToPrepend: opts.codeToPrepend,
-                            coveragePrecision: opts.coveragePrecision
+                            coveragePrecision: opts.coveragePrecision,
+                            shouldInstrumentCallback: shouldInstrumentCallback ?? opts.shouldInstrumentCallback
                         });
 
                         return {

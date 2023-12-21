@@ -52,6 +52,7 @@ class VisitState {
     ignoreClassMethods: string[];
     sourceMappingURL: string | null;
     reportLogic: boolean;
+    shouldInstrumentCallback?: (path: NodePath, loc: SourceLocation) => boolean;
 
     public readonly origins: SourceOrigins;
 
@@ -60,7 +61,8 @@ class VisitState {
         sourceFilePath: string,
         inputSourceMap: RawSourceMap | undefined,
         ignoreClassMethods: string[] = [],
-        reportLogic = false
+        reportLogic = false,
+        shouldInstrumentCallback?: (path: NodePath, loc: SourceLocation) => boolean
     ) {
         this.attrs = {};
         this.nextIgnore = null;
@@ -74,6 +76,14 @@ class VisitState {
         this.types = types;
         this.sourceMappingURL = null;
         this.reportLogic = reportLogic;
+        this.shouldInstrumentCallback = shouldInstrumentCallback;
+    }
+
+    shouldInstrument(path: NodePath, loc: SourceLocation): boolean {
+        if (this.shouldInstrumentCallback) {
+            return this.shouldInstrumentCallback(path, loc);
+        }
+        return true;
     }
 
     // should we ignore the node? Yes, if specifically ignoring
@@ -238,12 +248,13 @@ class VisitState {
 
     insertStatementCounter(path: NodePath) {
         /* istanbul ignore if: paranoid check */
-        if (!(path.node?.loc)) {
+        const loc = path.node?.loc;
+        if (!loc || !this.shouldInstrument(path, loc)) {
             return;
         }
 
-        const originFileId = this.origins.ensureKnownOrigin(path.node.loc);
-        const increment = newStatementCoverageExpression(originFileId, path.node.loc);
+        const originFileId = this.origins.ensureKnownOrigin(loc);
+        const increment = newStatementCoverageExpression(originFileId, loc);
         this.insertCounter(path, increment);
     }
 
@@ -276,21 +287,17 @@ class VisitState {
 
         /* istanbul ignore else: not expected */
         const body = path.get('body') as NodePath;
-        if (body.isBlockStatement()) {
-            const originFileId = this.origins.ensureKnownOrigin(path.node.loc);
-            const increment = newFunctionCoverageExpression(originFileId, path.node.loc, declarationLocation);
+        const loc = path.node.loc;
+        if (body.isBlockStatement() && this.shouldInstrument(path, loc)) {
+            const originFileId = this.origins.ensureKnownOrigin(loc);
+            const increment = newFunctionCoverageExpression(originFileId, loc, declarationLocation);
             body.node.body.unshift(T.expressionStatement(increment));
-        } else {
-            console.error(
-                'Unable to process function body node type:',
-                path.node.type
-            );
         }
     }
 
     insertBranchCounter(path: NodePath, branchName: number, loc: SourceLocation | null | undefined) {
         loc = loc ?? path.node.loc!;
-        if (loc) {
+        if (loc && this.shouldInstrument(path, loc)) {
             const originFileId = this.origins.ensureKnownOrigin(loc);
             const increment = newBranchCoverageExpression(originFileId, loc)
             this.insertCounter(path, increment);
@@ -460,9 +467,10 @@ function coverSwitchCase(this: VisitState, path: NodePath<SwitchCase>) {
         throw new Error('Unable to get switch branch name');
     }
 
-    if (path.node.loc) {
-        const originFileId = this.origins.ensureKnownOrigin(path.node.loc);
-        const increment = newBranchCoverageExpression(originFileId, path.node.loc);
+    const loc = path.node.loc;
+    if (loc && this.shouldInstrument(path, loc)) {
+        const originFileId = this.origins.ensureKnownOrigin(loc);
+        const increment = newBranchCoverageExpression(originFileId, loc);
         path.node.consequent.unshift(T.expressionStatement(increment));
     }
 }
@@ -497,12 +505,14 @@ function coverLogicalExpression(this: VisitState, path: NodePath<LogicalExpressi
             continue;
         }
 
-        if (!path.node.loc) {
+
+        const loc = path.node.loc;
+        if (!loc || !this.shouldInstrument(path, loc)) {
             continue;
         }
 
-        const originFileId = this.origins.ensureKnownOrigin(path.node.loc);
-        const increment = newBranchCoverageExpression(originFileId, path.node.loc);
+        const originFileId = this.origins.ensureKnownOrigin(loc);
+        const increment = newBranchCoverageExpression(originFileId, loc);
         if (!increment) {
             continue;
         }
@@ -615,7 +625,8 @@ export function programVisitor(types: BabelTypes, sourceFilePath = 'unknown.js',
         sourceFilePath,
         opts.inputSourceMap,
         opts.ignoreClassMethods,
-        opts.reportLogic
+        opts.reportLogic,
+        opts.shouldInstrumentCallback
     );
 
     return {
@@ -641,10 +652,6 @@ export function programVisitor(types: BabelTypes, sourceFilePath = 'unknown.js',
 
             originData.hash = originData.computeHash();
 
-            if (opts.isInstrumentedToken) {
-                throw new Error("Implement me");
-            }
-
             const body = path.node.body;
 
             if (opts.codeToPrepend) {
@@ -654,10 +661,15 @@ export function programVisitor(types: BabelTypes, sourceFilePath = 'unknown.js',
                 }
             }
 
-            // Add a variable definition for each origin file on top of the file
+            // Add a variable definition for each origin file on top of the file.
             for (const [originPath, originId] of originData.originToIdMap.entries()) {
                 const declaration = newStringConstDeclarationNode(originId, originPath);
                 body.unshift(declaration);
+            }
+
+            // Add a token for signaling that the file has been instrumented.
+            if (opts.isInstrumentedToken) {
+                types.addComment(path.node, 'leading', opts.isInstrumentedToken, false);
             }
         }
     };

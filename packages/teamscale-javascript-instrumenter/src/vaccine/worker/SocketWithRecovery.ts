@@ -2,7 +2,8 @@
  * A socket wrapper that caches messages in case
  * the connection was lost or not yet established.
  */
-export class CachingSocket {
+export class SocketWithRecovery {
+
 	/** The target URL to send messages to. */
 	private readonly url: string;
 

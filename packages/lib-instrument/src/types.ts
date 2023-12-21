@@ -1,4 +1,6 @@
 import {RawSourceMap} from "source-map";
+import {NodePath} from "@babel/core";
+import {SourceLocation} from "@babel/types";
 
 export type InstrumentationOptions = Partial<{
     /** Report boolean value of logical expressions */
@@ -21,4 +23,7 @@ export type InstrumentationOptions = Partial<{
 
     /** Level of granularity coverage statements should be added to the code. */
     coveragePrecision: 'function' | 'line' | 'statement' | 'branch';
+
+    /** Callback for determining if a given code fragment should be instrument */
+    shouldInstrumentCallback?: (path: NodePath, loc: SourceLocation) => boolean;
 }>;

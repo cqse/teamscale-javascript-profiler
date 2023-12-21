@@ -1,4 +1,4 @@
-# ADR 0003: One-Phase Instrumentation: Passing names of the original files to the collector.
+# ADR 0004: One-Phase Instrumentation: Passing names of the original files to the collector.
 
 ## Approach 1: Send them with each coverage bundle.
 

@@ -1,6 +1,5 @@
 import {Node, NodePath, parse} from '@babel/core';
 import {Visitor} from "@babel/traverse";
-import {defaults} from '@istanbuljs/schema';
 import {
     ArrowFunctionExpression,
     BlockStatement, ClassMethod, Comment, ConditionalExpression,
@@ -12,16 +11,15 @@ import {
 
 type BabelTypes = typeof import("@babel/types")
 
-import {CodeRange, SourceCoverage} from './source-coverage';
 import {RawSourceMap, SourceMapConsumer} from "source-map";
 import {
     newBranchCoverageExpression,
     newFunctionCoverageExpression,
     newStatementCoverageExpression,
     newStringConstDeclarationNode
-} from "./statements";
+} from "./utils";
 import {SourceOrigins} from "./origins";
-import {InstrumentationOptions} from "./types";
+import {CodeRange, InstrumentationOptions} from "./utils";
 
 // Pattern for istanbul to ignore a section
 const COMMENT_RE = /^\s*istanbul\s+ignore\s+(if|else|next)(?=\W|$)/;
@@ -48,7 +46,6 @@ class VisitState {
     types: BabelTypes;
     attrs: Record<string, unknown>;
     nextIgnore: Node | null;
-    cov: SourceCoverage;
     ignoreClassMethods: string[];
     sourceMappingURL: string | null;
     sourceMap: SourceMapConsumer | undefined;
@@ -68,18 +65,12 @@ class VisitState {
     ) {
         this.attrs = {};
         this.nextIgnore = null;
-        this.cov = new SourceCoverage(sourceFilePath);
-
-        if (typeof inputSourceMap !== 'undefined') {
-            this.cov.inputSourceMap(inputSourceMap);
-        }
         this.ignoreClassMethods = ignoreClassMethods;
         this.types = types;
         this.sourceMappingURL = null;
         this.reportLogic = reportLogic;
         this.shouldInstrumentCallback = shouldInstrumentCallback;
         this.origins = new SourceOrigins(sourceFilePath, inputSourceMapConsumer);
-
     }
 
     shouldInstrument(path: NodePath, loc: SourceLocation): boolean {
@@ -252,11 +243,15 @@ class VisitState {
     insertStatementCounter(path: NodePath) {
         /* istanbul ignore if: paranoid check */
         const loc = path.node?.loc;
-        if (!loc || !this.shouldInstrument(path, loc)) {
+        if (!loc) {
             return;
         }
 
         const [originFileId, originPos] = this.origins.ensureKnownOrigin(loc);
+        if (!this.shouldInstrument(path, originPos)) {
+            return;
+        }
+
         const increment = newStatementCoverageExpression(originFileId, originPos);
         this.insertCounter(path, increment);
     }
@@ -291,17 +286,22 @@ class VisitState {
         /* istanbul ignore else: not expected */
         const body = path.get('body') as NodePath;
         const loc = path.node.loc;
-        if (body.isBlockStatement() && this.shouldInstrument(path, loc)) {
-            const [originFileId, originPos] = this.origins.ensureKnownOrigin(loc);
+        const [originFileId, originPos] = this.origins.ensureKnownOrigin(loc);
+
+        if (body.isBlockStatement() && this.shouldInstrument(path, originPos)) {
             const increment = newFunctionCoverageExpression(originFileId, originPos, declarationLocation);
             body.node.body.unshift(T.expressionStatement(increment));
         }
     }
 
-    insertBranchCounter(path: NodePath, branchName: number, loc: SourceLocation | null | undefined) {
+    insertBranchCounter(path: NodePath, loc: SourceLocation | null | undefined) {
         loc = loc ?? path.node.loc!;
-        if (loc && this.shouldInstrument(path, loc)) {
-            const [originFileId, originPos] = this.origins.ensureKnownOrigin(loc);
+        if (!loc) {
+            return;
+        }
+
+        const [originFileId, originPos] = this.origins.ensureKnownOrigin(loc);
+        if (this.shouldInstrument(path, originPos)) {
             const increment = newBranchCoverageExpression(originFileId, originPos)
             this.insertCounter(path, increment);
         }
@@ -363,9 +363,7 @@ function coverStatement(this: VisitState, path: NodePath) {
 
 /* istanbul ignore next: no node.js support */
 function coverAssignmentPattern(this: VisitState, path: NodePath) {
-    const n = path.node;
-    const b = this.cov.newBranch('default-arg', n.loc);
-    this.insertBranchCounter(path.get('right') as NodePath, b, undefined);
+    this.insertBranchCounter(path.get('right') as NodePath, undefined);
 }
 
 type CallableNode = ArrowFunctionExpression
@@ -443,36 +441,32 @@ function coverIfBranches(this: VisitState, path: NodePath<IfStatement>) {
     const hint = this.hintFor(n);
     const ignoreIf = hint === 'if';
     const ignoreElse = hint === 'else';
-    const branch = this.cov.newBranch('if', n.loc);
 
     if (ignoreIf) {
         this.setAttr(n.consequent, 'skip-all', true);
     } else {
-        this.insertBranchCounter(path.get('consequent'), branch, n.loc);
+        this.insertBranchCounter(path.get('consequent'), n.loc);
     }
 
     if (ignoreElse) {
         this.setAttr(n.alternate!, 'skip-all', true);
     } else {
-        this.insertBranchCounter(path.get('alternate') as NodePath, branch, undefined);
+        this.insertBranchCounter(path.get('alternate') as NodePath, undefined);
     }
 }
 
 function createSwitchBranch(this: VisitState, path: NodePath) {
-    const b = this.cov.newBranch('switch', path.node.loc);
-    this.setAttr(path.node, 'branchName', b);
 }
 
 function coverSwitchCase(this: VisitState, path: NodePath<SwitchCase>) {
     const T = this.types;
-    const b = this.getAttr(path.parentPath.node, 'branchName') as (string | number);
-    if (b === null) {
-        throw new Error('Unable to get switch branch name');
+    const loc = path.node.loc;
+    if (!loc) {
+        return;
     }
 
-    const loc = path.node.loc;
-    if (loc && this.shouldInstrument(path, loc)) {
-        const [originFileId, originPos] = this.origins.ensureKnownOrigin(loc);
+    const [originFileId, originPos] = this.origins.ensureKnownOrigin(loc);
+    if (this.shouldInstrument(path, originPos)) {
         const increment = newBranchCoverageExpression(originFileId, originPos);
         path.node.consequent.unshift(T.expressionStatement(increment));
     }
@@ -480,16 +474,15 @@ function coverSwitchCase(this: VisitState, path: NodePath<SwitchCase>) {
 
 function coverTernary(this: VisitState, path: NodePath<ConditionalExpression>) {
     const n = path.node;
-    const branch = this.cov.newBranch('cond-expr', path.node.loc);
     const cHint = this.hintFor(n.consequent);
     const aHint = this.hintFor(n.alternate);
 
     if (cHint !== 'next') {
-        this.insertBranchCounter(path.get('consequent'), branch, undefined);
+        this.insertBranchCounter(path.get('consequent'), undefined);
     }
 
     if (aHint !== 'next') {
-        this.insertBranchCounter(path.get('alternate'), branch, undefined);
+        this.insertBranchCounter(path.get('alternate'), undefined);
     }
 }
 
@@ -510,11 +503,15 @@ function coverLogicalExpression(this: VisitState, path: NodePath<LogicalExpressi
 
 
         const loc = path.node.loc;
-        if (!loc || !this.shouldInstrument(path, loc)) {
+        if (!loc) {
             continue;
         }
 
         const [originFileId, originPos] = this.origins.ensureKnownOrigin(loc);
+        if (!this.shouldInstrument(path, originPos)) {
+            continue;
+        }
+
         const increment = newBranchCoverageExpression(originFileId, originPos);
         if (!increment) {
             continue;
@@ -621,10 +618,7 @@ function shouldIgnoreFile(programNodePath: NodePath | null): boolean {
 export function programVisitor(types: BabelTypes, sourceFilePath = 'unknown.js',
                                inputSourceMapConsumer: SourceMapConsumer | undefined,
                                opts: InstrumentationOptions) {
-    opts = {
-        ...defaults.instrumentVisitor,
-        ...opts
-    };
+    opts = { ...opts };
 
     const visitState = new VisitState(
         types,
@@ -651,7 +645,6 @@ export function programVisitor(types: BabelTypes, sourceFilePath = 'unknown.js',
                 return;
             }
 
-            visitState.cov.freeze();
             const originData = visitState.origins;
             if (shouldIgnoreFile(path.find(p => p.isProgram()))) {
                 return;

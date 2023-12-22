@@ -229,7 +229,6 @@ export async function create(code: string, opts: any, instrumenterOpts: Instrume
         file,
         fn,
         code,
-        generatedCode: instrumenterOutput,
-        emptyCoverage: instrumenter.lastFileCoverage()
+        generatedCode: instrumenterOutput
     });
 }

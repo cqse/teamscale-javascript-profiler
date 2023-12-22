@@ -1,12 +1,43 @@
 import {
     CallExpression,
     Expression,
-    ExpressionStatement, Identifier,
-    isSequenceExpression, NumericLiteral, sequenceExpression,
-    SequenceExpression, VariableDeclaration
+    Identifier,
+    NumericLiteral, sequenceExpression, SourceLocation,
+    VariableDeclaration
 } from "@babel/types";
+import {RawSourceMap} from "source-map";
 import {NodePath} from "@babel/core";
-import {CodeRange} from "./source-coverage";
+
+export type InstrumentationOptions = Partial<{
+    /** Report boolean value of logical expressions */
+    reportLogic: boolean;
+
+    /** Use an evaluated function to find coverageGlobalScope */
+    coverageGlobalScopeFunc: boolean;
+
+    /** Names of methods to ignore by default on classes */
+    ignoreClassMethods: string[];
+
+    /** The input source map, that maps the uninstrumented code back to the original code */
+    inputSourceMap?: RawSourceMap;
+
+    /** Token to add in the very beginning to indicate that the instrumentation has been performed */
+    isInstrumentedToken?: string;
+
+    /** Code to add before the instrumented input code */
+    codeToPrepend?: string;
+
+    /** Level of granularity coverage statements should be added to the code. */
+    coveragePrecision: 'function' | 'line' | 'statement' | 'branch';
+
+    /** Callback for determining if a given code fragment should be instrument */
+    shouldInstrumentCallback?: (path: NodePath, loc: SourceLocation) => boolean;
+}>;
+
+export type CodeRange = {
+    start: { line?: number; column?: number };
+    end: { line?: number; column?: number };
+};
 
 type CoverageIncrement = {
     originFileId: string;
@@ -14,24 +45,9 @@ type CoverageIncrement = {
 };
 
 /**
- * We cannot just run `path.insertBefore` to add a new element to an AST.
- * See https://github.com/jamiebuilds/babel-handbook/blob/master/translations/en/plugin-handbook.md#toc-inserting-a-sibling-node .
- *
- * Special handling for some container nodes is needed.
- */
-export function insertNodeBefore(path: NodePath<Node>, toInsert: Expression | ExpressionStatement): void {
-    if (isSequenceExpression(path.parent)) {
-        (path.parentPath as NodePath<SequenceExpression>).unshiftContainer('expressions', [toInsert as Expression]);
-    } else {
-        path.insertBefore(toInsert);
-    }
-}
-
-/**
  * Create a branch coverage increment node.
  */
 export function newBranchCoverageExpression(originFileId: string, range: CodeRange): CallExpression {
-    // TODO: Use the source map to determine the original code
     return newRangeCoverageExpression('_$b', originFileId, range);
 }
 
@@ -39,7 +55,6 @@ export function newBranchCoverageExpression(originFileId: string, range: CodeRan
  * Create a statement coverage increment node.
  */
 export function newStatementCoverageExpression(originFileId: string, range: CodeRange): CallExpression {
-    // TODO: Use the source map to determine the original code
     return newRangeCoverageExpression('_$s', originFileId, range);
 }
 
@@ -48,7 +63,6 @@ export function newStatementCoverageExpression(originFileId: string, range: Code
  */
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 export function newFunctionCoverageExpression(originFileId: string, range: CodeRange, declarationRange: CodeRange): CallExpression {
-    // TODO: Use the source map to determine the original code
     return newRangeCoverageExpression('_$f', originFileId, range);
 }
 

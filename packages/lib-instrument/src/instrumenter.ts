@@ -3,14 +3,12 @@
  Copyrights licensed under the New BSD License. See the accompanying LICENSE file for terms.
  */
 import {NodePath, transformSync} from '@babel/core';
+import {SourceLocation} from "@babel/types";
 import {ParserPlugin as PluginConfig} from '@babel/parser';
-import {defaults} from '@istanbuljs/schema';
 import {RawSourceMap, SourceMapConsumer} from "source-map";
 
 import { programVisitor } from './visitor';
-import {InstrumentationOptions} from "./types";
-import {SourceLocation} from "@babel/types";
-
+import {InstrumentationOptions} from "./utils";
 /**
  * Options for configuring the coverage instrumenter.
  */
@@ -54,17 +52,10 @@ function mapSourceMapsOption(produceSourceMap: "none" | "inline" | "external" | 
  */
 export class Instrumenter {
 
-    private fileCoverage: unknown;
-    private sourceMap?: RawSourceMap;
     private readonly opts: InstrumenterOptions;
 
     constructor(opts?: Partial<InstrumenterOptions>) {
-        this.opts = {
-            ...defaults.instrumenter,
-            ...opts
-        };
-        this.fileCoverage = null;
-        this.sourceMap = undefined;
+        this.opts = { ...opts };
     }
 
     /**
@@ -96,7 +87,7 @@ export class Instrumenter {
             configFile: false,
             babelrc: false,
             ast: true,
-            filename: filename,
+            filename,
             inputSourceMap,
             sourceMaps: mapSourceMapsOption(opts.produceSourceMap),
             compact: opts.compact,
@@ -139,19 +130,4 @@ export class Instrumenter {
         return transformSync(code, babelOpts)!.code!;
     }
 
-    /**
-     * returns the file coverage object for the last file instrumented.
-     * @returns {Object} the file coverage object.
-     */
-    lastFileCoverage(): unknown {
-        return this.fileCoverage;
-    }
-
-    /**
-     * returns the source map produced for the last file instrumented.
-     * @returns {null|Object} the source map object.
-     */
-    lastSourceMap(): RawSourceMap | undefined {
-        return this.sourceMap;
-    }
 }

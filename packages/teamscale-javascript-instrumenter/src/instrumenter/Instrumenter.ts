@@ -18,7 +18,6 @@ import * as fs from 'fs';
 import * as mkdirp from 'mkdirp';
 import * as path from 'path';
 import * as convertSourceMap from 'convert-source-map';
-import { cleanSourceCode } from './Postprocessor';
 import { Optional } from 'typescript-optional';
 import Logger from 'bunyan';
 import async from 'async';
@@ -223,30 +222,18 @@ export class IstanbulInstrumenter implements IInstrumenter {
 		const instrumenter = istanbul.createInstrumenter(configurationAlternative);
 		const instrumentedSources: string[] = [];
 		for (let i = 0; i < inputBundle.codeArguments.length; i++) {
-
-			let instrumentedSourceMapConsumer: SourceMapConsumer | undefined;
-			if (inputSourceMaps[i]) {
-				instrumentedSourceMapConsumer = await new SourceMapConsumer(inputSourceMaps[i]!);
-			}
-
 			const removedInstrumentationFor: Set<string> = new Set<string>();
 
-			const shouldInstrument = (node: NodePath, location: SourceLocation) => {
-				if (!instrumentedSourceMapConsumer) {
-					return true;
-				}
-				const originalPosition = instrumentedSourceMapConsumer.originalPositionFor({
-					line: location.start.line,
-					column: location.start.column
-				});
-				if (!originalPosition.source) {
+			const shouldInstrument = (node: NodePath, originLocation: SourceLocation) => {
+				if (!originLocation.filename) {
 					return false;
 				}
 
-				const isToCover = sourcePattern.isAnyIncluded([originalPosition.source]);
+				const isToCover = sourcePattern.isAnyIncluded([originLocation.filename]);
 				if (!isToCover) {
-					removedInstrumentationFor.add(originalPosition.source);
+					removedInstrumentationFor.add(originLocation.filename);
 				}
+
 				return isToCover;
 			}
 
@@ -268,8 +255,6 @@ export class IstanbulInstrumenter implements IInstrumenter {
 				.replace(/new Function\("return this"\)\(\)/g, "typeof window === 'object' ? window : this");
 
 			instrumentedSources.push(instrumentedAndCleanedSource);
-
-			this.logger.debug('Instrumentation source maps to:', instrumenter.lastSourceMap()?.sources);
 		}
 
 		this.writeBundleFile(taskElement.toFile, inputBundle, instrumentedSources);
@@ -301,52 +286,6 @@ export class IstanbulInstrumenter implements IInstrumenter {
 			);
 			writeToFile(toFile, instrumentedSources[0]);
 		}
-	}
-
-	private async removeUnwantedInstrumentation(
-		taskElement: TaskElement,
-		instrumentedSource: string,
-		configurationAlternative: Record<string, unknown>,
-		sourcePattern: OriginSourcePattern,
-		instrumentedSourcemap: RawSourceMap
-	): Promise<string> {
-		const instrumentedSourceMapConsumer: SourceMapConsumer | undefined = await new SourceMapConsumer(
-			instrumentedSourcemap
-		);
-
-		// Without a source map, excludes/includes do not work.
-		if (!instrumentedSourceMapConsumer) {
-			return instrumentedSource;
-		}
-
-		const removedInstrumentationFor: Set<string> = new Set<string>();
-
-		// Remove the unwanted instrumentation
-		const cleaned = cleanSourceCode(instrumentedSource, configurationAlternative.esModules as boolean, location => {
-			const originalPosition = instrumentedSourceMapConsumer.originalPositionFor({
-				line: location.start.line,
-				column: location.start.column
-			});
-			if (!originalPosition.source) {
-				return false;
-			}
-
-			const isToCover = sourcePattern.isAnyIncluded([originalPosition.source]);
-			if (!isToCover) {
-				removedInstrumentationFor.add(originalPosition.source);
-			}
-			return isToCover;
-		});
-
-		if (removedInstrumentationFor.size) {
-			this.logger.info(`Removed from ${taskElement.toFile} instrumentation for:`);
-			removedInstrumentationFor.forEach(entry => this.logger.info(entry));
-		}
-
-		// Explicitly free the source map to avoid memory leaks
-		instrumentedSourceMapConsumer.destroy();
-
-		return cleaned;
 	}
 
 	/**

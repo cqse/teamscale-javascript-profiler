@@ -1,8 +1,6 @@
 import {SourceLocation, VariableDeclaration} from "@babel/types";
 import {createHash} from "crypto";
-import {SHA} from "./constants";
 import {NullableMappedPosition, SourceMapConsumer} from "source-map";
-import {CodeRange} from "./source-coverage";
 
 /**
  * Creates a new string constant AST node.
@@ -71,7 +69,7 @@ export class SourceOrigins {
         this.sourceMap = sourceMap;
     }
 
-    ensureKnownOrigin(loc: SourceLocation): [string, CodeRange] {
+    ensureKnownOrigin(loc: SourceLocation): [string, SourceLocation] {
         let startPos: NullableMappedPosition | undefined = undefined;
         let endPos: NullableMappedPosition | undefined = undefined;
         let filename = loc.filename ?? '';
@@ -93,11 +91,15 @@ export class SourceOrigins {
             this.originToIdMap.set(filename, id);
         }
 
-        return [id, { start: { line: startPos.line!, column: startPos.column! }, end: { line: endPos.line!, column: endPos.column! }}];
+        return [id, {
+            start: { line: startPos.line!, column: startPos.column!, index: -1 },
+            end: { line: endPos.line!, column: endPos.column!, index: -1 },
+            filename,
+            identifierName: startPos.name }];
     }
 
     public computeHash(): string {
-        return createHash(SHA)
+        return createHash('sha1')
             .update(JSON.stringify(this))
             .digest('hex');
     }

@@ -1,5 +1,4 @@
 import {SourceLocation, VariableDeclaration} from "@babel/types";
-import {createHash} from "crypto";
 import {NullableMappedPosition, SourceMapConsumer} from "source-map";
 
 /**
@@ -53,19 +52,18 @@ export const fileIdSeqGenerator: { next: () => string } = (() => {
     };
 })();
 
+/**
+ * Mapping source locations to their origins, before the last transpilation,
+ * based on the source map.
+ */
 export class SourceOrigins {
 
-    public hash?: string;
-
-    public readonly bundleName: string;
+    private readonly sourceMap?: SourceMapConsumer;
 
     public readonly originToIdMap: Map<string, string>;
 
-    public readonly sourceMap?: SourceMapConsumer;
-
-    constructor(bundleName: string, sourceMap: SourceMapConsumer | undefined) {
+    constructor(sourceMap: SourceMapConsumer | undefined) {
         this.originToIdMap = new Map();
-        this.bundleName = bundleName;
         this.sourceMap = sourceMap;
     }
 
@@ -96,20 +94,6 @@ export class SourceOrigins {
             end: { line: endPos.line!, column: endPos.column!, index: -1 },
             filename,
             identifierName: startPos.name }];
-    }
-
-    public computeHash(): string {
-        return createHash('sha1')
-            .update(JSON.stringify(this))
-            .digest('hex');
-    }
-
-    public toJSON() : string {
-        return JSON.stringify({
-            bundle: this.bundleName,
-            hash: this.hash,
-            origins: this.originToIdMap
-        });
     }
 
 }

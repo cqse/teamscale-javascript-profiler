@@ -56,8 +56,6 @@ class VisitState {
 
     constructor(
         types: BabelTypes,
-        sourceFilePath: string,
-        inputSourceMap: RawSourceMap | undefined,
         inputSourceMapConsumer: SourceMapConsumer | undefined,
         ignoreClassMethods: string[] = [],
         reportLogic = false,
@@ -70,7 +68,7 @@ class VisitState {
         this.sourceMappingURL = null;
         this.reportLogic = reportLogic;
         this.shouldInstrumentCallback = shouldInstrumentCallback;
-        this.origins = new SourceOrigins(sourceFilePath, inputSourceMapConsumer);
+        this.origins = new SourceOrigins(inputSourceMapConsumer);
     }
 
     shouldInstrument(path: NodePath, loc: SourceLocation): boolean {
@@ -615,15 +613,13 @@ function shouldIgnoreFile(programNodePath: NodePath | null): boolean {
  * @param sourceFilePath - the path to source file.
  * @param opts - additional options.
  */
-export function programVisitor(types: BabelTypes, sourceFilePath = 'unknown.js',
+export function programVisitor(types: BabelTypes,
                                inputSourceMapConsumer: SourceMapConsumer | undefined,
                                opts: InstrumentationOptions) {
     opts = { ...opts };
 
     const visitState = new VisitState(
         types,
-        sourceFilePath,
-        opts.inputSourceMap,
         inputSourceMapConsumer,
         opts.ignoreClassMethods,
         opts.reportLogic,
@@ -649,8 +645,6 @@ export function programVisitor(types: BabelTypes, sourceFilePath = 'unknown.js',
             if (shouldIgnoreFile(path.find(p => p.isProgram()))) {
                 return;
             }
-
-            originData.hash = originData.computeHash();
 
             const body = path.node.body;
 

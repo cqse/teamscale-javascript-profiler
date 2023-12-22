@@ -1,8 +1,7 @@
 import {
     CallExpression,
-    Expression,
     Identifier,
-    NumericLiteral, sequenceExpression, SourceLocation,
+    NumericLiteral, SourceLocation,
     VariableDeclaration
 } from "@babel/types";
 import {RawSourceMap} from "source-map";
@@ -37,11 +36,6 @@ export type InstrumentationOptions = Partial<{
 export type CodeRange = {
     start: { line?: number; column?: number };
     end: { line?: number; column?: number };
-};
-
-type CoverageIncrement = {
-    originFileId: string;
-    covers: CodeRange;
 };
 
 /**
@@ -106,32 +100,6 @@ function newRangeCoverageExpression(
             { type: 'NumericLiteral', value: range.start.column } as NumericLiteral,
             { type: 'NumericLiteral', value: range.end.line } as NumericLiteral,
             { type: 'NumericLiteral', value: range.end.column } as NumericLiteral,
-        ]
-    };
-}
-
-export function newLineRangeCoverageExpression(
-    increment: CoverageIncrement
-): Expression {
-    if (increment.covers.start.line == increment.covers.end.line) {
-        return newSingleLineCoverageExpression(increment.originFileId, increment.covers.start.line!);
-    }
-
-    const result: Expression[] = [];
-    for (let line= increment.covers.start.line!; line<increment.covers.end.line!; line++) {
-        result.push(newSingleLineCoverageExpression(increment.originFileId, line));
-    }
-
-    return sequenceExpression(result);
-}
-
-export function newSingleLineCoverageExpression(originFileId: string, line: number): Expression {
-    return {
-        type: 'CallExpression',
-        callee: { type: 'Identifier', name: '_$l' } as Identifier,
-        arguments: [
-            { type: 'Identifier', name: originFileId } as Identifier,
-            { type: 'NumericLiteral', value: line } as NumericLiteral,
         ]
     };
 }

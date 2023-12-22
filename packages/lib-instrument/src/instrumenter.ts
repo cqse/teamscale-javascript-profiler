@@ -7,8 +7,9 @@ import {SourceLocation} from "@babel/types";
 import {ParserPlugin as PluginConfig} from '@babel/parser';
 import {RawSourceMap, SourceMapConsumer} from "source-map";
 
-import { programVisitor } from './visitor';
+import {programVisitor} from './visitor';
 import {InstrumentationOptions} from "./utils";
+
 /**
  * Options for configuring the coverage instrumenter.
  */
@@ -46,29 +47,26 @@ function mapSourceMapsOption(produceSourceMap: "none" | "inline" | "external" | 
 }
 
 /**
- * Instrumenter is the public API for the instrument library.
- * It is typically used for ES5 code. For ES6 code that you are already
- * running under `babel` use the coverage plugin instead.
+ * The main class of the instrumenter.
  */
 export class Instrumenter {
 
     private readonly opts: InstrumenterOptions;
 
     constructor(opts?: Partial<InstrumenterOptions>) {
-        this.opts = { ...opts };
+        this.opts = {...opts};
     }
 
     /**
-     * Instrument the supplied code and track coverage against the supplied
-     * filename. It throws if invalid code is passed to it. ES5 and ES6 syntax
-     * is supported. To instrument ES6 modules, make sure that you set the
-     * `esModules` property to `true` when creating the instrumenter.
+     * Instrument the supplied code with coverage statements.
+     * To instrument EcmaScript modules, make sure to set the
+     * `esModules` option to `true` when creating the instrumenter.
      *
      * @param code - the code to instrument
-     * @param filename - the filename against which to track coverage.
-     * @param [inputSourceMap] - the source map that maps the not instrumented code back to it's original form.
-     * Is assigned to the coverage object and therefore, is available in the json output and can be used to remap the
-     * coverage to the untranspiled source.
+     * @param filename - the name of the file the code stems from.
+     * @param inputSourceMap - the source map that maps the not instrumented code back to its original
+     * @param shouldInstrumentCallback - a callback to decide if a given code fragment should be instrumented
+     *
      * @returns the instrumented code.
      */
     async instrument(code: string, filename: string | undefined, inputSourceMap: RawSourceMap | undefined,
@@ -100,7 +98,7 @@ export class Instrumenter {
             plugins: [
                 [
                     ({types}) => {
-                        const ee = programVisitor(types, filename, inputSourceMapConsumer, {
+                        const ee = programVisitor(types, inputSourceMapConsumer, {
                             reportLogic: opts.reportLogic,
                             coverageGlobalScopeFunc:
                             opts.coverageGlobalScopeFunc,

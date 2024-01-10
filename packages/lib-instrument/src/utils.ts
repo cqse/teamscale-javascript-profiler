@@ -26,9 +26,6 @@ export type InstrumentationOptions = Partial<{
     /** Code to add before the instrumented input code */
     codeToPrepend?: string;
 
-    /** Level of granularity coverage statements should be added to the code. */
-    coveragePrecision: 'function' | 'line' | 'statement' | 'branch';
-
     /** Callback for determining if a given code fragment should be instrument */
     shouldInstrumentCallback?: (path: NodePath, loc: SourceLocation) => boolean;
 }>;
@@ -37,28 +34,6 @@ export type CodeRange = {
     start: { line?: number; column?: number };
     end: { line?: number; column?: number };
 };
-
-/**
- * Create a branch coverage increment node.
- */
-export function newBranchCoverageExpression(originFileId: string, range: CodeRange): CallExpression {
-    return newRangeCoverageExpression('_$b', originFileId, range);
-}
-
-/**
- * Create a statement coverage increment node.
- */
-export function newStatementCoverageExpression(originFileId: string, range: CodeRange): CallExpression {
-    return newRangeCoverageExpression('_$s', originFileId, range);
-}
-
-/**
- * Create a function coverage reporting statement node.
- */
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-export function newFunctionCoverageExpression(originFileId: string, range: CodeRange, declarationRange: CodeRange): CallExpression {
-    return newRangeCoverageExpression('_$f', originFileId, range);
-}
 
 /**
  * Creates a new string constant AST node.
@@ -84,22 +59,19 @@ export function newStringConstDeclarationNode(name: string, value: string): Vari
 }
 
 /**
- * Create a function coverage reporting statement node.
+ * Create a line coverage reporting statement node.
  */
-function newRangeCoverageExpression(
-    coverageFunctionName: string,
+export function newLineCoverageExpression(
     originFileId: string,
     range: CodeRange
 ): CallExpression {
     return {
         type: 'CallExpression',
-        callee: { type: 'Identifier', name: coverageFunctionName } as Identifier,
+        callee: { type: 'Identifier', name: '_$l' } as Identifier,
         arguments: [
             { type: 'Identifier', name: originFileId } as Identifier,
             { type: 'NumericLiteral', value: range.start.line } as NumericLiteral,
-            { type: 'NumericLiteral', value: range.start.column } as NumericLiteral,
             { type: 'NumericLiteral', value: range.end.line } as NumericLiteral,
-            { type: 'NumericLiteral', value: range.end.column } as NumericLiteral,
         ]
     };
 }

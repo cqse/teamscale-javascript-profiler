@@ -13,7 +13,6 @@ export class Countdown {
      * @param milliseconds - The duration of the countdown in milliseconds.
      * @param onCountedToZero - The action to execute when the countdown reaches 0.
      */
-    // eslint-disable-next-line no-useless-constructor
     constructor(private milliseconds: number, private onCountedToZero: () => void) {}
 
     /**

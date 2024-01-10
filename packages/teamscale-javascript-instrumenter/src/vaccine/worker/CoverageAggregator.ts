@@ -12,7 +12,9 @@ const FLUSH_AFTER_ELEMENTS = 20;
  */
 const FLUSH_AFTER_MILLIS = 1000;
 
-/** A message that provides coverage information */
+/**
+ * A message that provides coverage information.
+ */
 const MESSAGE_TYPE_COVERAGE = 'c';
 
 /**
@@ -58,37 +60,17 @@ export class CoverageAggregator {
 	public addRanges(fileId: string, range: CoveredRanges): void {
 		let coveredPositions: CoveredRanges | undefined = this.cachedCoveredRanges.get(fileId);
 		if (!coveredPositions) {
-			coveredPositions = { branches: [], functions: [], statements: [], lines: [] };
+			coveredPositions = { lines: [] };
 			this.cachedCoveredRanges.set(fileId, coveredPositions);
 		}
 
 		range.lines.forEach(value => coveredPositions!.lines.push(value));
-		range.branches.forEach(value => coveredPositions!.branches.push(value));
-		range.functions.forEach(value => coveredPositions!.functions.push(value));
-		range.statements.forEach(value => coveredPositions!.statements.push(value));
 
 		this.numberOfCachedPositions += 1;
 		this.flushCountdown.restartCountdown();
 		if (this.numberOfCachedPositions >= FLUSH_AFTER_ELEMENTS) {
 			this.flush();
 		}
-	}
-
-	private arrayToLineColCov(coverageTypeAbbr: string, input: number[]) : string {
-		if (input.length % 4 !== 0) {
-			throw new Error("Unexpected length of input data.");
-		}
-
-		const result: string[] = [];
-		for (let i= 0; i<input.length; i=i+4) {
-			const startLine = input[i];
-			const startColumn = input[i+1];
-			const endLine = input[i+2];
-			const endColumn = input[i+3];
-			result.push(`${coverageTypeAbbr}${startLine},${startColumn}-${endLine},${endColumn}`);
-		}
-
-		return result.join(";");
 	}
 
 	private arrayToLineCov(input: number[]) : string {
@@ -100,12 +82,11 @@ export class CoverageAggregator {
 		for (let i= 0; i<input.length; i=i+2) {
 			const startLine = input[i];
 			const endLine = input[i+1];
-			result.push(`l${startLine}-${endLine}`);
+			result.push(`${startLine}-${endLine}`);
 		}
 
 		return result.join(";");
 	}
-
 
 	/**
 	 * Flush the caches (send them to the collector).
@@ -120,9 +101,6 @@ export class CoverageAggregator {
 		const fileCoverage: string[] = [];
 		this.cachedCoveredRanges.forEach((ranges, fileName) => {
 			fileCoverage.push(`@${fileName}`);
-			fileCoverage.push(this.arrayToLineColCov('s', ranges.statements));
-			fileCoverage.push(this.arrayToLineColCov('b', ranges.branches));
-			fileCoverage.push(this.arrayToLineColCov('f', ranges.functions));
 			fileCoverage.push(this.arrayToLineCov(ranges.lines));
 		});
 

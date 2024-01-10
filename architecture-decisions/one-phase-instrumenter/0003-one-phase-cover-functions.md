@@ -10,9 +10,9 @@ that we achieved coverage. There are several requirements to satisfy:
 
 ```javascript
 foo();
-_$stmt(_$o23, 12, 0, 12, 59);
+_$stmt(_$o23, 12, 12);
 bar();
-_$stmt(_$o23, 13, 0, 13, 40);
+_$stmt(_$o23, 13, 14);
 ```
 
 Advantages:
@@ -26,9 +26,9 @@ The number of arguments is reduced, one variable lookup less.
 
 ```javascript
 foo();
-_$s23(12, 0, 12, 59);
+_$s23(12, 12);
 bar();
-_$s23(13, 0, 13, 40);
+_$s23(13, 14);
 ```
 
 Advantages: 

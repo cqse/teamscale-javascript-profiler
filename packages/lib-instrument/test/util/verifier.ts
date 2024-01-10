@@ -8,53 +8,28 @@ const AsyncFunction = Object.getPrototypeOf(async () => {}).constructor;
 
 export const MOCK_COVERAGE_VARIABLE = "_$COV";
 
-type CoverageType = 'functions' | 'lines' | 'statements' | 'branches';
+type CoverageType = 'lines';
 type CoveragePerLineAndType = Record<CoverageType, Record<string, number>>;
 
 export const MOCK_VACCINE = `
 var UNIVERSE = globalThis;
 UNIVERSE.${MOCK_COVERAGE_VARIABLE} = {
-    functions: {},
-    lines: {},
-    statements: {},
-    branches: {},
+    lines: {}
 };
 function incrementExecutions(coverageObj, startLine) {
     coverageObj[startLine] = (coverageObj[startLine] || 0) + 1;
 }
-function _$pushCov(typeId, fileId, startLine, startCol, endLine, endCol) {
-   const typeCov = ${MOCK_COVERAGE_VARIABLE}[typeId];
+function _$l(fileId, startLine, startCol, endLine, endCol) {
+   const typeCov = ${MOCK_COVERAGE_VARIABLE}['lines'];
    incrementExecutions(typeCov, startLine);
    
    if (fileId) {
-       const fileCov = ${MOCK_COVERAGE_VARIABLE}[typeId][fileId] || {};
-       ${MOCK_COVERAGE_VARIABLE}[typeId][fileId] = fileCov;   
+       const fileCov = typeCov[fileId] || {};
+       typeCov[fileId] = fileCov;   
        incrementExecutions(fileCov, startLine);
    }
 }
-function _$b(fileId, startLine, startCol, endLine, endCol) {
-   _$pushCov('branches', fileId, startLine, startCol, endLine, endCol);
-}
-function _$f(fileId, startLine, startCol, endLine, endCol) {
-   _$pushCov('functions', fileId, startLine, startCol, endLine, endCol);
-}
-function _$s(fileId, startLine, startCol, endLine, endCol) {
-   _$pushCov('lines', fileId, startLine, startCol, endLine, endCol);
-   _$pushCov('statements', fileId, startLine, startCol, endLine, endCol);
-}
-function _$l(fileId, startLine, startCol, endLine, endCol) {
-   _$pushCov('lines', fileId, startLine, startCol, endLine, endCol);
-}
 `;
-
-type ExpectedCoverage = {
-    lines: Record<string, number>;
-    statements: Record<string, number>;
-    functions: Record<string, number>;
-    branches: Record<string, number>;
-    branchesTrue: Record<string, number>;
-    inputSourceMap: object;
-}
 
 function pad(str: string, len: number) {
     const blanks = '                                             ';
@@ -107,7 +82,7 @@ class Verifier {
         assert.deepEqual(actualOutput, expectedOutput, 'Output mismatch');
 
         // Verify the coverage
-        for (const coverageType of ['functions', 'lines', 'statements']) {
+        for (const coverageType of ['lines']) {
             const expectedIncrementsPerLine = expectedCoverage[coverageType as CoverageType];
             const actualIncrementsPerLine = expectedCoverage[coverageType as CoverageType];
             if (!expectedIncrementsPerLine) {

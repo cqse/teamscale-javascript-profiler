@@ -1,4 +1,3 @@
----
 name: ignore else
 code: |
   output = -1;
@@ -6,11 +5,9 @@ code: |
   if (args[0] > args [1])
      output = args[0];
 tests:
-  - args: [20, 10]
-    out: 20
-    lines: {'1': 1, '3': 1, '4': 1}
-    branches: {'0': [1]}
-    statements: {'0': 1, '1': 1, '2': 1}
+- args: [20, 10]
+  out: 20
+  lines: {'1': 1, '3': 1, '4': 1}
 
 ---
 name: ignore if
@@ -20,11 +17,9 @@ code: |
   if (args[0] > args [1])
      output = args[0];
 tests:
-  - args: [10, 20]
-    out: -1
-    lines: {'1': 1, '3': 1 }
-    branches: {'0': [1]}
-    statements: {'0': 1, '1': 1 }
+- args: [10, 20]
+  out: -1
+  lines: {'1': 1, '3': 1}
 
 ---
 name: ignore else with if block
@@ -35,11 +30,9 @@ code: |
      output = args[0];
   }
 tests:
-  - args: [20, 10]
-    out: 20
-    lines: {'1': 1, '3': 1, '4': 1}
-    branches: {'0': [1]}
-    statements: {'0': 1, '1': 1, '2': 1}
+- args: [20, 10]
+  out: 20
+  lines: {'1': 1, '3': 1, '4': 1}
 
 ---
 name: ignore if with if block
@@ -50,11 +43,9 @@ code: |
      output = args[0];
   }
 tests:
-  - args: [10, 20]
-    out: -1
-    lines: {'1': 1, '3': 1 }
-    branches: {'0': [1]}
-    statements: {'0': 1, '1': 1 }
+- args: [10, 20]
+  out: -1
+  lines: {'1': 1, '3': 1}
 
 ---
 name: ignore else single line
@@ -63,11 +54,9 @@ code: |
   /* istanbul ignore else */
   if (args[0] > args [1]) output = args[0];
 tests:
-  - args: [20, 10]
-    out: 20
-    lines: {'1': 1, '3': 1}
-    branches: {'0': [1]}
-    statements: {'0': 1, '1': 1, '2': 1}
+- args: [20, 10]
+  out: 20
+  lines: {'1': 1, '3': 1}
 
 ---
 name: ignore if single line
@@ -76,11 +65,9 @@ code: |
   /* istanbul ignore if */
   if (args[0] > args [1]) output = args[0];
 tests:
-  - args: [10, 20]
-    out: -1
-    lines: {'1': 1, '3': 1}
-    branches: {'0': [1]}
-    statements: {'0': 1, '1': 1 }
+- args: [10, 20]
+  out: -1
+  lines: {'1': 1, '3': 1}
 
 ---
 name: ignore else if-block
@@ -89,11 +76,9 @@ code: |
   /* istanbul ignore else */
   if (args[0] > args [1]) { output = args[0]; }
 tests:
-  - args: [20, 10]
-    out: 20
-    lines: {'1': 1, '3': 1}
-    branches: {'0': [1] }
-    statements: {'0': 1, '1': 1, '2': 1}
+- args: [20, 10]
+  out: 20
+  lines: {'1': 1, '3': 1}
 
 ---
 name: ignore if block
@@ -102,13 +87,11 @@ code: |
   /* istanbul ignore if */
   if (args[0] > args [1]) { output = args[0]; }
 tests:
-  - args: [10, 20]
-    out: -1
-    lines: {'1': 1, '3': 1}
-    branches: {'0': [1]}
-    statements: {'0': 1, '1': 1}
-    branchSkips: { '0': [ true, false ]}
-    statementSkips: { '2': true }
+- args: [10, 20]
+  out: -1
+  lines: {'1': 1, '3': 1}
+  branchSkips: {'0': [true, false]}
+  statementSkips: {'2': true}
 
 ---
 name: ignore using next
@@ -117,11 +100,9 @@ code: |
   /* istanbul ignore next */
   if (args[0] > args [1]) { output = args[0]; }
 tests:
-  - args: [10, 20]
-    out: -1
-    lines: {'1': 1}
-    branches: {}
-    statements: {'0': 1 }
+- args: [10, 20]
+  out: -1
+  lines: {'1': 1}
 
 ---
 name: ignore else using single line comment
@@ -132,11 +113,9 @@ code: |
   else
      output = args[1];
 tests:
-  - args: [20, 10]
-    out: 20
-    lines: {'2': 1, '3': 1 }
-    branches: {'0': [1]}
-    statements: {'0': 1, '1': 1 }
+- args: [20, 10]
+  out: 20
+  lines: {'2': 1, '3': 1}
 
 ---
 name: ignore if using single line comment
@@ -147,11 +126,9 @@ code: |
   else
      output = args[1];
 tests:
-  - args: [10, 20]
-    out: 20
-    lines: {'2': 1, '5': 1}
-    branches: {'0': [1]}
-    statements: {'0': 1, '1': 1, }
+- args: [10, 20]
+  out: 20
+  lines: {'2': 1, '5': 1}
 ---
 name: ignore chained if
 code: |
@@ -163,24 +140,18 @@ code: |
     output = 'other';
   }
 tests:
-  - name: '1'
-    args: [1]
-    out: '1'
-    lines: {'1': 1, '2': 1, '3': 0, '6': 0}
-    branches: {'0': [1, 0], 1: [0]}
-    statements: {'0': 1, '1': 1, '2': 0, '3': 0}
-  - name: '2'
-    args: [2]
-    out: '2'
-    lines: {'1': 1, '2': 0, '3': 1, '6': 0}
-    branches: {'0': [0, 1], 1: [0]}
-    statements: {'0': 1, '1': 0, '2': 1, '3': 0}
-  - name: '3'
-    args: [3]
-    out: 'other'
-    lines: {'1': 1, '2': 0, '3': 1, '6': 1}
-    branches: {'0': [0, 1], 1: [1]}
-    statements: {'0': 1, '1': 0, '2': 1, '3': 1}
+- name: '1'
+  args: [1]
+  out: '1'
+  lines: {'1': 1, '2': 1, '3': 0, '6': 0}
+- name: '2'
+  args: [2]
+  out: '2'
+  lines: {'1': 1, '2': 0, '3': 1, '6': 0}
+- name: '3'
+  args: [3]
+  out: other
+  lines: {'1': 1, '2': 0, '3': 1, '6': 1}
 ---
 name: ignore chained else
 code: |
@@ -194,30 +165,22 @@ code: |
     output = 'other';
   }
 tests:
-  - name: '1'
-    args: [1]
-    out: '1'
-    lines: {'1': 1, '2': 1, '3': 0, '4': 0}
-    branches: {'0': [1, 0], 1: [0]}
-    statements: {'0': 1, '1': 1, '2': 0, '3': 0}
-  - name: '2'
-    args: [2]
-    out: '2'
-    lines: {'1': 1, '2': 0, '3': 1, '4': 1}
-    branches: {'0': [0, 1], 1: [1]}
-    statements: {'0': 1, '1': 0, '2': 1, '3': 1}
-  - name: '3'
-    args: [3]
-    out: '3'
-    lines: {'1': 1, '2': 0, '3': 1, '4': 0}
-    branches: {'0': [0, 1], 1: [0]}
-    statements: {'0': 1, '1': 0, '2': 1, '3': 0}
-  - name: '4'
-    args: [4]
-    out: 'other'
-    lines: {'1': 1, '2': 0, '3': 1, '4': 0}
-    branches: {'0': [0, 1], 1: [0]}
-    statements: {'0': 1, '1': 0, '2': 1, '3': 0}
+- name: '1'
+  args: [1]
+  out: '1'
+  lines: {'1': 1, '2': 1, '3': 0, '4': 0}
+- name: '2'
+  args: [2]
+  out: '2'
+  lines: {'1': 1, '2': 0, '3': 1, '4': 1}
+- name: '3'
+  args: [3]
+  out: '3'
+  lines: {'1': 1, '2': 0, '3': 1, '4': 0}
+- name: '4'
+  args: [4]
+  out: other
+  lines: {'1': 1, '2': 0, '3': 1, '4': 0}
 ---
 name: ignore next chained if
 code: |
@@ -231,27 +194,19 @@ code: |
     output = 'other';
   }
 tests:
-  - name: '1'
-    args: [1]
-    out: '1'
-    lines: {'1': 1, '2': 1}
-    branches: {'0': [1, 0]}
-    statements: {'0': 1, '1': 1}
-  - name: '2'
-    args: [2]
-    out: '2'
-    lines: {'1': 1, '2': 0}
-    branches: {'0': [0, 1]}
-    statements: {'0': 1, '1': 0}
-  - name: '3'
-    args: [3]
-    out: '3'
-    lines: {'1': 1, '2': 0}
-    branches: {'0': [0, 1]}
-    statements: {'0': 1, '1': 0}
-  - name: '4'
-    args: [4]
-    out: 'other'
-    lines: {'1': 1, '2': 0}
-    branches: {'0': [0, 1]}
-    statements: {'0': 1, '1': 0}
+- name: '1'
+  args: [1]
+  out: '1'
+  lines: {'1': 1, '2': 1}
+- name: '2'
+  args: [2]
+  out: '2'
+  lines: {'1': 1, '2': 0}
+- name: '3'
+  args: [3]
+  out: '3'
+  lines: {'1': 1, '2': 0}
+- name: '4'
+  args: [4]
+  out: other
+  lines: {'1': 1, '2': 0}

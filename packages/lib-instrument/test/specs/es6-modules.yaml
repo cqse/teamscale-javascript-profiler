@@ -1,4 +1,3 @@
----
 name: covers export statements
 guard: isExportAvailable
 code: |
@@ -9,8 +8,7 @@ instrumentOpts:
 opts:
   generateOnly: true
 tests:
-  - name: export
-
+- name: export
 ---
 name: covers import statements
 guard: isImportAvailable
@@ -22,5 +20,5 @@ instrumentOpts:
 opts:
   generateOnly: true
 tests:
-  - name: import
+- name: import
 

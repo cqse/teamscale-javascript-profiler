@@ -2,15 +2,6 @@
  * Coverage collected for a given file.
  */
 export type FileCoverageBuffer = {
-    /** Covered branches (in quartets of start line, start column, end line, end column) */
-    branches: number[],
-
-    /** Covered statements (in quartets of start line, start column, end line, end column)  */
-    statements: number[],
-
-    /** Covered functions (in quartets of start line, start column, end line, end column)  */
-    functions: number[],
-
     /** Covered lines (in pairs: start line, end line) */
     lines: number[],
 };
@@ -19,12 +10,6 @@ export type FileCoverageBuffer = {
  * Methods for collecting (buffering) and flushing coverage information.
  */
 export interface CoverageBuffer {
-
-    putFunctionCoverage(fileId: string, startLine: number, startCol: number, endLine: number, endCol: number): void;
-
-    putStatementCoverage(fileId: string, startLine: number, startCol: number, endLine: number, endCol: number): void;
-
-    putBranchCoverage(fileId: string, startLine: number, startCol: number, endLine: number, endCol: number): void;
 
     putLineCoverage(fileId: string, startLine: number, endLine: number): void;
 
@@ -50,21 +35,9 @@ export function createCoverageBuffer(flushAfterMillis: number, onFlush: FlushFun
             return fileBuffer;
         }
 
-        fileBuffer = { branches: [], statements: [], functions: [], lines: [] };
+        fileBuffer = { lines: [] };
         buffer.set(fileId, fileBuffer);
         return fileBuffer;
-    }
-
-    function putStatementCoverage(fileId: string, startLine: number, startCol: number, endLine: number, endCol: number): void {
-        getBufferFor(fileId).statements.push(startLine, startCol, endLine, endCol);
-    }
-
-    function putBranchCoverage(fileId: string, startLine: number, startCol: number, endLine: number, endCol: number): void {
-        getBufferFor(fileId).branches.push(startLine, startCol, endLine, endCol);
-    }
-
-    function putFunctionCoverage(fileId: string, startLine: number, startCol: number, endLine: number, endCol: number): void {
-        getBufferFor(fileId).functions.push(startLine, startCol, endLine, endCol);
     }
 
     function putLineCoverage(fileId: string, startLine: number, endLine: number): void {
@@ -79,5 +52,5 @@ export function createCoverageBuffer(flushAfterMillis: number, onFlush: FlushFun
 
     setInterval(() => flush(), flushAfterMillis);
 
-    return { putBranchCoverage, putStatementCoverage, putFunctionCoverage, putLineCoverage, flush };
+    return { putLineCoverage, flush };
 }

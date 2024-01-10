@@ -30,18 +30,8 @@ const coverageBuffer = createCoverageBuffer(250,(buffer: Map<string, FileCoverag
 	}
 });
 
-// Sets the handler for signaling the coverage of a particular statement.
-universe()._$s = coverageBuffer.putStatementCoverage;
-
-// Sets the handler for signaling the coverage of a particular branch.
-universe()._$b = coverageBuffer.putBranchCoverage;
-
-// Sets the handler for signaling the coverage of a particular function.
-universe()._$f = coverageBuffer.putFunctionCoverage;
-
 // Sets the handler for signaling the coverage of a particular line.
 universe()._$l = coverageBuffer.putLineCoverage;
-
 
 /**
  * The Web worker to forward the coverage information is started.

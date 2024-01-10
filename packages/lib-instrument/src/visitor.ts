@@ -13,13 +13,11 @@ type BabelTypes = typeof import("@babel/types")
 
 import {SourceMapConsumer} from "source-map";
 import {
-    newBranchCoverageExpression,
-    newFunctionCoverageExpression,
-    newStatementCoverageExpression,
+    newLineCoverageExpression,
     newStringConstDeclarationNode
 } from "./utils";
 import {SourceOrigins} from "./origins";
-import {CodeRange, InstrumentationOptions} from "./utils";
+import {InstrumentationOptions} from "./utils";
 
 // Pattern for istanbul to ignore a section
 const COMMENT_RE = /^\s*istanbul\s+ignore\s+(if|else|next)(?=\W|$)/;
@@ -35,7 +33,7 @@ type CovNode = Node & { __cov__?: Record<string, unknown> };
 type LeafNode = { node: Node, parent: Node, property: string };
 
 /**
- * VisitState holds the state of the visitor, provides helper functions
+ * `VisitState` holds the state of the visitor, provides helper functions
  * and is the `this` for the individual coverage visitors.
  */
 class VisitState {
@@ -75,13 +73,12 @@ class VisitState {
         return true;
     }
 
-    // should we ignore the node? Yes, if specifically ignoring
-    // or if the node is generated.
+    /** Should we ignore the node? Yes, if specifically ignoring or if the node is generated. */
     shouldIgnore(path: NodePath): boolean {
         return this.nextIgnore !== null || !path.node.loc;
     }
 
-    // extract the ignore comment hint (next|if|else) or null
+    /** Extract the ignore comment hint (next|if|else) or null. */
     hintFor(node: Node): string | null {
         let hint: string | null = null;
         if (node.leadingComments) {
@@ -98,7 +95,7 @@ class VisitState {
         return hint;
     }
 
-    // extract a source map URL from comments and keep track of it
+    /** Extract a source map URL from comments and keep track of it. */
     maybeAssignSourceMapURL(node: Node) {
         const extractURL = comments => {
             if (!comments) {
@@ -118,8 +115,10 @@ class VisitState {
         extractURL(node.trailingComments);
     }
 
-    // for these expressions the statement counter needs to be hoisted, so
-    // function name inference can be preserved
+    /**
+     * For these expressions the statement counter needs to be hoisted, so
+     * function name inference can be preserved.
+     */
     counterNeedsHoisting(path: NodePath): boolean {
         return (
             path.isFunctionExpression() ||
@@ -128,7 +127,7 @@ class VisitState {
         );
     }
 
-    // all the generic stuff that needs to be done on enter for every node
+    /** All the generic stuff that needs to be done on enter for every node. */
     onEnter(path: NodePath) {
         const n = path.node;
 
@@ -171,8 +170,9 @@ class VisitState {
         }
     }
 
-    // all the generic stuff on exit of a node,
-    // including resetting ignores and custom node attrs
+    /**
+     * All the generic stuff on exit of a node, including resetting ignores and custom node attrs.
+     */
     onExit(path: NodePath) {
         // restore ignore status, if needed
         if (path.node === this.nextIgnore) {
@@ -182,13 +182,13 @@ class VisitState {
         delete (path.node as CovNode).__cov__;
     }
 
-    // set a node attribute for the supplied node
+    /** Set a node attribute for the supplied node. */
     setAttr(node: CovNode, name: string, value: unknown) {
         node.__cov__ = node.__cov__ || {};
         node.__cov__[name] = value;
     }
 
-    // retrieve a node attribute for the supplied node or null
+    /** Retrieve a node attribute for the supplied node or null. */
     getAttr(node: CovNode, name: string): unknown {
         const c = node.__cov__;
         if (!c) {
@@ -247,46 +247,8 @@ class VisitState {
             return;
         }
 
-        const increment = newStatementCoverageExpression(originFileId, originPos);
+        const increment = newLineCoverageExpression(originFileId, originPos);
         this.insertCounter(path, increment);
-    }
-
-    insertFunctionCounter(path: NodePath<CallableNode>) {
-        const T = this.types;
-
-        if (!(path.node?.loc)) {
-            return;
-        }
-        const n = path.node;
-
-        // get location for declaration
-        let declarationLocation: CodeRange | undefined;
-        switch (n.type) {
-            case 'FunctionDeclaration':
-            case 'FunctionExpression':
-                /* istanbul ignore else: paranoid check */
-                if (n.id) {
-                    declarationLocation = n.id.loc ?? undefined;
-                }
-                break;
-        }
-
-        if (!declarationLocation) {
-            declarationLocation = {
-                start: n.loc!.start,
-                end: { line: n.loc!.start.line, column: n.loc!.start.column + 1 }
-            };
-        }
-
-        /* istanbul ignore else: not expected */
-        const body = path.get('body') as NodePath;
-        const loc = path.node.loc;
-        const [originFileId, originPos] = this.origins.ensureKnownOrigin(loc);
-
-        if (body.isBlockStatement() && this.shouldInstrument(path, originPos)) {
-            const increment = newFunctionCoverageExpression(originFileId, originPos, declarationLocation);
-            body.node.body.unshift(T.expressionStatement(increment));
-        }
     }
 
     insertBranchCounter(path: NodePath, loc: SourceLocation | null | undefined) {
@@ -297,7 +259,7 @@ class VisitState {
 
         const [originFileId, originPos] = this.origins.ensureKnownOrigin(loc);
         if (this.shouldInstrument(path, originPos)) {
-            const increment = newBranchCoverageExpression(originFileId, originPos)
+            const increment = newLineCoverageExpression(originFileId, originPos)
             this.insertCounter(path, increment);
         }
     }
@@ -369,7 +331,7 @@ type CallableNode = ArrowFunctionExpression
     | FunctionExpression;
 
 function coverFunction(this: VisitState, path: NodePath<CallableNode>) {
-    this.insertFunctionCounter(path);
+    // Not supported
 }
 
 function coverVariableDeclarator(this: VisitState, path: NodePath) {
@@ -452,6 +414,7 @@ function coverIfBranches(this: VisitState, path: NodePath<IfStatement>) {
 }
 
 function createSwitchBranch(this: VisitState, path: NodePath) {
+    // Intentionally left blank
 }
 
 function coverSwitchCase(this: VisitState, path: NodePath<SwitchCase>) {
@@ -463,7 +426,7 @@ function coverSwitchCase(this: VisitState, path: NodePath<SwitchCase>) {
 
     const [originFileId, originPos] = this.origins.ensureKnownOrigin(loc);
     if (this.shouldInstrument(path, originPos)) {
-        const increment = newBranchCoverageExpression(originFileId, originPos);
+        const increment = newLineCoverageExpression(originFileId, originPos);
         path.node.consequent.unshift(T.expressionStatement(increment));
     }
 }
@@ -508,7 +471,7 @@ function coverLogicalExpression(this: VisitState, path: NodePath<LogicalExpressi
             continue;
         }
 
-        const increment = newBranchCoverageExpression(originFileId, originPos);
+        const increment = newLineCoverageExpression(originFileId, originPos);
         if (!increment) {
             continue;
         }
@@ -593,9 +556,8 @@ function shouldIgnoreFile(programNodePath: NodePath | null): boolean {
     return getParentComments(programNodePath).some(c => COMMENT_FILE_RE.test(c.value));
 }
 
-
 /**
- * programVisitor is a `babel` adaptor for instrumentation.
+ * `programVisitor` is a `babel` adaptor for instrumentation.
  *
  * It returns an object with two methods `enter` and `exit`.
  * These should be assigned to or called from `Program` entry and exit functions
@@ -616,7 +578,7 @@ function shouldIgnoreFile(programNodePath: NodePath | null): boolean {
 export function programVisitor(types: BabelTypes,
                                inputSourceMapConsumer: SourceMapConsumer | undefined,
                                opts: InstrumentationOptions) {
-    opts = { ...opts };
+    opts = {...opts};
 
     const visitState = new VisitState(
         types,
@@ -649,7 +611,7 @@ export function programVisitor(types: BabelTypes,
             const body = path.node.body;
 
             if (opts.codeToPrepend) {
-                const codeToPrependAst = parse(opts.codeToPrepend, { sourceType: 'script' });
+                const codeToPrependAst = parse(opts.codeToPrepend, {sourceType: 'script'});
                 if (codeToPrependAst !== null) {
                     body.unshift(...codeToPrependAst.program.body);
                 }

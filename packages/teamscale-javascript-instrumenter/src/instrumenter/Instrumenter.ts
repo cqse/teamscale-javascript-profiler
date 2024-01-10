@@ -303,21 +303,14 @@ export class IstanbulInstrumenter implements IInstrumenter {
 
 		const baseConfig: InstrumenterOptions = {
 			isInstrumentedToken: IS_INSTRUMENTED_TOKEN,
-			coveragePrecision: 'branch',
 			produceSourceMap: 'external',
-			codeToPrepend: this.vaccineSource,
-			shouldInstrumentCallback: this.shouldInstrument
+			codeToPrepend: this.vaccineSource
 		};
 
 		return [
 			{ ...baseConfig, ...{ esModules: true } },
 			{ ...baseConfig, ...{ esModules: false } }
 		];
-	}
-
-	private shouldInstrument(node: NodePath, loc: SourceLocation): boolean {
-		console.log("Should", loc);
-		return true;
 	}
 
 	/** Appends all origins from the source map to a given file. Creates the file if it does not exist yet. */

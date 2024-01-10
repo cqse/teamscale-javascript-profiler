@@ -114,8 +114,8 @@ export class WebSocketCollectingServer {
 	 *
 	 * Example for a `body`:
 	 * ```
-	 * @/foo/bar.ts;f1,3-1,5;b2,4-3,9
-	 * @/wauz/wee.ts;s5,3-1,9;s2,4-3,9;l1-4
+	 * @/foo/bar.ts;1-3;5-6
+	 * @/wauz/wee.ts;67-67;100-101
 	 * ```
 	 */
 	private async handleCoverageMessage(session: Session, body: Buffer) {
@@ -134,15 +134,10 @@ export class WebSocketCollectingServer {
 				filename = token.substring(1).trim(); // Remove '@' character and extra spaces.
 			} else if (filename) {
 				// It is not a file name, we have a range token here.
-				// Examples for range tokens: `f1,3-1,5`, `l1-4`, `b2,4-3,9`
-				const range = token.substring(1).split(/,|-/).map(value => Number.parseInt(value));
-				if (token.startsWith("l") && range.length === 2) {
+				// Example for range a token: `3-5`,
+				const range = token.split(/,|-/).map(value => Number.parseInt(value));
+				if (range.length === 2) {
 					session.putLineCoverage(filename, range[0], range[1]);
-				} else if (range.length === 4 && !token.startsWith("f")) {
-					// We do not want function coverage here since it is less precise than line coverage.
-					// The collector might be configured (in a later version) to only produce coverage on
-					// function level, then, this information should be used.
-					session.putLineCoverage(filename, range[0], range[2]);
 				}
 			}
 		});

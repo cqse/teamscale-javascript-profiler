@@ -91,6 +91,7 @@ export class Instrumenter {
             compact: opts.compact,
             comments: opts.preserveComments,
             parserOpts: {
+                allowAwaitOutsideFunction: true,
                 allowReturnOutsideFunction: opts.autoWrap,
                 sourceType: (opts.esModules ? 'module' : 'script') as "module" | "script" | "unambiguous" | undefined,
                 plugins: opts.parserPlugins
@@ -106,7 +107,6 @@ export class Instrumenter {
                             inputSourceMap,
                             isInstrumentedToken: opts.isInstrumentedToken,
                             codeToPrepend: opts.codeToPrepend,
-                            coveragePrecision: opts.coveragePrecision,
                             shouldInstrumentCallback: shouldInstrumentCallback ?? opts.shouldInstrumentCallback
                         });
 

@@ -61,9 +61,7 @@ export class Session {
 	 *
 	 * @param fileId - The identifier of the instrumented bundle (file).
 	 * @param startLine - The line number within the bundle the range starts.
-	 * @param startColumn - The column in the given `startLine` on that the range starts (inclusive).
 	 * @param endLine - The line number within the bundle the range ends.
-	 * @param endColumn - The column in the given `startLine` on that the range ends (inclusive).
 	 */
 	public putLineCoverage(
 		fileId: string,

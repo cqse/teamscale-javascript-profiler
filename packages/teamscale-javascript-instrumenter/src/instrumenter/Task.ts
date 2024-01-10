@@ -104,35 +104,43 @@ export class OriginSourcePattern {
 	}
 
 	/**
-	 * Does the given pattern require to include the given set of files?
+	 * Does the given pattern require to include the given file?
 	 *
 	 * For example, a JavaScript bundle is compiled from several (origin) source files.
 	 * If one of the files in the bundle is needed, then the full bundle is needed, that is,
 	 * this function is required to return `true`.
 	 *
-	 * @param originFiles - The file set to decide for include or exclude.
+	 * @param originFile - The file to decide for include or exclude.
 	 *
-	 * @returns `false` if (1) all given files are supposed to be excluded,
-	 *   or (2) `true` if at least one of the files is supposed to be included.
+	 * @returns `false` if (1) the given file is supposed to be excluded,
+	 *   or (2) `true` if the given file is supposed to be included.
 	 */
-	public isAnyIncluded(originFiles: string[]): boolean {
-		if (originFiles.length === 0) {
+	public isIncluded(originFile: string): boolean {
+		if (originFile.length == 0) {
 			return true;
 		}
 
-		const normalizedOriginFiles = originFiles.map(normalizePath);
+		const normalizedOriginFile = normalizePath(originFile);
 		if (this.exclude) {
-			const matchedToExclude = micromatch(normalizedOriginFiles, this.exclude);
-			if (originFiles.length === matchedToExclude.length) {
+			const matchedToExclude = micromatch([normalizedOriginFile], this.exclude);
+			if (matchedToExclude.length === 1) {
 				return false;
 			}
 		}
 
 		if (this.include) {
-			return micromatch.some(normalizedOriginFiles, this.include || ['**']);
+			return micromatch.some([normalizedOriginFile], this.include || ['**']);
 		}
 
 		return true;
+	}
+
+	/**
+	 * Variant of `isIncluded` working on a list of files to check.
+	 * (Primarily, used for testing.)
+	 */
+	public isAnyIncluded(originFiles: string[]): boolean {
+		return originFiles.find((value) => this.isIncluded(value)) !== undefined;
 	}
 }
 

@@ -1,5 +1,4 @@
 import { SocketWithRecovery } from './SocketWithRecovery';
-import { ProtocolMessageTypes } from '../protocol';
 import {CoveredRanges} from '../types';
 import {Countdown} from "./Countdown";
 
@@ -12,6 +11,9 @@ const FLUSH_AFTER_ELEMENTS = 20;
  * Number of milliseconds after that the cash should be flushed.
  */
 const FLUSH_AFTER_MILLIS = 1000;
+
+/** A message that provides coverage information */
+const MESSAGE_TYPE_COVERAGE = 'c';
 
 /**
  * Is supposed to exist once per app and might deal with
@@ -124,7 +126,7 @@ export class CoverageAggregator {
 			fileCoverage.push(this.arrayToLineCov(ranges.lines));
 		});
 
-		this.socket.send(`${ProtocolMessageTypes.MESSAGE_TYPE_COVERAGE} ${fileCoverage.join(';')}`);
+		this.socket.send(`${MESSAGE_TYPE_COVERAGE} ${fileCoverage.join(';')}`);
 
 		this.cachedCoveredRanges.clear();
 		this.numberOfCachedPositions = 0;

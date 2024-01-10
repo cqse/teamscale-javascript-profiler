@@ -100,8 +100,6 @@ function timeout(ms: number): Promise<void>  {
 export async function postAndDumpCoverage() {
 	const dummyFileId = 'dummyFileId';
 	const socket = await CollectorClient.openSocket('ws://localhost:1234');
-	await CollectorClient.postSourceMap(socket, dummyFileId, SOURCE_MAP);
-	await timeout(500);
 	CollectorClient.postCoverage(socket, dummyFileId, 1, 700, 1, 1255);
 	await timeout(1000);
 	await CollectorClient.requestCoverageDump(CONTROL_URL);

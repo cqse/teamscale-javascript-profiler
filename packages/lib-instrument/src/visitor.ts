@@ -11,7 +11,7 @@ import {
 
 type BabelTypes = typeof import("@babel/types")
 
-import {RawSourceMap, SourceMapConsumer} from "source-map";
+import {SourceMapConsumer} from "source-map";
 import {
     newBranchCoverageExpression,
     newFunctionCoverageExpression,
@@ -34,13 +34,10 @@ type CovNode = Node & { __cov__?: Record<string, unknown> };
 
 type LeafNode = { node: Node, parent: Node, property: string };
 
-export type VisitorOutput = {
-    originFiles?: SourceOrigins;
-    sourceMappingURL?: unknown;
-} | undefined;
-
-// VisitState holds the state of the visitor, provides helper functions
-// and is the `this` for the individual coverage visitors.
+/**
+ * VisitState holds the state of the visitor, provides helper functions
+ * and is the `this` for the individual coverage visitors.
+ */
 class VisitState {
 
     types: BabelTypes;
@@ -326,15 +323,16 @@ class VisitState {
     }
 }
 
-// generic function that takes a set of visitor methods and
-// returns a visitor object with `enter` and `exit` properties,
-// such that:
-//
-// * standard entry processing is done
-// * the supplied visitors are called only when ignore is not in effect
-//   This relieves them from worrying about ignore states and generated nodes.
-// * standard exit processing is done
-//
+/**
+ * Generic function that takes a set of visitor methods and
+ * returns a visitor object with `enter` and `exit` properties,
+ * such that:
+ *
+ * - standard entry processing is done
+ * - the supplied visitors are called only when ignore is not in effect;
+ *   it reliefs them from worrying about ignore states and generated nodes.
+ * - standard exit processing is done
+ */
 function entries(...enter) {
     // the enter function
     const wrappedEntry = function (this: VisitState, path: NodePath, node: Node) {
@@ -563,11 +561,13 @@ const codeVisitor: Visitor = {
     LogicalExpression: entries(coverLogicalExpression)
 };
 
-// the rewire plugin (and potentially other babel middleware)
-// may cause files to be instrumented twice, see:
-// https://github.com/istanbuljs/babel-plugin-istanbul/issues/94
-// we should only instrument code for coverage the first time
-// it's run through istanbul-lib-instrument.
+/**
+ * The rewire plugin (and potentially other babel middleware)
+ * may cause files to be instrumented twice, see:
+ * https://github.com/istanbuljs/babel-plugin-istanbul/issues/94
+ * we should only instrument code for coverage the first time
+ * it's run through lib-instrument.
+ */
 function alreadyInstrumented(path: NodePath, visitState): boolean {
     return path.scope.hasBinding(visitState.varName);
 }

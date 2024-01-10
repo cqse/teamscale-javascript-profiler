@@ -222,19 +222,12 @@ export class IstanbulInstrumenter implements IInstrumenter {
 		const instrumenter = istanbul.createInstrumenter(configurationAlternative);
 		const instrumentedSources: string[] = [];
 		for (let i = 0; i < inputBundle.codeArguments.length; i++) {
-			const removedInstrumentationFor: Set<string> = new Set<string>();
-
 			const shouldInstrument = (node: NodePath, originLocation: SourceLocation) => {
 				if (!originLocation.filename) {
 					return false;
 				}
 
-				const isToCover = sourcePattern.isAnyIncluded([originLocation.filename]);
-				if (!isToCover) {
-					removedInstrumentationFor.add(originLocation.filename);
-				}
-
-				return isToCover;
+				return sourcePattern.isIncluded(originLocation.filename);
 			}
 
 			const instrumented: string = await instrumenter.instrument(
@@ -244,17 +237,7 @@ export class IstanbulInstrumenter implements IInstrumenter {
 				shouldInstrument
 			);
 
-			// In case of a bundle, the initial instrumentation step might have added
-			// too much and undesired instrumentations. Remove them now.
-			// const instrumentedSourcemap = instrumenter.lastSourceMap()!;
-
-			const instrumentedAndCleanedSource = instrumented.replace(
-					/actualCoverage\s*=\s*coverage\[path\]/g,
-					'actualCoverage=_$registerCoverageObject(coverage[path])'
-				)
-				.replace(/new Function\("return this"\)\(\)/g, "typeof window === 'object' ? window : this");
-
-			instrumentedSources.push(instrumentedAndCleanedSource);
+			instrumentedSources.push(instrumented);
 		}
 
 		this.writeBundleFile(taskElement.toFile, inputBundle, instrumentedSources);

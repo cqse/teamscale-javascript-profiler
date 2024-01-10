@@ -45,7 +45,7 @@ Also, the savings in data to send are only small.
 ## Approach 4: One line per file
 
 ```
-@/foo/bar/path.tsx l10-13;f4,42-9,19;f5,61-7,11;b7,123-7,145;s18,5-19,67
+@/foo/bar/path.tsx;l10-13;f4,42-9,19;f5,61-7,11;b7,123-7,145;s18,5-19,67
 ``` 
 
 Advantage: Easier to parse, compared to Approach 1.

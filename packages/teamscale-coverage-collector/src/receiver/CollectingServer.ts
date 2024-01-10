@@ -5,17 +5,8 @@ import { IncomingMessage } from 'http';
 import { Session } from './Session';
 import Logger from 'bunyan';
 
-/**
- * Various constants that are used to exchange data between
- * the instrumented application and the coverage collector.
- */
-export enum ProtocolMessageTypes {
-	/** A message that provides a source map */
-	TYPE_SOURCEMAP = 's',
-
-	/** A message that provides coverage information */
-	TYPE_COVERAGE = 'c'
-}
+/** A message that provides coverage information */
+const MESSAGE_TYPE_COVERAGE = 'c';
 
 /**
  * A WebSocket based implementation of a coverage receiver.
@@ -100,7 +91,7 @@ export class WebSocketCollectingServer {
 	private async handleMessage(session: Session, message: Buffer) {
 		try {
 			const messageType = message.toString('utf8', 0, 1);
-			if (messageType.startsWith(ProtocolMessageTypes.TYPE_COVERAGE)) {
+			if (messageType.startsWith(MESSAGE_TYPE_COVERAGE)) {
 				await this.handleCoverageMessage(session, message.subarray(1));
 			}
 		} catch (e) {
@@ -120,27 +111,37 @@ export class WebSocketCollectingServer {
 	 *
 	 * @param session - The session to handle the message for.
 	 * @param body - The body of the message (to be parsed).
+	 *
+	 * Example for a `body`:
+	 * ```
+	 * @/foo/bar.ts;f1,3-1,5;b2,4-3,9
+	 * @/wauz/wee.ts;s5,3-1,9;s2,4-3,9;l1-4
+	 * ```
 	 */
 	private async handleCoverageMessage(session: Session, body: Buffer) {
 		// Replace semicolon separators with newline to make the splitting consistent.
 		const input = body.toString().replace(/;/g, '\n');
 
-		// Split the input into lines.
-		const lines = input.split('\n').map(line => line.trim());
+		// Split the input into tokens; these are either file names or code ranges.
+		const tokens = input.split('\n').map(line => line.trim());
 
 		// Placeholder for group/filename.
 		let filename = '';
 
-		lines.forEach(line => {
-			// Check if the line starts with '@' - indicating a new group/filename.
-			if (line.startsWith('@')) {
-				filename = line.substring(1).trim(); // Remove '@' character and extra spaces.
+		tokens.forEach(token => {
+			// Check if the token starts with '@' - indicating a new group/filename.
+			if (token.startsWith('@')) {
+				filename = token.substring(1).trim(); // Remove '@' character and extra spaces.
 			} else if (filename) {
-				const range = line.substring(1, line.length-1).split(/,|-/).map(value => Number.parseInt(value));
-				if (line.startsWith("l") && range.length === 2) {
+				// It is not a file name, we have a range token here.
+				// Examples for range tokens: `f1,3-1,5`, `l1-4`, `b2,4-3,9`
+				const range = token.substring(1).split(/,|-/).map(value => Number.parseInt(value));
+				if (token.startsWith("l") && range.length === 2) {
 					session.putLineCoverage(filename, range[0], range[1]);
-				} else if (range.length === 4 && !line.startsWith("f")) {
-					// We do not want function coverage here since it is less precise than line coverage
+				} else if (range.length === 4 && !token.startsWith("f")) {
+					// We do not want function coverage here since it is less precise than line coverage.
+					// The collector might be configured (in a later version) to only produce coverage on
+					// function level, then, this information should be used.
 					session.putLineCoverage(filename, range[0], range[2]);
 				}
 			}

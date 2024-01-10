@@ -12,12 +12,7 @@ type CoverageType = 'functions' | 'lines' | 'statements' | 'branches';
 type CoveragePerLineAndType = Record<CoverageType, Record<string, number>>;
 
 export const MOCK_VACCINE = `
-var UNIVERSE;
-try {
-  UNIVERSE = (function(){return this;})();
-} catch(e) {
-  UNIVERSE = window || global;
-}
+var UNIVERSE = globalThis;
 UNIVERSE.${MOCK_COVERAGE_VARIABLE} = {
     functions: {},
     lines: {},

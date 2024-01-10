@@ -33,11 +33,6 @@ export class CollectorClient {
 		});
 	}
 
-	/** Sends the given source map of the file with the given ID to the given websocket. */
-	static async postSourceMap(socket: WebSocket, fileId: string, sourceMap: any) {
-		socket.send(`${ProtocolMessageTypes.TYPE_SOURCEMAP} ${fileId}:${JSON.stringify(sourceMap)}`);
-	}
-
 	/** Sends a request to the collector to change the message used for the Teamscale upload. */
 	static async requestMessageChange(controlServerUrl: string, targetMessage: string) {
 		await CollectorClient.sendPut(`${controlServerUrl}/message`, targetMessage);

@@ -123,11 +123,8 @@ export class WebSocketCollectingServer {
 	 * A file name is a token; a range (start to end line) is a token.
 	 */
 	private async handleCoverageMessage(session: Session, body: Buffer) {
-		// Replace semicolon separators with newline to make the splitting consistent.
-		const input = body.toString().replace(/;/g, '\n');
-
 		// Split the input into tokens; these are either file names or code ranges.
-		const tokens = input.split('\n').map(line => line.trim());
+		const tokens = body.toString().split('[\n;]').map(line => line.trim());
 
 		// Placeholder for group/filename.
 		let filename = '';

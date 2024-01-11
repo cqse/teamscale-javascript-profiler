@@ -37,7 +37,7 @@ export type InstrumenterOptions = InstrumentationOptions & Partial<{
 }>;
 
 function mapSourceMapsOption(produceSourceMap: "none" | "inline" | "external" | undefined): boolean | "inline" | "both" | null | undefined {
-    if (produceSourceMap == "none") {
+    if (produceSourceMap === "none") {
         return false;
     }
     if (produceSourceMap === "external") {

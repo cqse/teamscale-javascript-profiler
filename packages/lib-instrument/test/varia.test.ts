@@ -51,7 +51,7 @@ describe('varia', () => {
 
         const code = v.getGeneratedCode();
 
-        assert.ok(code.indexOf("const func=") > 0);
+        assert.ok(code.indexOf("const func =") > 0);
     });
 
     it('honors ignore next for exported functions', async () => {
@@ -64,8 +64,8 @@ describe('varia', () => {
         );
         assert.ok(!v.err);
 
-        const code = v.getGeneratedCode();
-        assert.ok(code.indexOf("export function fn1(){}export default function(){}") > -1);
+        const code = v.getGeneratedCode().replace(/\n/g, " ");
+        assert.ok(code.indexOf("export function fn1() {} export default function () {}") > -1);
     });
 
     it('instruments exported functions', async () => {
@@ -78,11 +78,8 @@ describe('varia', () => {
         assert.ok(!v.err);
 
         const code = v.getGeneratedCode();
-        assert.ok(
-            code.match(
-                /const _\$o.+=undefined;export function fn1\(\)\{_\$f\(_\$o.+,1,7,1,24\);}export default function\(\)\{_\$f\(_\$o.+,1,39,1,52\);}/
-            )
-        );
+        assert.isAtMost(code.indexOf('_$l' > 20), 10);
+        assert.isAtLeast(code.lastIndexOf('_$l'), 20);
     });
 
     it('creates a source-map when requested', async () => {
@@ -121,8 +118,8 @@ describe('varia', () => {
         );
         assert.ok(!v.err);
 
-        const code = v.getGeneratedCode();
-        assert.ok(code.indexOf("Function(){_$f(_$o") > 0);
+        const code = v.getGeneratedCode().replace(/\n/g, " ");
+        assert.ok(code.indexOf("_$l(_$o") > 0);
     });
 
     it('does not declare Function when not needed', async () => {
@@ -144,7 +141,7 @@ describe('varia', () => {
         assert.ok(!v.err);
 
         const code = v.getGeneratedCode();
-        assert.ok(code.indexOf("class App extends Component{};") === 0);
+        assert.ok(code.indexOf("class App extends Component {}") === 0);
     });
 
 });

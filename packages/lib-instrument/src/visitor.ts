@@ -2,20 +2,17 @@ import {Node, NodePath, parse} from '@babel/core';
 import {Visitor} from "@babel/traverse";
 import {
     ArrowFunctionExpression,
-    BlockStatement, ClassMethod, Comment, ConditionalExpression,
+    BlockStatement, CallExpression, ClassMethod, Comment, ConditionalExpression,
     Expression, FunctionDeclaration, FunctionExpression,
     Identifier, IfStatement,
-    LogicalExpression, ObjectMethod, Program,
-    SourceLocation, Statement, SwitchCase
+    LogicalExpression, NumericLiteral, ObjectMethod, Program,
+    SourceLocation, Statement, SwitchCase, VariableDeclaration
 } from "@babel/types";
 
 type BabelTypes = typeof import("@babel/types")
 
 import {SourceMapConsumer} from "source-map";
-import {
-    newLineCoverageExpression,
-    newStringConstDeclarationNode
-} from "./utils";
+import {CodeRange} from "./utils";
 import {SourceOrigins} from "./origins";
 import {InstrumentationOptions} from "./utils";
 
@@ -24,9 +21,6 @@ const COMMENT_RE = /^\s*istanbul\s+ignore\s+(if|else|next)(?=\W|$)/;
 
 // Pattern for istanbul to ignore the whole file
 const COMMENT_FILE_RE = /^\s*istanbul\s+ignore\s+(file)(?=\W|$)/;
-
-// Pattern for identifying source map comments
-const SOURCE_MAP_RE = /[#@]\s*sourceMappingURL=(.*)\s*$/m;
 
 type CovNode = Node & { __cov__?: Record<string, unknown> };
 
@@ -42,9 +36,9 @@ class VisitState {
     attrs: Record<string, unknown>;
     nextIgnore: Node | null;
     ignoreClassMethods: string[];
-    sourceMappingURL: string | null;
-    sourceMap: SourceMapConsumer | undefined;
     reportLogic: boolean;
+
+    /** Callback to determine if the given source location should be instrumented. */
     shouldInstrumentCallback?: (path: NodePath, loc: SourceLocation) => boolean;
 
     public readonly origins: SourceOrigins;
@@ -60,12 +54,15 @@ class VisitState {
         this.nextIgnore = null;
         this.ignoreClassMethods = ignoreClassMethods;
         this.types = types;
-        this.sourceMappingURL = null;
         this.reportLogic = reportLogic;
         this.shouldInstrumentCallback = shouldInstrumentCallback;
         this.origins = new SourceOrigins(inputSourceMapConsumer);
     }
 
+    /**
+     * Use the configured callback, if available, to check if the given source
+     * location should be instrumented.
+     */
     shouldInstrument(path: NodePath, loc: SourceLocation): boolean {
         if (this.shouldInstrumentCallback) {
             return this.shouldInstrumentCallback(path, loc);
@@ -83,9 +80,7 @@ class VisitState {
         let hint: string | null = null;
         if (node.leadingComments) {
             node.leadingComments.forEach(c => {
-                const v = (
-                    c.value || /* istanbul ignore next: paranoid check */ ''
-                ).trim();
+                const v = (c.value || '').trim();
                 const groups = v.match(COMMENT_RE);
                 if (groups) {
                     hint = groups[1];
@@ -93,26 +88,6 @@ class VisitState {
             });
         }
         return hint;
-    }
-
-    /** Extract a source map URL from comments and keep track of it. */
-    maybeAssignSourceMapURL(node: Node) {
-        const extractURL = comments => {
-            if (!comments) {
-                return;
-            }
-            comments.forEach(c => {
-                const v = (
-                    c.value || /* istanbul ignore next: paranoid check */ ''
-                ).trim();
-                const groups = v.match(SOURCE_MAP_RE);
-                if (groups) {
-                    this.sourceMappingURL = groups[1];
-                }
-            });
-        };
-        extractURL(node.leadingComments);
-        extractURL(node.trailingComments);
     }
 
     /**
@@ -130,8 +105,6 @@ class VisitState {
     /** All the generic stuff that needs to be done on enter for every node. */
     onEnter(path: NodePath) {
         const n = path.node;
-
-        this.maybeAssignSourceMapURL(n);
 
         // if already ignoring, nothing more to do
         if (this.nextIgnore !== null) {
@@ -223,7 +196,7 @@ class VisitState {
             } else {
                 path.replaceWith(T.sequenceExpression([increment, path.node as Expression]));
             }
-        } /* istanbul ignore else: not expected */ else if (
+        } else if (
             path.isExpression()
         ) {
             path.replaceWith(T.sequenceExpression([increment, path.node]));
@@ -235,8 +208,37 @@ class VisitState {
         }
     }
 
+    insertFunctionCounter(path: NodePath<CallableNode>) {
+        const T = this.types;
+
+        if (!(path.node?.loc)) {
+            return;
+        }
+        const n = path.node;
+
+        let declarationLocation: SourceLocation | undefined;
+        switch (n.type) {
+            case 'FunctionDeclaration':
+            case 'FunctionExpression':
+                if (n.id) {
+                    declarationLocation = n.id.loc ?? undefined;
+                }
+                break;
+        }
+
+        const body = path.get('body') as NodePath;
+        const loc = path.node.loc ?? declarationLocation;
+        const [originFileId, originPos] = this.origins.ensureKnownOrigin(loc);
+
+        if (body.isBlockStatement() && this.shouldInstrument(path, originPos)) {
+            // For functions, we only cover the first line of its body.
+            originPos.end = originPos.start;
+            const increment = newLineCoverageExpression(originFileId, originPos);
+            body.node.body.unshift(T.expressionStatement(increment));
+        }
+    }
+
     insertStatementCounter(path: NodePath) {
-        /* istanbul ignore if: paranoid check */
         const loc = path.node?.loc;
         if (!loc) {
             return;
@@ -286,6 +288,47 @@ class VisitState {
 }
 
 /**
+ * Create a line coverage reporting statement node.
+ */
+function newLineCoverageExpression(
+    originFileId: string,
+    range: CodeRange
+): CallExpression {
+    return {
+        type: 'CallExpression',
+        callee: { type: 'Identifier', name: '_$l' } as Identifier,
+        arguments: [
+            { type: 'Identifier', name: originFileId } as Identifier,
+            { type: 'NumericLiteral', value: range.start.line } as NumericLiteral,
+            { type: 'NumericLiteral', value: range.end.line } as NumericLiteral,
+        ]
+    };
+}
+
+/**
+ * Creates a new string constant AST node.
+ */
+function newStringConstDeclarationNode(name: string, value: string): VariableDeclaration {
+    return {
+        type: 'VariableDeclaration',
+        kind: 'const',
+        declarations: [
+            {
+                type: 'VariableDeclarator',
+                id: {
+                    type: 'Identifier',
+                    name
+                },
+                init: {
+                    type: 'StringLiteral',
+                    value
+                }
+            }
+        ]
+    };
+}
+
+/**
  * Generic function that takes a set of visitor methods and
  * returns a visitor object with `enter` and `exit` properties,
  * such that:
@@ -319,7 +362,6 @@ function coverStatement(this: VisitState, path: NodePath) {
     this.insertStatementCounter(path);
 }
 
-/* istanbul ignore next: no node.js support */
 function coverAssignmentPattern(this: VisitState, path: NodePath) {
     this.insertBranchCounter(path.get('right') as NodePath, undefined);
 }
@@ -331,7 +373,7 @@ type CallableNode = ArrowFunctionExpression
     | FunctionExpression;
 
 function coverFunction(this: VisitState, path: NodePath<CallableNode>) {
-    // Not supported
+    this.insertFunctionCounter(path);
 }
 
 function coverVariableDeclarator(this: VisitState, path: NodePath) {

@@ -117,7 +117,7 @@ function generateTests(docs: SpecDoc[]) {
                         delete test.args;
                         delete test.out;
 
-                        v.then((verifier) => {
+                        v.then(verifier => {
                             if (!genOnly && !noCoverage) {
                                 verifier.verify(args, out, test);
                             }

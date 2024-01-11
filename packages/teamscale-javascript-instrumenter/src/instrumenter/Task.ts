@@ -116,7 +116,7 @@ export class OriginSourcePattern {
 	 *   or (2) `true` if the given file is supposed to be included.
 	 */
 	public isIncluded(originFile: string): boolean {
-		if (originFile.length == 0) {
+		if (originFile.length === 0) {
 			return true;
 		}
 
@@ -140,7 +140,7 @@ export class OriginSourcePattern {
 	 * (Primarily, used for testing.)
 	 */
 	public isAnyIncluded(originFiles: string[]): boolean {
-		return originFiles.find((value) => this.isIncluded(value)) !== undefined;
+		return originFiles.find(value => this.isIncluded(value)) !== undefined;
 	}
 }
 

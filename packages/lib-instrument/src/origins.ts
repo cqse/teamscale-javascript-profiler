@@ -1,28 +1,5 @@
-import {SourceLocation, VariableDeclaration} from "@babel/types";
+import {SourceLocation} from "@babel/types";
 import {NullableMappedPosition, SourceMapConsumer} from "source-map";
-
-/**
- * Creates a new string constant AST node.
- */
-export function newStringConstDeclarationNode(name: string, value: string): VariableDeclaration {
-    return {
-        type: 'VariableDeclaration',
-        kind: 'const',
-        declarations: [
-            {
-                type: 'VariableDeclarator',
-                id: {
-                    type: 'Identifier',
-                    name
-                },
-                init: {
-                    type: 'StringLiteral',
-                    value
-                }
-            }
-        ]
-    };
-}
 
 /**
  * Generator for identifiers that are unique across files to instrument.
@@ -60,6 +37,10 @@ export class SourceOrigins {
 
     private readonly sourceMap?: SourceMapConsumer;
 
+    /**
+     * The mapping of file ids to the file names in the transpiler origin,
+     * that is, the file names found in the source map.
+     */
     public readonly originToIdMap: Map<string, string>;
 
     constructor(sourceMap: SourceMapConsumer | undefined) {
@@ -67,6 +48,10 @@ export class SourceOrigins {
         this.sourceMap = sourceMap;
     }
 
+    /**
+     * Register source origin file and retrieve a unique identifier for it; furthermore, map
+     * the given location to the location in the origin.
+     */
     ensureKnownOrigin(loc: SourceLocation): [string, SourceLocation] {
         let startPos: NullableMappedPosition | undefined = undefined;
         let endPos: NullableMappedPosition | undefined = undefined;

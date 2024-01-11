@@ -11,6 +11,7 @@ export type FileCoverageBuffer = {
  */
 export interface CoverageBuffer {
 
+    /** Post the given line coverage into the buffer. */
     putLineCoverage(fileId: string, startLine: number, endLine: number): void;
 
     /** Flush the coverage buffer. */

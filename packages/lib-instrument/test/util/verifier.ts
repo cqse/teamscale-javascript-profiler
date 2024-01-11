@@ -6,7 +6,7 @@ import { Instrumenter } from "../../src/instrumenter";
 
 const AsyncFunction = Object.getPrototypeOf(async () => {}).constructor;
 
-export const MOCK_COVERAGE_VARIABLE = "_$COV";
+const MOCK_COVERAGE_VARIABLE = "_$COV";
 
 type CoverageType = 'lines';
 type CoveragePerLineAndType = Record<CoverageType, Record<string, number>>;

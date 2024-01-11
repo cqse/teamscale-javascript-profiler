@@ -82,7 +82,11 @@ export class CoverageAggregator {
 		for (let i= 0; i<input.length; i=i+2) {
 			const startLine = input[i];
 			const endLine = input[i+1];
-			result.push(`${startLine}-${endLine}`);
+			if (startLine === endLine) {
+				result.push(`${startLine}`);
+			} else {
+				result.push(`${startLine}-${endLine}`);
+			}
 		}
 
 		return result.join(";");

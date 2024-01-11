@@ -135,9 +135,11 @@ export class WebSocketCollectingServer {
 				filename = token.substring(1).trim(); // Remove '@' character and extra spaces.
 			} else if (filename) {
 				// It is not a file name, we have a range token here.
-				// Example for range a token: `3-5`,
+				// Example for range a token: `3-5`, or just `42` (corresponding to `42-42`).
 				const range = token.split(/,|-/).map(value => Number.parseInt(value));
-				if (range.length === 2) {
+				if (range.length === 1) {
+					session.putLineCoverage(filename, range[0], range[0]);
+				} else if (range.length === 2) {
 					session.putLineCoverage(filename, range[0], range[1]);
 				}
 			}

@@ -124,7 +124,7 @@ export class WebSocketCollectingServer {
 	 */
 	private async handleCoverageMessage(session: Session, body: Buffer) {
 		// Split the input into tokens; these are either file names or code ranges.
-		const tokens = body.toString().split('[\n;]').map(line => line.trim());
+		const tokens = body.toString().split(/[\n;]/).map(line => line.trim());
 
 		// Placeholder for group/filename.
 		let filename = '';

@@ -1,4 +1,3 @@
----
 name: handles experimental babylon features
 code: |
   var profile = <div>
@@ -9,6 +8,6 @@ opts:
   generateOnly: true
 instrumentOpts:
   parserPlugins:
-    - "jsx"
+  - jsx
 tests:
-  - name: jsx syntax
+- name: jsx syntax

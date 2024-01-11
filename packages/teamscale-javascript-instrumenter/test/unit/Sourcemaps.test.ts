@@ -5,7 +5,7 @@ import { loadInputSourceMap } from '../../src/instrumenter/Instrumenter';
 import { Optional } from 'typescript-optional';
 import { RawSourceMap } from 'source-map';
 
-test('Test if the Istanbul Instrumentation updates the SourceMap infos', () => {
+test('Test if the Istanbul Instrumentation updates the SourceMap infos', async () => {
 	const inputFileName = 'mini-bundle-from-ts.js';
 	// @ts-ignore
 	const instrumenter = istanbul.createInstrumenter({
@@ -20,7 +20,7 @@ test('Test if the Istanbul Instrumentation updates the SourceMap infos', () => {
 
 	expect(bundleSourcemap).not.toBeNull();
 
-	const instrumentedSource = instrumenter.instrumentSync(bundleJsCode, inputFileName, bundleSourcemap as any);
+	const instrumentedSource = await instrumenter.instrument(bundleJsCode, inputFileName, bundleSourcemap as any);
 
 	const instrumentedSourcemap: RawSourceMap | undefined = loadInputSourceMap(
 		instrumentedSource,

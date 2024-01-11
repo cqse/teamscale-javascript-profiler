@@ -1,20 +1,17 @@
 import WebSocket from 'ws';
-import { ProtocolMessageTypes } from '../src/receiver/CollectingServer';
 import axios from 'axios';
 
 /** Allows controlling a running collector via its API. */
 export class CollectorClient {
 
-	/** Sends a the given coverage to the collector via the given websocket. */
+	/** Sends the given coverage to the collector via the given websocket. */
 	static postCoverage(
 		socket: WebSocket,
-		fileId: string,
+		fileName: string,
 		startLine: number,
-		startColumn: number,
-		endLine: number,
-		endColumn: number
+		endLine: number
 	) {
-		socket.send(`${ProtocolMessageTypes.TYPE_COVERAGE} ${fileId} ${startLine}:${startColumn}:${endLine}:${endColumn}`);
+		socket.send(`c @${fileName};${startLine}-${endLine}`);
 	}
 
 	/** Opens a websocket to the collector. */
@@ -31,11 +28,6 @@ export class CollectorClient {
 				reject(err);
 			});
 		});
-	}
-
-	/** Sends the given source map of the file with the given ID to the given websocket. */
-	static async postSourceMap(socket: WebSocket, fileId: string, sourceMap: any) {
-		socket.send(`${ProtocolMessageTypes.TYPE_SOURCEMAP} ${fileId}:${JSON.stringify(sourceMap)}`);
 	}
 
 	/** Sends a request to the collector to change the message used for the Teamscale upload. */

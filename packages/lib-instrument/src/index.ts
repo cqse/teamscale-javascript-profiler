@@ -1,15 +1,13 @@
-import {Instrumenter} from './instrumenter';
+import {Instrumenter, InstrumenterOptions} from './instrumenter';
 
 export type {InstrumenterOptions} from './instrumenter';
 export {programVisitor} from './visitor';
-export {readInitialCoverage} from './read-coverage';
 
 /**
- * Creates a new instrumenter with the supplied options.
+ * Creates a new coverage instrumenter.
  *
- * @param opts - instrumenter options.
- *      See the documentation for the Instrumenter class.
+ * @param opts - instrumenter options
  */
-export function createInstrumenter(opts: object): Instrumenter {
+export function createInstrumenter(opts: InstrumenterOptions): Instrumenter {
     return new Instrumenter(opts);
 }

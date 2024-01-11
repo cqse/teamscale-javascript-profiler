@@ -1,4 +1,3 @@
----
 name: meta properties
 code: |
   "use strict";
@@ -12,5 +11,5 @@ code: |
 opts:
   generateOnly: true
 tests:
-  - name: does not throw
-    args: __notest__
+- name: does not throw
+  args: __notest__

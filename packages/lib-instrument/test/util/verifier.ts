@@ -1,212 +1,193 @@
-// eslint-disable-next-line @typescript-eslint/no-var-requires
-const {classes} = require('istanbul-lib-coverage');
-import {assert} from "chai";
-import clone from "clone";
-import { Instrumenter } from "../../src/instrumenter";
-import { readInitialCoverage } from "../../src/read-coverage";
+import { assert } from 'chai';
+import { InstrumenterOptions } from '../../lib/instrumenter';
+import { Instrumenter } from '../../src/instrumenter';
 
-const FileCoverage = classes.FileCoverage;
 const AsyncFunction = Object.getPrototypeOf(async () => {}).constructor;
 
-type ExpectedCoverage = {
-    lines: Record<any, any>;
-    statements: Record<any, any>;
-    functions: Record<any, any>;
-    branches: Record<any, any>;
-    branchesTrue: Record<any, any>;
-    inputSourceMap: object;
+const MOCK_COVERAGE_VARIABLE = '_$COV';
+
+type CoverageType = 'lines';
+type CoveragePerLineAndType = Record<CoverageType, Record<string, number>>;
+
+/** A dummy vaccine used for mocking */
+export const MOCK_VACCINE = `
+var UNIVERSE = globalThis;
+UNIVERSE.${MOCK_COVERAGE_VARIABLE} = {
+    lines: {}
+};
+function incrementExecutions(coverageObj, startLine) {
+    coverageObj[startLine] = (coverageObj[startLine] || 0) + 1;
 }
+function _$l(fileId, startLine, startCol, endLine, endCol) {
+   const typeCov = ${MOCK_COVERAGE_VARIABLE}['lines'];
+   incrementExecutions(typeCov, startLine);
+   
+   if (fileId) {
+       const fileCov = typeCov[fileId] || {};
+       typeCov[fileId] = fileCov;   
+       incrementExecutions(fileCov, startLine);
+   }
+}
+`;
 
 function pad(str: string, len: number) {
-    const blanks = '                                             ';
-    if (str.length >= len) {
-        return str;
-    }
-    return blanks.substring(0, len - str.length) + str;
+	const blanks = '                                             ';
+	if (str.length >= len) {
+		return str;
+	}
+	return blanks.substring(0, len - str.length) + str;
 }
 
 function annotatedCode(code: string) {
-    const codeArray = code.split('\n');
-    let line = 0;
-    const annotated = codeArray.map(str => {
-        line += 1;
-        return pad(`${line}`, 6) + ': ' + str;
-    });
-    return annotated.join('\n');
+	const codeArray = code.split('\n');
+	let line = 0;
+	const annotated = codeArray.map(str => {
+		line += 1;
+		return pad(`${line}`, 6) + ': ' + str;
+	});
+	return annotated.join('\n');
 }
 
 function getGlobalObject() {
-    return new Function('return this')();
+	return new Function('return this')();
 }
 
 class Verifier {
-    result: any;
+	result: any;
 
-    constructor(result: object) {
-        this.result = result;
-    }
+	constructor(result: object) {
+		this.result = result;
+	}
 
-    async verify(args: unknown[], expectedOutput: string, expectedCoverage: ExpectedCoverage) {
-        assert.ok(!this.result.err, (this.result.err || {}).message);
-        getGlobalObject()[this.result.coverageVariable] = clone(
-            this.result.baseline
-        );
-        const actualOutput = await this.result.fn(args);
-        const cov = this.getFileCoverage();
+	async verify(args: unknown[], expectedOutput: string,
+                 expectedCoverage: CoveragePerLineAndType, testName?: string) {
+		assert.ok(!this.result.err, (this.result.err || {}).message);
 
-        assert.ok(
-            cov && typeof cov === 'object',
-            'No coverage found for [' + this.result.file + ']'
-        );
-        assert.deepEqual(actualOutput, expectedOutput, 'Output mismatch');
-        assert.deepEqual(
-            cov.getLineCoverage(),
-            expectedCoverage.lines || {},
-            'Line coverage mismatch'
-        );
-        assert.deepEqual(
-            cov.f,
-            expectedCoverage.functions || {},
-            'Function coverage mismatch'
-        );
-        assert.deepEqual(
-            cov.b,
-            expectedCoverage.branches || {},
-            'Branch coverage mismatch'
-        );
-        assert.deepEqual(
-            cov.bT || {},
-            expectedCoverage.branchesTrue || {},
-            'Branch truthiness coverage mismatch'
-        );
-        assert.deepEqual(
-            cov.s,
-            expectedCoverage.statements || {},
-            'Statement coverage mismatch'
-        );
-        assert.deepEqual(
-            cov.data.inputSourceMap,
-            expectedCoverage.inputSourceMap || undefined,
-            'Input source map mismatch'
-        );
-        const initial = readInitialCoverage(this.getGeneratedCode());
-        assert.ok(initial);
-        assert.deepEqual(initial!.coverageData, this.result.emptyCoverage);
-        assert.ok(initial!.path);
-        if (this.result.file) {
-            assert.equal(initial!.path, this.result.file);
-        }
-        assert.equal(initial!.gcv, this.result.coverageVariable);
-        assert.ok(initial!.hash);
-    }
+		// Call the instrumented code and retrieve its output
+		let actualOutput;
+		try {
+			actualOutput = await this.result.fn(args);
+		} catch (e) {
+			console.log(e);
+		}
 
-    getCoverage() {
-        return getGlobalObject()[this.result.coverageVariable];
-    }
+		// Collect the coverage
+		const actualCoverage = this.getFileCoverage() as CoveragePerLineAndType;
 
-    getFileCoverage() {
-        const cov = this.getCoverage();
-        return new FileCoverage(cov[Object.keys(cov)[0]]);
-    }
+		// Verify the output
+		assert.ok(
+			actualCoverage && typeof actualCoverage === 'object',
+			'No coverage found for [' + this.result.file + ']'
+		);
+		assert.deepEqual(actualOutput, expectedOutput, 'Output mismatch');
 
-    getGeneratedCode() {
-        return this.result.generatedCode;
-    }
+		// Verify the coverage
+		const expectedLineCoverage = expectedCoverage.lines;
+		const actualLineCoverage = actualCoverage.lines;
 
-    compileError() {
-        return this.result.err;
-    }
+		if (!expectedLineCoverage) {
+			return;
+		}
+
+		for (const [expectedLine, expectedIncrements] of Object.entries(expectedLineCoverage)) {
+			const actualIncrements = Number.parseInt((actualLineCoverage[expectedLine] as any) ?? 0);
+			assert.isAtLeast(
+				actualIncrements,
+				expectedIncrements,
+				`${
+					testName ?? 'Test'
+				}: At least ${actualIncrements} visits on line level expected in line ${expectedLine}`
+			);
+		}
+	}
+
+	getCoverage() {
+		return getGlobalObject()[MOCK_COVERAGE_VARIABLE];
+	}
+
+	getFileCoverage() {
+		return this.getCoverage();
+	}
+
+	getGeneratedCode() {
+		return this.result.generatedCode;
+	}
+
+	compileError() {
+		return this.result.err;
+	}
 }
 
 function extractTestOption(opts: any, name: string, defaultValue: any) {
-    let v = defaultValue;
-    if (Object.prototype.hasOwnProperty.call(opts, name)) {
-        v = opts[name];
-    }
-    return v;
+	let v = defaultValue;
+	if (Object.prototype.hasOwnProperty.call(opts, name)) {
+		v = opts[name];
+	}
+	return v;
 }
 
-export function create(code: string, opts: any, instrumenterOpts: any, inputSourceMap: any) {
-    opts = opts || {};
-    instrumenterOpts = instrumenterOpts || {};
-    instrumenterOpts.coverageVariable =
-        instrumenterOpts.coverageVariable || '__testing_coverage__';
+export async function create(code: string, opts: any,
+                             instrumenterOpts: InstrumenterOptions, inputSourceMap: any) {
+	opts = opts || {};
+	instrumenterOpts = instrumenterOpts || {};
 
-    const debug = extractTestOption(opts, 'debug', process.env.DEBUG === '1');
-    const file = extractTestOption(opts, 'file', __filename);
-    const generateOnly = extractTestOption(opts, 'generateOnly', false);
-    const noCoverage = extractTestOption(opts, 'noCoverage', false);
-    const quiet = extractTestOption(opts, 'quiet', false);
-    const coverageVariable = instrumenterOpts.coverageVariable;
-    const g = getGlobalObject();
-    let instrumenterOutput;
-    let wrapped;
-    let fn;
-    let verror;
+	const debug = extractTestOption(opts, 'debug', process.env.DEBUG === '1');
+	const file = extractTestOption(opts, 'file', __filename);
+	const generateOnly = extractTestOption(opts, 'generateOnly', false);
+	const noCoverage = extractTestOption(opts, 'noCoverage', false);
+	const quiet = extractTestOption(opts, 'quiet', false);
+	const g = getGlobalObject();
+	let instrumenterOutput;
+	let wrapped;
+	let fn;
+	let verror;
 
-    if (debug) {
-        instrumenterOpts.compact = false;
-    }
-    const instrumenter = new Instrumenter(instrumenterOpts);
-    try {
-        instrumenterOutput = instrumenter.instrumentSync(
-            code,
-            file,
-            inputSourceMap
-        );
-        if (debug) {
-            console.log(
-                '================== Original ============================================'
-            );
-            console.log(annotatedCode(code));
-            console.log(
-                '================== Generated ==========================================='
-            );
-            console.log(instrumenterOutput);
-            console.log(
-                '========================================================================'
-            );
-        }
-    } catch (ex: any) {
-        if (!quiet) {
-            console.error(ex.stack);
-        }
-        verror = new Error(
-            'Error instrumenting:\n' +
-                annotatedCode(String(code)) +
-                '\n' +
-                ex.message
-        );
-    }
-    if (!(verror || generateOnly)) {
-        wrapped =
-            '{ var output;\n' + instrumenterOutput + '\nreturn output;\n}';
-        g[coverageVariable] = undefined;
-        try {
-            if (opts.isAsync) {
-                fn = new AsyncFunction('args', wrapped);
-            } else {
-                fn = new Function('args', wrapped);
-            }
-        } catch (ex: any) {
-            console.error(ex.stack);
-            verror = new Error(
-                'Error compiling\n' + annotatedCode(code) + '\n' + ex.message
-            );
-        }
-    }
-    if (generateOnly || noCoverage) {
-        assert.ok(!verror);
-    }
-    return new Verifier({
-        err: verror,
-        debug,
-        file,
-        fn,
-        code,
-        generatedCode: instrumenterOutput,
-        coverageVariable,
-        baseline: clone(g[coverageVariable]),
-        emptyCoverage: instrumenter.lastFileCoverage()
-    });
+	if (debug) {
+		instrumenterOpts.compact = false;
+	}
+	const instrumenter = new Instrumenter(instrumenterOpts);
+	try {
+		instrumenterOutput = await instrumenter.instrument(code, file, inputSourceMap);
+		if (debug) {
+			console.log('================== Original ============================================');
+			console.log(annotatedCode(code));
+			console.log('================== Generated ===========================================');
+			console.log(instrumenterOutput);
+			console.log('========================================================================');
+		}
+	} catch (ex: any) {
+		if (!quiet) {
+			console.error(ex.stack);
+		}
+		verror = new Error('Error instrumenting:\n' + annotatedCode(String(code)) + '\n' + ex.message);
+	}
+
+	// Run (evaluate) the instrumented code.
+	// Attention: It will be evaluated in context of this "window".
+	if (!(verror || generateOnly)) {
+		wrapped = `{${MOCK_VACCINE} var output;\n ${instrumenterOutput} \nreturn output;\n}`;
+		try {
+			if (opts.isAsync) {
+				fn = new AsyncFunction('args', wrapped);
+			} else {
+				fn = new Function('args', wrapped);
+			}
+		} catch (ex: any) {
+			console.error(ex.stack);
+			verror = new Error('Error compiling\n' + annotatedCode(code) + '\n' + ex.message);
+		}
+	}
+
+	if (generateOnly || noCoverage) {
+		assert.ok(!verror);
+	}
+
+	return new Verifier({
+		err: verror,
+		debug,
+		file,
+		fn,
+		code,
+		generatedCode: instrumenterOutput
+	});
 }

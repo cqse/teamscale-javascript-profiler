@@ -8,7 +8,6 @@ describe('external interface', () => {
     it('exposes the correct objects', () => {
         const i = createInstrumenter();
         assert.ok(i);
-        assert.ok(i.instrumentSync);
         assert.ok(i.instrument);
         const pc = programVisitor;
         assert.ok(pc);
@@ -17,14 +16,11 @@ describe('external interface', () => {
 });
 
 describe('instrumenter', () => {
-    it('should remove comments when asked to', function() {
-        // This test has frequent timeout on Windows.
-        this.timeout(5000);
-
+    it('should remove comments when asked to', async () => {
         const instrumenter = createInstrumenter({
             preserveComments: false
         });
-        const instrumentedCode = instrumenter.instrumentSync(
+        const instrumentedCode = await instrumenter.instrument(
             '/*foo*/\n//bar\ncode = true',
             'somefile.js'
         );
@@ -38,5 +34,5 @@ describe('instrumenter', () => {
             -1,
             'line comment not removed'
         );
-    });
+    }, 5000);
 });

@@ -2,8 +2,6 @@
 // @ts-ignore: DataWorker import is handled by Esbuild---see `esbuild.mjs` and `workers.d.ts`
 import DataWorker from './worker/vaccine.worker.ts';
 import { getWindow, universe, universeAttribute } from './utils';
-import { ProtocolMessageTypes } from './protocol';
-import { IstanbulCoverageStore } from './types';
 import {createCoverageBuffer, FileCoverageBuffer} from "./buffer";
 
 // Prepare our global JavaScript object. This will hold
@@ -32,76 +30,38 @@ const coverageBuffer = createCoverageBuffer(250,(buffer: Map<string, FileCoverag
 	}
 });
 
-// Sets the handler for signaling the coverage of a particular statement.
-universe()._$stmtCov = coverageBuffer.putStatementCoverage;
-
-// Sets the handler for signaling the coverage of a particular branch.
-universe()._$brCov = coverageBuffer.putBranchCoverage;
-
-const interceptedStores: Set<string> = new Set<string>();
+// Sets the handler for signaling the coverage of a particular line.
+universe()._$l = coverageBuffer.putLineCoverage;
 
 /**
- * The function that intercepts changes to the Istanbul code coverage.
- * Also, the Web worker to forward the coverage information is started.
+ * The Web worker to forward the coverage information is started.
  */
-universe()._$registerCoverageObject = function (coverage: IstanbulCoverageStore): void {
-	// The `fileId` is used to map coverage and source maps. Note that
-	// a browser window (tab) can run multiple JavaScript files, with different source maps, ... .
-	const fileId = coverage.hash;
+if (!getWorker()) {
+	// Create the worker with the worker code
+	// (we use the tool 'rollup' to produce this object---see rollup.config.js)
+	const worker = setWorker(new DataWorker());
 
-	// Prevent adding the interceptor twice for the same file
-	if (interceptedStores.has(fileId)) {
-		console.log(`Coverage interceptor added twice for ${fileId}. This seems to be a bug in the instrumentation.`);
-		return;
-	} else {
-		interceptedStores.add(fileId);
-	}
+	(function handleUnloading() {
+		const vaccineUnloadHandler = () => {
+			coverageBuffer.flush();
+			// Attention: the following 'unload' string does not correspond to the event name
+			// but to the message that is handled by the worker.
+			worker.postMessage('unload');
+		};
 
-	if (!getWorker()) {
-		// Create the worker with the worker code
-		// (we use the tool 'rollup' to produce this object---see rollup.config.js)
-		const worker = setWorker(new DataWorker());
-
-		(function handleUnloading() {
-			const vaccineUnloadHandler = () => {
-				coverageBuffer.flush();
-				// Attention: the following 'unload' string does not correspond to the event name
-				// but to the message that is handled by the worker.
-				worker.postMessage('unload');
-			};
-
-			const addVaccineUnloadHandler = function (
-				eventName: 'blur' | 'unload' | 'beforeunload' | 'visibilitychange', toObject: EventTarget | undefined) {
-				if (!toObject) {
-					return;
-				}
-
-				toObject.addEventListener(eventName, vaccineUnloadHandler, { capture: true });
-			};
-
-			const win = getWindow();
-			addVaccineUnloadHandler('blur', win);
-			addVaccineUnloadHandler('unload', win);
-			addVaccineUnloadHandler('visibilitychange', win);
-			addVaccineUnloadHandler('beforeunload', win);
-		})();
-	}
-
-	(function sendSourceMapsAndCoverageObject() {
-		// Send the coverage object
-		getWorker().postMessage(`${ProtocolMessageTypes.ISTANBUL_COV_OBJECT} ${JSON.stringify(coverage)}`);
-
-		// Send the source maps
-		const sentMaps = universeAttribute('sentMaps', new Set());
-		if (coverage.inputSourceMap) {
-			if (!sentMaps.has(coverage.path)) {
-				getWorker().postMessage(
-					`${ProtocolMessageTypes.MESSAGE_TYPE_SOURCEMAP} ${fileId}:${JSON.stringify(
-						coverage.inputSourceMap
-					)}`
-				);
-				sentMaps.add(coverage.path);
+		const addVaccineUnloadHandler = function (
+			eventName: 'blur' | 'unload' | 'beforeunload' | 'visibilitychange', toObject: EventTarget | undefined) {
+			if (!toObject) {
+				return;
 			}
-		}
+
+			toObject.addEventListener(eventName, vaccineUnloadHandler, { capture: true });
+		};
+
+		const win = getWindow();
+		addVaccineUnloadHandler('blur', win);
+		addVaccineUnloadHandler('unload', win);
+		addVaccineUnloadHandler('visibilitychange', win);
+		addVaccineUnloadHandler('beforeunload', win);
 	})();
-};
+}

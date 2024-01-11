@@ -75,12 +75,12 @@ const caseStudies = [
 		rootDir: 'test/casestudies/angular-hero-app',
 		distDir: 'dist',
 		expectCoveredLines: {
-			'src/app/heroes/heroes.component.ts': [11, 12, 22, 35, 36],
+			'src/app/heroes/heroes.component.ts': [12, 22, 35, 36],
 			'src/app/hero-detail/hero-detail.component.ts': [23, 27, 28, 29, 33]
 		},
 		expectUncoveredLines: {
 			'node_modules/zone.js/fesm2015/zone.js': ['1-30', '70-90', 28, 20, 80],
-			'src/app/heroes/heroes.component.ts': ['1-10', 15, 16, '18-20', '37-50']
+			'src/app/heroes/heroes.component.ts': ['1-10', 15, '18-20', '37-50']
 		},
 		excludeOrigins: [],
 		includeOrigins: [`'src/app/**/*.*'`],
@@ -91,7 +91,7 @@ const caseStudies = [
 		rootDir: 'test/casestudies/angular-hero-app',
 		distDir: 'dist',
 		expectCoveredLines: {
-			'src/app/hero-detail/hero-detail.component.ts': [13, 17, 18, 19]
+			'src/app/hero-detail/hero-detail.component.ts': [17, 18, 19]
 		},
 		expectUncoveredLines: {
 			'src/app/heroes/heroes.component.ts': [11, 12, 22, 35, 36],

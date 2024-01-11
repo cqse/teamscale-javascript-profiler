@@ -1,4 +1,3 @@
-import { App } from '../../src/App';
 import { CollectorClient } from '../CollectorClient';
 
 /**
@@ -98,11 +97,8 @@ function timeout(ms: number): Promise<void>  {
  * Calls the control api to dump the coverage and upload it.
  */
 export async function postAndDumpCoverage() {
-	const dummyFileId = 'dummyFileId';
 	const socket = await CollectorClient.openSocket('ws://localhost:1234');
-	await CollectorClient.postSourceMap(socket, dummyFileId, SOURCE_MAP);
-	await timeout(500);
-	CollectorClient.postCoverage(socket, dummyFileId, 1, 700, 1, 1255);
+	CollectorClient.postCoverage(socket, "/foo/bar.ts", 1, 31);
 	await timeout(1000);
 	await CollectorClient.requestCoverageDump(CONTROL_URL);
 	await timeout(500);

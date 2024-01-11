@@ -5,22 +5,8 @@ import { IncomingMessage } from 'http';
 import { Session } from './Session';
 import Logger from 'bunyan';
 
-/**
- * Various constants that are used to exchange data between
- * the instrumented application and the coverage collector.
- */
-export enum ProtocolMessageTypes {
-	/** A message that provides a source map */
-	TYPE_SOURCEMAP = 's',
-
-	/** A message that provides coverage information */
-	TYPE_COVERAGE = 'c'
-}
-
-/**
- * Separates the instrumentation subject from the coverage information.
- */
-const INSTRUMENTATION_SUBJECT_SEPARATOR = ':';
+/** A message that provides coverage information */
+const MESSAGE_TYPE_COVERAGE = 'c';
 
 /**
  * A WebSocket based implementation of a coverage receiver.
@@ -70,8 +56,6 @@ export class WebSocketCollectingServer {
 			// Handle disconnecting clients
 			webSocket.on('close', code => {
 				if (session) {
-					// Free the memory that is associated with the session (important!)
-					session.destroy();
 					session = null;
 					this.logger.debug(`Closing with code ${code}`);
 				}
@@ -107,9 +91,7 @@ export class WebSocketCollectingServer {
 	private async handleMessage(session: Session, message: Buffer) {
 		try {
 			const messageType = message.toString('utf8', 0, 1);
-			if (messageType.startsWith(ProtocolMessageTypes.TYPE_SOURCEMAP)) {
-				await this.handleSourcemapMessage(session, message.subarray(1));
-			} else if (messageType.startsWith(ProtocolMessageTypes.TYPE_COVERAGE)) {
+			if (messageType.startsWith(MESSAGE_TYPE_COVERAGE)) {
 				await this.handleCoverageMessage(session, message.subarray(1));
 			}
 		} catch (e) {
@@ -125,53 +107,42 @@ export class WebSocketCollectingServer {
 	}
 
 	/**
-	 * Handle a source map message.
-	 *
-	 * @param session - The session to handle the message for.
-	 * @param body - The body of the message (to be parsed).
-	 */
-	private async handleSourcemapMessage(session: Session, body: Buffer) {
-		const fileIdSeparatorPosition = body.indexOf(INSTRUMENTATION_SUBJECT_SEPARATOR.charCodeAt(0));
-		if (fileIdSeparatorPosition > -1) {
-			const fileId = body.toString('utf8', 0, fileIdSeparatorPosition).trim();
-			this.logger.debug(`Received source map information for ${fileId}`);
-			const sourcemap = body.subarray(fileIdSeparatorPosition + 1);
-			await session.putSourcemap(fileId, sourcemap);
-		}
-	}
-
-	/**
 	 * Handle a message with coverage information.
 	 *
 	 * @param session - The session to handle the message for.
 	 * @param body - The body of the message (to be parsed).
+	 *
+	 * Example for a `body`:
+	 * ```
+	 * @/foo/bar.ts;1-3;5-6
+	 * @/wauz/wee.ts;67-67;100-101
+	 * ```
+	 *
+	 * This processing operates as state machine. The input is split into tokens;
+	 * newline and semicolon symbols separate tokens.
+	 * A file name is a token; a range (start to end line) is a token.
 	 */
 	private async handleCoverageMessage(session: Session, body: Buffer) {
-		const bodyPattern = /(?<fileId>\S+) (?<positions>((\d+:\d+(:\d+:\d+)?\s+)*(\d+:\d+(:\d+:\d+)?)))/;
-		const matches = bodyPattern.exec(body.toString());
-		if (matches?.groups) {
-			const fileId = matches.groups.fileId;
-			const positions = (matches.groups.positions ?? '').split(/\s+/);
-			for (const position of positions) {
-				const positionParts = position.split(':');
-				if (positionParts.length === 2) {
-					session.putCoverage(
-						fileId,
-						Number.parseInt(positionParts[0]),
-						Number.parseInt(positionParts[1]),
-						Number.parseInt(positionParts[1]),
-						Number.parseInt(positionParts[2])
-					);
-				} else if (positionParts.length === 4) {
-					session.putCoverage(
-						fileId,
-						Number.parseInt(positionParts[0]),
-						Number.parseInt(positionParts[1]),
-						Number.parseInt(positionParts[2]),
-						Number.parseInt(positionParts[3])
-					);
+		// Split the input into tokens; these are either file names or code ranges.
+		const tokens = body.toString().split(/[\n;]/).map(line => line.trim());
+
+		// Placeholder for group/filename.
+		let filename = '';
+
+		tokens.forEach(token => {
+			// Check if the token starts with '@' - indicating a new group/filename.
+			if (token.startsWith('@')) {
+				filename = token.substring(1).trim(); // Remove '@' character and extra spaces.
+			} else if (filename) {
+				// It is not a file name, we have a range token here.
+				// Example for range a token: `3-5`, or just `42` (corresponding to `42-42`).
+				const range = token.split(/,|-/).map(value => Number.parseInt(value));
+				if (range.length === 1) {
+					session.putLineCoverage(filename, range[0], range[0]);
+				} else if (range.length === 2) {
+					session.putLineCoverage(filename, range[0], range[1]);
 				}
 			}
-		}
+		});
 	}
 }

@@ -1,13 +1,36 @@
-// @ts-nocheck
-// @ts-ignore
-
 import path from "path";
 import fs from "fs";
 import yaml from "js-yaml";
 import { assert } from "chai";
-import { create } from "./util/verifier";
+import {create, MOCK_VACCINE} from "./util/verifier";
 import * as guards from "./util/guards";
 import clone from "clone";
+
+type SpecDoc = {
+    guard?: string;
+    file: any;
+    code?: string;
+    name: string;
+    opts?: {
+        generateOnly?: boolean;
+        noCoverage?: boolean;
+    };
+    instrumentOpts?: {};
+    err?: string;
+    inputSourceMapClass?: boolean;
+    inputSourceMap?: {};
+    tests?: TestDoc[];
+}
+
+type TestDoc = {
+    name: string;
+    args?: any[];
+    out: any;
+    lines: {};
+}
+
+// Avoid problems with times: Mock the default timers
+jest.useFakeTimers()
 
 const dir = path.resolve(__dirname, 'specs');
 const files = fs.readdirSync(dir).filter(f => {
@@ -19,22 +42,23 @@ const files = fs.readdirSync(dir).filter(f => {
 });
 
 class NonPojo {
-    constructor(props) {
+    constructor(props: {}) {
         Object.assign(this, props);
     }
 }
 
-function loadDocs() {
-    const docs = [];
+function loadDocs(): SpecDoc[] {
+    const docs: SpecDoc[] = [];
+
     files.forEach(f => {
         const filePath = path.resolve(dir, f);
         const contents = fs.readFileSync(filePath, 'utf8');
         try {
-            yaml.loadAll(contents, obj => {
+            yaml.loadAll(contents, (obj: any) => {
                 obj.file = f;
                 docs.push(obj);
             });
-        } catch (ex) {
+        } catch (ex: any) {
             docs.push({
                 file: f,
                 name: 'loaderr',
@@ -45,28 +69,32 @@ function loadDocs() {
                     ex.message +
                     '\n' +
                     ex.stack
-            });
+            } satisfies SpecDoc);
         }
     });
+
     return docs;
 }
 
-function generateTests(docs) {
+function generateTests(docs: SpecDoc[]) {
     docs.forEach(doc => {
         const guard = doc.guard;
         let skip = false;
         let skipText = '';
 
+        // @ts-ignore
         if (guard && guards[guard]) {
+            // @ts-ignore
             if (!guards[guard]()) {
                 skip = true;
                 skipText = '[SKIP] ';
             }
         }
 
-        describe(skipText + doc.file + '/' + (doc.name || 'suite'), () => {
+        const suiteName = skipText + doc.file + '/' + (doc.name || 'suite');
+        describe(suiteName, () => {
             if (doc.err) {
-                it('has errors', () => {
+                it('has errors', async () => {
                     assert.ok(false, doc.err);
                 });
             } else {
@@ -76,27 +104,33 @@ function generateTests(docs) {
                         const noCoverage = (doc.opts || {}).noCoverage;
                         if (doc.inputSourceMapClass) {
                             doc.inputSourceMap = new NonPojo(
-                                doc.inputSourceMap
+                                doc.inputSourceMap ?? {}
                             );
                         }
-                        const v = create(
-                            doc.code,
+
+                        return create(
+                            doc.code!,
                             doc.opts || {},
-                            doc.instrumentOpts,
+                            {codeToPrepend: MOCK_VACCINE, ...doc.instrumentOpts},
                             doc.inputSourceMap
-                        );
-                        const test = clone(t);
-                        const args = test.args;
-                        const out = test.out;
-                        delete test.args;
-                        delete test.out;
-                        if (!genOnly && !noCoverage) {
-                            await v.verify(args, out, test);
-                        }
-                        if (noCoverage) {
-                            assert.equal(v.code, v.generatedCode);
-                        }
+                        ).then(verifier => {
+                            const test = clone(t);
+                            const args = test.args ?? [];
+                            const out = test.out;
+                            delete test.args;
+                            delete test.out;
+
+                            if (!genOnly && !noCoverage) {
+                                verifier.verify(args, out, test, suiteName);
+                            }
+                            if (noCoverage) {
+                                assert.equal(verifier.getGeneratedCode().trim(), doc.code!.trim());
+                            }
+                        }).catch(reason => {
+                            console.error("Test", test.name, 'failed.', reason);
+                        });
                     };
+
                     if (skip) {
                         it.skip(t.name || 'default test', fn);
                     } else {

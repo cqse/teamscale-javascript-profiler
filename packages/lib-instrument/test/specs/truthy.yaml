@@ -1,4 +1,3 @@
----
 name: simple expression
 code: |
   var x = args[0] > 0 && args[0] < 5;
@@ -6,21 +5,17 @@ code: |
 instrumentOpts:
   reportLogic: true
 tests:
-  - name: covers line and one branch
-    args: [-1]
-    out: false
-    lines: {'1': 1, '2': 1}
-    branches: {'0': [1, 0]}
-    branchesTrue: {'0': [0, 0]}
-    statements: {'0': 1, '1': 1}
+- name: covers line and one branch
+  args: [-1]
+  out: false
+  lines: {'1': 1, '2': 1}
+  branchesTrue: {'0': [0, 0]}
 
-  - name: covers line, both branches, returns false
-    args: [10]
-    out: false
-    lines: {'1': 1, '2': 1}
-    branches: {'0': [1, 1]}
-    branchesTrue: {'0': [1, 0]}
-    statements: {'0': 1, '1': 1}
+- name: covers line, both branches, returns false
+  args: [10]
+  out: false
+  lines: {'1': 1, '2': 1}
+  branchesTrue: {'0': [1, 0]}
 
 ---
 name: complex expression
@@ -30,21 +25,17 @@ code: |
 instrumentOpts:
   reportLogic: true
 tests:
-  - name: covers line and one branch
-    args: [-1]
-    out: false
-    lines: {'1': 1, '2': 1}
-    branches: {'0': [1, 0, 0]}
-    branchesTrue: {'0': [0, 0, 0]}
-    statements: {'0': 1, '1': 1}
+- name: covers line and one branch
+  args: [-1]
+  out: false
+  lines: {'1': 1, '2': 1}
+  branchesTrue: {'0': [0, 0, 0]}
 
-  - name: covers line, both branches, returns false
-    args: [9]
-    out: false
-    lines: {'1': 1, '2': 1}
-    branches: {'0': [1, 1, 1]}
-    branchesTrue: {'0': [1, 0, 0]}
-    statements: {'0': 1, '1': 1}
+- name: covers line, both branches, returns false
+  args: [9]
+  out: false
+  lines: {'1': 1, '2': 1}
+  branchesTrue: {'0': [1, 0, 0]}
 
 ---
 name: or with object expression (bug track)
@@ -54,13 +45,11 @@ code: |
 instrumentOpts:
   reportLogic: true
 tests:
-  - name: covers all branches correctly
-    args: [ false ]
-    out: 2
-    lines: {'1': 1, '2': 1}
-    branches: { '0': [0, 1] }
-    branchesTrue: {}
-    statements: {'0': 1, '1': 1}
+- name: covers all branches correctly
+  args: [false]
+  out: 2
+  lines: {'1': 1, '2': 1}
+  branchesTrue: {}
 
 ---
 name: or with object expression (part 2)
@@ -70,13 +59,11 @@ code: |
 instrumentOpts:
   reportLogic: true
 tests:
-  - name: covers all branches correctly
-    args: [ false ]
-    out: 2
-    lines: {'1': 1, '2': 1}
-    branches: { '0': [1, 1] }
-    branchesTrue: {'0': [0, 1]}
-    statements: {'0': 1, '1': 1}
+- name: covers all branches correctly
+  args: [false]
+  out: 2
+  lines: {'1': 1, '2': 1}
+  branchesTrue: {'0': [0, 1]}
 
 ---
 name: function evaluation
@@ -87,14 +74,11 @@ code: |
 instrumentOpts:
   reportLogic: true
 tests:
-  - name: covers truthy function evaluation
-    args: false
-    out: 42
-    lines: {'1': 1, '2': 1, '3': 1}
-    functions: { '0': 1 }
-    branches: { '0': [1, 1] }
-    branchesTrue: {'0': [0, 1]}
-    statements: {'0': 1, '1': 1, '2': 1, '3': 1}
+- name: covers truthy function evaluation
+  args: false
+  out: 42
+  lines: {'1': 1, '2': 1, '3': 1}
+  branchesTrue: {'0': [0, 1]}
 
 ---
 name: async
@@ -106,13 +90,11 @@ opts:
 instrumentOpts:
   reportLogic: true
 tests:
-  - name: covers all branches correctly
-    args: [ false, { foo: 2 } ]
-    out: 2
-    lines: {'1': 1, '2': 1}
-    branches: { '0': [1, 1] }
-    branchesTrue: {'0': [0, 1]}
-    statements: {'0': 1, '1': 1}
+- name: covers all branches correctly
+  args: [false, foo: 2]
+  out: 2
+  lines: {'1': 1, '2': 1}
+  branchesTrue: {'0': [0, 1]}
 
 ---
 name: mutate and evaluate at the same time
@@ -122,13 +104,11 @@ code: |
 instrumentOpts:
   reportLogic: true
 tests:
-  - name: ends up with a single increment and not two
-    args: [ 0, { foo: 2 } ]
-    out: 1
-    lines: {'1': 1, '2': 1}
-    branches: { '0': [1, 1] }
-    branchesTrue: {'0': [0, 1]}
-    statements: {'0': 1, '1': 1}
+- name: ends up with a single increment and not two
+  args: [0, foo: 2]
+  out: 1
+  lines: {'1': 1, '2': 1}
+  branchesTrue: {'0': [0, 1]}
 
 ---
 name: empty object
@@ -138,13 +118,11 @@ code: |
 instrumentOpts:
   reportLogic: true
 tests:
-  - name: covers all branches correctly
-    args: [ false ]
-    out: true
-    lines: {'1': 1, '2': 1}
-    branches: { '0': [1, 1] }
-    branchesTrue: {'0': [0, 0]}
-    statements: {'0': 1, '1': 1}
+- name: covers all branches correctly
+  args: [false]
+  out: true
+  lines: {'1': 1, '2': 1}
+  branchesTrue: {'0': [0, 0]}
 
 ---
 name: empty array
@@ -154,10 +132,8 @@ code: |
 instrumentOpts:
   reportLogic: true
 tests:
-  - name: covers all branches correctly
-    args: [ false ]
-    out: true
-    lines: {'1': 1, '2': 1}
-    branches: { '0': [1, 1] }
-    branchesTrue: {'0': [0, 0]}
-    statements: {'0': 1, '1': 1}
+- name: covers all branches correctly
+  args: [false]
+  out: true
+  lines: {'1': 1, '2': 1}
+  branchesTrue: {'0': [0, 0]}

@@ -6,6 +6,29 @@ import {create, MOCK_VACCINE} from "./util/verifier";
 import * as guards from "./util/guards";
 import clone from "clone";
 
+type SpecDoc = {
+    guard?: string;
+    file: any;
+    code?: string;
+    name: string;
+    opts?: {
+        generateOnly?: boolean;
+        noCoverage?: boolean;
+    };
+    instrumentOpts?: {};
+    err?: string;
+    inputSourceMapClass?: boolean;
+    inputSourceMap?: {};
+    tests?: TestDoc[];
+}
+
+type TestDoc = {
+    name: string;
+    args?: any[];
+    out: any;
+    lines: {};
+}
+
 // Avoid problems with times: Mock the default timers
 jest.useFakeTimers()
 
@@ -53,29 +76,6 @@ function loadDocs(): SpecDoc[] {
     return docs;
 }
 
-type SpecDoc = {
-    guard?: string;
-    file: any;
-    code?: string;
-    name: string;
-    opts?: {
-        generateOnly?: boolean;
-        noCoverage?: boolean;
-    };
-    instrumentOpts?: {};
-    err?: string;
-    inputSourceMapClass?: boolean;
-    inputSourceMap?: {};
-    tests?: TestDoc[];
-}
-
-type TestDoc = {
-    name: string;
-    args?: any[];
-    out: any;
-    lines: {};
-}
-
 function generateTests(docs: SpecDoc[]) {
     docs.forEach(doc => {
         const guard = doc.guard;
@@ -91,9 +91,10 @@ function generateTests(docs: SpecDoc[]) {
             }
         }
 
-        describe(skipText + doc.file + '/' + (doc.name || 'suite'), () => {
+        const suiteName = skipText + doc.file + '/' + (doc.name || 'suite');
+        describe(suiteName, () => {
             if (doc.err) {
-                it('has errors', () => {
+                it('has errors', async () => {
                     assert.ok(false, doc.err);
                 });
             } else {
@@ -107,20 +108,18 @@ function generateTests(docs: SpecDoc[]) {
                             );
                         }
 
-                        const v = create(
+                        return create(
                             doc.code!,
                             doc.opts || {},
                             {codeToPrepend: MOCK_VACCINE, ...doc.instrumentOpts},
                             doc.inputSourceMap
-                        );
+                        ).then(verifier => {
+                            const test = clone(t);
+                            const args = test.args ?? [];
+                            const out = test.out;
+                            delete test.args;
+                            delete test.out;
 
-                        const test = clone(t);
-                        const args = test.args ?? [];
-                        const out = test.out;
-                        delete test.args;
-                        delete test.out;
-
-                        v.then(verifier => {
                             if (!genOnly && !noCoverage) {
                                 verifier.verify(args, out, test);
                             }

@@ -117,6 +117,10 @@ export class WebSocketCollectingServer {
 	 * @/foo/bar.ts;1-3;5-6
 	 * @/wauz/wee.ts;67-67;100-101
 	 * ```
+	 *
+	 * This processing operates as state machine. The input is split into tokens;
+	 * newline and semicolon symbols separate tokens.
+	 * A file name is a token; a range (start to end line) is a token.
 	 */
 	private async handleCoverageMessage(session: Session, body: Buffer) {
 		// Replace semicolon separators with newline to make the splitting consistent.

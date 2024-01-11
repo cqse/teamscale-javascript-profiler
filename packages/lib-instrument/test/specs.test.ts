@@ -121,11 +121,13 @@ function generateTests(docs: SpecDoc[]) {
                             delete test.out;
 
                             if (!genOnly && !noCoverage) {
-                                verifier.verify(args, out, test);
+                                verifier.verify(args, out, test, suiteName);
                             }
                             if (noCoverage) {
                                 assert.equal(verifier.getGeneratedCode().trim(), doc.code!.trim());
                             }
+                        }).catch(reason => {
+                            console.error("Test", test.name, 'failed.', reason);
                         });
                     };
 

@@ -10,8 +10,7 @@ describe('varia', () => {
         const v = await create('output = args[0];', {}, { debug: true });
         assert.ok(!v.err);
         await v.verify(['X'], 'X', {
-            lines: { 1: 1 },
-            statements: { 1: 1 }
+            lines: { 1: 1 }
         });
     });
 
@@ -19,8 +18,7 @@ describe('varia', () => {
         const v = await create('output = args[0];', { file: null });
         assert.ok(!v.err);
         await v.verify(['X'], 'X', {
-            lines: { 1: 1 },
-            statements: { 1: 1 }
+            lines: { 1: 1 }
         });
     });
 
@@ -32,8 +30,7 @@ describe('varia', () => {
         );
         assert.ok(!v.err);
         await v.verify(['X'], 'X', {
-            lines: { 2: 1 },
-            statements: { 2: 1 }
+            lines: { 2: 1 }
         });
 
         const code = v.getGeneratedCode();

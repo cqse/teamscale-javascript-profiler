@@ -61,7 +61,7 @@ class Verifier {
         this.result = result;
     }
 
-    async verify(args: unknown[], expectedOutput: string, expectedCoverage: CoveragePerLineAndType) {
+    async verify(args: unknown[], expectedOutput: string, expectedCoverage: CoveragePerLineAndType, testName?: string) {
         assert.ok(!this.result.err, (this.result.err || {}).message);
 
         // Call the instrumented code and retrieve its output
@@ -83,16 +83,16 @@ class Verifier {
         assert.deepEqual(actualOutput, expectedOutput, 'Output mismatch');
 
         // Verify the coverage
-        for (const coverageType of ['lines']) {
-            const expectedIncrementsPerLine = expectedCoverage[coverageType as CoverageType];
-            const actualIncrementsPerLine = expectedCoverage[coverageType as CoverageType];
-            if (!expectedIncrementsPerLine) {
-                continue;
-            }
-            for (const [expectedLine, expectedIncrements] of Object.entries(expectedIncrementsPerLine)) {
-                const actualIncrements = Number.parseInt(actualIncrementsPerLine[expectedLine] as any);
-                assert.isTrue(actualIncrements >= expectedIncrements, `At least ${actualIncrements} visits on ${coverageType} level expected in line ${expectedLine}`);
-            }
+        const expectedLineCoverage = expectedCoverage.lines;
+        const actualLineCoverage = actualCoverage.lines;
+
+        if (!expectedLineCoverage) {
+            return;
+        }
+
+        for (const [expectedLine, expectedIncrements] of Object.entries(expectedLineCoverage)) {
+            const actualIncrements = Number.parseInt(actualLineCoverage[expectedLine] as any ?? 0);
+            assert.isAtLeast(actualIncrements, expectedIncrements, `${testName ?? "Test"}: At least ${actualIncrements} visits on line level expected in line ${expectedLine}`);
         }
     }
 

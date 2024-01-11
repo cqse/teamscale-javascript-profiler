@@ -1,20 +1,17 @@
 import WebSocket from 'ws';
-import { ProtocolMessageTypes } from '../src/receiver/CollectingServer';
 import axios from 'axios';
 
 /** Allows controlling a running collector via its API. */
 export class CollectorClient {
 
-	/** Sends a the given coverage to the collector via the given websocket. */
+	/** Sends the given coverage to the collector via the given websocket. */
 	static postCoverage(
 		socket: WebSocket,
-		fileId: string,
+		fileName: string,
 		startLine: number,
-		startColumn: number,
-		endLine: number,
-		endColumn: number
+		endLine: number
 	) {
-		socket.send(`${ProtocolMessageTypes.TYPE_COVERAGE} ${fileId} ${startLine}:${startColumn}:${endLine}:${endColumn}`);
+		socket.send(`c @${fileName};${startLine}-${endLine}`);
 	}
 
 	/** Opens a websocket to the collector. */

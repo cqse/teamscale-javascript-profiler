@@ -2,6 +2,13 @@ We use [Semantic Versioning](https://semver.org/).
 
 # New Release
 
+# 0.1.0-beta.1
+
+- [feature] New instrumentation architecture that (1) reduces the memory requirements during instrumentation
+    and when running the instrumented application in the browser, (2) makes instrumentation
+    significantly faster, (3) reduces the bundle sizes, and (4) does no longer depend on including
+    the original source maps.
+
 # 0.0.1-beta.60
 
 - [security] Critical security issue in the Babel dependency (CVE-2023-45133). 

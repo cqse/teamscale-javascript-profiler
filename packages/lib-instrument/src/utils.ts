@@ -2,6 +2,9 @@ import {SourceLocation} from "@babel/types";
 import {RawSourceMap} from "source-map";
 import {NodePath} from "@babel/core";
 
+/**
+ * Options to configure the instrumenter.
+ */
 export type InstrumentationOptions = Partial<{
     /** Report boolean value of logical expressions */
     reportLogic: boolean;
@@ -25,6 +28,9 @@ export type InstrumentationOptions = Partial<{
     shouldInstrumentCallback?: (path: NodePath, loc: SourceLocation) => boolean;
 }>;
 
+/**
+ * Source code fragment within on file.
+ */
 export type CodeRange = {
     start: { line?: number; column?: number };
     end: { line?: number; column?: number };

@@ -11,6 +11,7 @@ const MOCK_COVERAGE_VARIABLE = "_$COV";
 type CoverageType = 'lines';
 type CoveragePerLineAndType = Record<CoverageType, Record<string, number>>;
 
+/** A dummy vaccine used for mocking */
 export const MOCK_VACCINE = `
 var UNIVERSE = globalThis;
 UNIVERSE.${MOCK_COVERAGE_VARIABLE} = {

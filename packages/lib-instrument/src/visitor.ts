@@ -41,6 +41,7 @@ class VisitState {
     /** Callback to determine if the given source location should be instrumented. */
     shouldInstrumentCallback?: (path: NodePath, loc: SourceLocation) => boolean;
 
+    /** Object that manages the mapping to the original code, using source maps. */
     public readonly origins: SourceOrigins;
 
     constructor(

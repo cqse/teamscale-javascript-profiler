@@ -6,6 +6,9 @@ import {create, MOCK_VACCINE} from "./util/verifier";
 import * as guards from "./util/guards";
 import clone from "clone";
 
+// Avoid problems with times: Mock the default timers
+jest.useFakeTimers()
+
 const dir = path.resolve(__dirname, 'specs');
 const files = fs.readdirSync(dir).filter(f => {
     let match = true;

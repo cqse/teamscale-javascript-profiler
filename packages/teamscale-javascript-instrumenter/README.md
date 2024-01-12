@@ -39,8 +39,3 @@ or via `npx` by running
 npx @teamscale/javascript-instrumenter
 ```
 
-## Limitations
-
-This tool inherits most of the limitations of IstanbulJs, including 
-a considerable performance impact.
-

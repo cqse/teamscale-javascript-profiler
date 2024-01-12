@@ -5,8 +5,8 @@ export function tryThis(str: string, feature: string = "", generateOnly: boolean
         } catch (ex) {
             console.error(
                 'ES6 feature [' +
-                    feature +
-                    '] is not available in this environment'
+                feature +
+                '] is not available in this environment'
             );
             return false;
         }

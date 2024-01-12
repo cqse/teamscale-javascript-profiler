@@ -1,17 +1,16 @@
 // @ts-nocheck
 // @ts-ignore
 
-import { assert } from "chai";
-import { createInstrumenter, programVisitor } from "../src/index";
+import {createInstrumenter, programVisitor} from "../src/index";
 
 describe('external interface', () => {
     it('exposes the correct objects', () => {
         const i = createInstrumenter();
-        assert.ok(i);
-        assert.ok(i.instrument);
+        expect(i).toBeTruthy();
+        expect(i.instrument).toBeTruthy();
         const pc = programVisitor;
-        assert.ok(pc);
-        assert.isFunction(pc);
+        expect(pc).toBeTruthy();
+        expect(typeof pc).toEqual('function');
     });
 });
 
@@ -24,15 +23,7 @@ describe('instrumenter', () => {
             '/*foo*/\n//bar\ncode = true',
             'somefile.js'
         );
-        assert.equal(
-            instrumentedCode.indexOf('foo'),
-            -1,
-            'block comment not removed'
-        );
-        assert.equal(
-            instrumentedCode.indexOf('bar'),
-            -1,
-            'line comment not removed'
-        );
+        expect(instrumentedCode.indexOf('foo')).toStrictEqual(-1);
+        expect(instrumentedCode.indexOf('bar')).toStrictEqual(-1);
     }, 5000);
 });

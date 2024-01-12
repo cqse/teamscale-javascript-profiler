@@ -1,6 +1,6 @@
 {
   "name": "@teamscale/javascript-instrumenter",
-  "version": "0.1.0-beta.2",
+  "version": "0.1.0-beta.3",
   "description": "JavaScript coverage instrumenter with coverage forwarding to a collector process",
   "main": "dist/src/main.js",
   "bin": "dist/src/main.js",

@@ -1,7 +1,6 @@
 import path from "path";
 import fs from "fs";
 import yaml from "js-yaml";
-import { assert } from "chai";
 import {create, MOCK_VACCINE} from "./util/verifier";
 import * as guards from "./util/guards";
 import clone from "clone";
@@ -95,11 +94,11 @@ function generateTests(docs: SpecDoc[]) {
         describe(suiteName, () => {
             if (doc.err) {
                 it('has errors', async () => {
-                    assert.ok(false, doc.err);
+                    expect(doc.err).toBeNull();
                 });
             } else {
                 (doc.tests || []).forEach(t => {
-                    const fn = async function() {
+                    const fn = async function () {
                         const genOnly = (doc.opts || {}).generateOnly;
                         const noCoverage = (doc.opts || {}).noCoverage;
                         if (doc.inputSourceMapClass) {
@@ -124,7 +123,7 @@ function generateTests(docs: SpecDoc[]) {
                                 verifier.verify(args, out, test, suiteName);
                             }
                             if (noCoverage) {
-                                assert.equal(verifier.getGeneratedCode().trim(), doc.code!.trim());
+                                expect(verifier.getGeneratedCode().trim()).toEqual(doc.code!.trim());
                             }
                         }).catch(reason => {
                             console.error("Test", test.name, 'failed.', reason);

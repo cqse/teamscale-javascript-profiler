@@ -49,5 +49,8 @@
     "type": "git",
     "url": "https://github.com/cqse/teamscale-javascript-profiler.git",
     "directory": "packages/lib-instrument"
+  },
+  "publishConfig": {
+    "access": "public"
   }
 }

@@ -29,10 +29,10 @@ pnpm build
 
 ## Running the Collector
 
-There are several options to run the Collector. For example, via `yarn` by running
+There are several options to run the Collector. For example, via `pnpm` by running
 
 ```
-yarn collector --port 54678 --dump-to-file=./coverage.simple
+pnpm collector --port 54678 --dump-to-file=./coverage.simple
 ```
 
 or via `npx` by running

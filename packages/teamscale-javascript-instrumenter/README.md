@@ -27,10 +27,10 @@ pnpm build
 
 ## Workflow Integration
 
-There are several options to run the Instrumenter. For example, via `yarn` by running
+There are several options to run the Instrumenter. For example, via `pnpm` by running
 
 ```
-yarn instrumenter
+pnpm instrumenter
 ```
 
 or via `npx` by running

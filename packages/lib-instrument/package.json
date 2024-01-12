@@ -1,9 +1,13 @@
 {
   "name": "@teamscale/lib-instrument",
-  "version": "0.1.0-beta.1",
+  "version": "0.1.0-beta.2",
   "description": "Library for adding coverage statements to JS code; forked from istanbul-lib-coverage",
   "author": "Krishnan Anantheswaran <kananthmail-github@yahoo.com>",
-  "maintainers": [ { "name":  "CQSE GmbH" } ],
+  "maintainers": [
+    {
+      "name": "CQSE GmbH"
+    }
+  ],
   "main": "lib/index.js",
   "types": "lib/index.d.ts",
   "files": [

@@ -2,6 +2,8 @@ We use [Semantic Versioning](https://semver.org/).
 
 # New Release
 
+# 0.1.0-beta.2
+
 # 0.1.0-beta.1
 
 - [feature] New instrumentation architecture that (1) reduces the memory requirements during instrumentation

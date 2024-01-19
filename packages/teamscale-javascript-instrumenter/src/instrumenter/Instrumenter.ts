@@ -310,7 +310,8 @@ export class IstanbulInstrumenter implements IInstrumenter {
 		const baseConfig: InstrumenterOptions = {
 			isInstrumentedToken: IS_INSTRUMENTED_TOKEN,
 			produceSourceMap: 'external',
-			codeToPrepend: this.vaccineSource
+			codeToPrepend: this.vaccineSource,
+			compact: false // Would lead to `code generator has deoptimised the styling of` errors otherwise
 		};
 
 		return [

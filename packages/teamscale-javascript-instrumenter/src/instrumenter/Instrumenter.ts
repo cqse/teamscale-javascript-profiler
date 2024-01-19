@@ -95,11 +95,12 @@ export class IstanbulInstrumenter implements IInstrumenter {
 	 * {@inheritDoc #IInstrumenter.instrument}
 	 */
 	async instrument(task: InstrumentationTask): Promise<TaskResult> {
-		this.clearDumpOriginsFileIfNeeded(task.dumpOriginsFile);
+		this.clearFile(task.dumpOriginsFile);
+		this.clearFile(task.dumpMatchedOriginsFile);
 
 		// We limit the number of instrumentations in parallel to one to
 		// not overuse memory (NodeJS has only limited mem to use).
-		return async
+		const result = await async
 			.mapLimit(task.elements, 1, async (taskElement: TaskElement) => {
 				return await this.instrumentOne(
 					taskElement,
@@ -111,8 +112,13 @@ export class IstanbulInstrumenter implements IInstrumenter {
 			.then(results => {
 				return results.reduce((prev, curr) => {
 					return prev.withIncrement(curr);
-				}, TaskResult.neutral());
+				}, TaskResult.neutral(task));
 			});
+
+		// Write the matching statistics to a JSON
+		this.dumpToJson(task.dumpMatchedOriginsFile, task.originSourcePattern);
+
+		return result;
 	}
 
 	/**
@@ -214,7 +220,7 @@ export class IstanbulInstrumenter implements IInstrumenter {
 		for (const inputSourceMap of inputSourceMaps.filter(map => map)) {
 			const originSourceFiles = inputSourceMap?.sources ?? [];
 			if (dumpOriginsFile) {
-				this.dumpOrigins(dumpOriginsFile, originSourceFiles);
+				this.dumpToJson(dumpOriginsFile, originSourceFiles);
 			}
 		}
 
@@ -313,25 +319,29 @@ export class IstanbulInstrumenter implements IInstrumenter {
 		];
 	}
 
-	/** Appends all origins from the source map to a given file. Creates the file if it does not exist yet. */
-	private dumpOrigins(dumpOriginsFile: string, originSourceFiles: string[]) {
-		const jsonContent = JSON.stringify(originSourceFiles, null, 2);
-		fs.writeFile(dumpOriginsFile, jsonContent + '\n', { flag: 'a' }, error => {
-			if (error) {
-				this.logger.warn('Could not dump origins file');
-			}
-		});
-	}
-
-	/** Clears the dump origins file if it exists, such that it is now ready to be appended for every instrumented file. */
-	private clearDumpOriginsFileIfNeeded(dumpOriginsFile: string | undefined) {
-		if (dumpOriginsFile && fs.existsSync(dumpOriginsFile)) {
+	/** Deletes the file if it exists, such that it is now ready to be appended. */
+	private clearFile(filePath: string | undefined) {
+		if (filePath && fs.existsSync(filePath)) {
 			try {
-				fs.unlinkSync(dumpOriginsFile);
+				fs.unlinkSync(filePath);
 			} catch (err) {
-				this.logger.warn('Could not clear origins file: ' + err);
+				this.logger.warn(`Could not clear file ${filePath}:` + err);
 			}
 		}
+	}
+
+	/** Write the contents of the given object into the given file, if provided. */
+	private dumpToJson(targetFilePath: string | undefined, toDump: object) {
+		if (!targetFilePath) {
+			return;
+		}
+
+		const jsonContent = JSON.stringify(toDump, null, 2);
+		fs.writeFile(targetFilePath, jsonContent + '\n', { flag: 'a' }, error => {
+			if (error) {
+				this.logger.warn(`Could not dump JSON to file ${targetFilePath}:` + error.message);
+			}
+		});
 	}
 }
 

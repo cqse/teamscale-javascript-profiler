@@ -29,6 +29,8 @@ export type ConfigurationParameters = {
 	exclude_bundle?: string[];
 	// eslint-disable-next-line camelcase
 	dump_origins_to?: string;
+	// eslint-disable-next-line camelcase
+	dump_origin_matches_to?: string;
 };
 
 /**
@@ -66,8 +68,16 @@ export class TaskBuilder {
 	/** Bundle exclude patters. */
 	private bundleFileExcludePatterns: string[] | undefined;
 
-	/** File path where all origins from the source map should be dumped in json format, or undefined if no origins should be dumped */
+	/**
+	 * File path where all origins from the source map should be dumped in JSON format,
+	 * or undefined if no origins should be dumped */
 	private dumpOriginsFile: string | undefined;
+
+	/**
+	 * File path where the matched origin file names are stored as JSON,
+	 * `undefined` if this information should not be dumped.
+	 */
+	private dumpMatchedOriginsFile: string | undefined;
 
 	constructor() {
 		this.elements = [];
@@ -116,6 +126,7 @@ export class TaskBuilder {
 		const target: string | undefined = config.to;
 		const sourceMap: string | undefined = config.source_map;
 		this.dumpOriginsFile = config.dump_origins_to;
+		this.dumpMatchedOriginsFile = config.dump_origin_matches_to;
 		this.setCollectorFromString(config.collector);
 		this.setOriginSourceIncludePatterns(config.include_origin);
 		this.setOriginSourceExcludePatterns(config.exclude_origin);
@@ -211,7 +222,8 @@ export class TaskBuilder {
 			this.elements,
 			new FileExcludePattern(this.bundleFileExcludePatterns),
 			new OriginSourcePattern(this.originSourceIncludePatterns, this.originSourceExcludePatterns),
-			this.dumpOriginsFile
+			this.dumpOriginsFile,
+			this.dumpMatchedOriginsFile
 		);
 	}
 }

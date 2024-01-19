@@ -113,7 +113,10 @@ export class App {
 			help: 'Glob pattern(s) of input (bundle) files to keep unchanged (to not instrument).'
 		});
 		parser.add_argument('-p', '--dump-origins-to', {
-			help: 'Optional location specifying where to dump possible origins from the source map as a json file'
+			help: 'Path specifying where to dump source origins file names, based on the source maps, as a JSON file.'
+		});
+		parser.add_argument('-m', '--dump-origin-matches-to', {
+			help: 'Path specifying where to dump a JSON with the names of the files that have matched the origin include/exclude patterns.'
 		});
 		parser.add_argument('inputs', { nargs: '+', help: 'The input file(s) to instrument.' });
 

@@ -98,9 +98,27 @@ export class OriginSourcePattern {
 	 */
 	private readonly exclude: string[] | undefined;
 
+	/**
+	 * Files that did match the `include` pattern.
+	 */
+	private readonly includeMatches: Set<string>;
+
+	/**
+	 * Files that did match the `exclude` pattern.
+	 */
+	private readonly excludeMatches: Set<string>;
+
+	/**
+	 * Files that did neither match the `exclude` nor the `include` pattern.
+	 */
+	private readonly neitherExcludedNorIncluded: Set<string>;
+
 	constructor(include: string[] | undefined, exclude: string[] | undefined) {
 		this.include = normalizePatterns(include);
 		this.exclude = normalizePatterns(exclude);
+		this.includeMatches = new Set<string>();
+		this.excludeMatches = new Set<string>();
+		this.neitherExcludedNorIncluded = new Set<string>();
 	}
 
 	/**
@@ -124,15 +142,25 @@ export class OriginSourcePattern {
 		if (this.exclude) {
 			const matchedToExclude = micromatch([normalizedOriginFile], this.exclude);
 			if (matchedToExclude.length === 1) {
+				this.excludeMatches.add(normalizedOriginFile);
 				return false;
 			}
 		}
 
+		let result = true;
+
 		if (this.include) {
-			return micromatch.some([normalizedOriginFile], this.include || ['**']);
+			result = micromatch.some([normalizedOriginFile], this.include ?? ['**']);
+			if (result) {
+				this.includeMatches.add(normalizedOriginFile);
+			}
 		}
 
-		return true;
+		if (!result) {
+			this.neitherExcludedNorIncluded.add(normalizedOriginFile);
+		}
+
+		return result;
 	}
 
 	/**
@@ -141,6 +169,24 @@ export class OriginSourcePattern {
 	 */
 	public isAnyIncluded(originFiles: string[]): boolean {
 		return originFiles.find(value => this.isIncluded(value)) !== undefined;
+	}
+
+	/**
+	 * Retrieve the file names that have been matching the different patterns.
+	 */
+	public retrieveMatchingFiles(): {
+		includePatters: string[],
+		excludePatterns: string[],
+		excludeMatches: string[],
+		includeMatches: string[],
+		neitherExcludedNorIncluded: string[] } {
+		return {
+			includePatters: this.include ?? [],
+			excludePatterns: this.exclude ?? [],
+			excludeMatches: [... this.excludeMatches],
+			includeMatches: [... this.includeMatches],
+			neitherExcludedNorIncluded: [... this.neitherExcludedNorIncluded ]
+		};
 	}
 }
 
@@ -237,18 +283,25 @@ export class InstrumentationTask {
 	 */
 	public readonly dumpOriginsFile: string | undefined;
 
+	/**
+	 * File to write the matched files to.
+	 */
+	public readonly dumpMatchedOriginsFile: string | undefined;
+
 	constructor(
 		collector: CollectorSpecifier,
 		elements: TaskElement[],
 		excludeFilesPattern: FileExcludePattern,
 		originSourcePattern: OriginSourcePattern,
-		dumpOriginsFile: string | undefined
+		dumpOriginsFile: string | undefined,
+		dumpMatchedOriginsFile: string | undefined,
 	) {
 		this.collector = Contract.requireDefined(collector);
 		this.excludeFilesPattern = Contract.requireDefined(excludeFilesPattern);
 		this.originSourcePattern = Contract.requireDefined(originSourcePattern);
 		this._elements = Contract.requireDefined(elements).slice();
 		this.dumpOriginsFile = dumpOriginsFile;
+		this.dumpMatchedOriginsFile = dumpMatchedOriginsFile;
 	}
 
 	/**
@@ -286,6 +339,9 @@ export class TaskResult {
 	/** Number of warnings that were produced during the instrumentation process */
 	public readonly warnings: number;
 
+	/** The instrumentation task for that the results were produced. */
+	public readonly task?: InstrumentationTask;
+
 	constructor(
 		translated: number,
 		excluded: number,
@@ -293,7 +349,8 @@ export class TaskResult {
 		alreadyInstrumented: number,
 		unsupported: number,
 		failed: number,
-		warnings: number
+		warnings: number,
+		task?: InstrumentationTask
 	) {
 		Contract.require(translated > -1);
 		Contract.require(excluded > -1);
@@ -309,6 +366,7 @@ export class TaskResult {
 		this.unsupported = unsupported;
 		this.failed = failed;
 		this.warnings = warnings;
+		this.task = task;
 	}
 
 	/**
@@ -324,15 +382,16 @@ export class TaskResult {
 			this.alreadyInstrumented + incBy.alreadyInstrumented,
 			this.unsupported + incBy.unsupported,
 			this.failed + incBy.failed,
-			this.warnings + incBy.warnings
+			this.warnings + incBy.warnings,
+			this.task ?? incBy.task
 		);
 	}
 
 	/**
 	 * @returns the neutral task element (adding it with {@code withIncrement} does not change the result).
 	 */
-	public static neutral(): TaskResult {
-		return new TaskResult(0, 0, 0, 0, 0, 0, 0);
+	public static neutral(task?: InstrumentationTask): TaskResult {
+		return new TaskResult(0, 0, 0, 0, 0, 0, 0, task);
 	}
 
 	/**

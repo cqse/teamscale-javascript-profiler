@@ -147,17 +147,17 @@ export class OriginSourcePattern {
 			}
 		}
 
-
 		if (this.include) {
 			const result = micromatch.some([normalizedOriginFile], this.include ?? ['**']);
 			if (result) {
 				this.includeMatches.add(normalizedOriginFile);
-				return true;
+			} else {
+				this.neitherExcludedNorIncluded.add(normalizedOriginFile);
 			}
+			return result;
 		}
 
 		this.neitherExcludedNorIncluded.add(normalizedOriginFile);
-
 		return true;
 	}
 

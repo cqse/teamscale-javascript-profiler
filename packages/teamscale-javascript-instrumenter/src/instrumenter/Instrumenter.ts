@@ -116,7 +116,7 @@ export class IstanbulInstrumenter implements IInstrumenter {
 			});
 
 		// Write the matching statistics to a JSON
-		this.dumpToJson(task.dumpMatchedOriginsFile, task.originSourcePattern);
+		this.dumpToJson(task.dumpMatchedOriginsFile, task.originSourcePattern.retrieveMatchingFiles());
 
 		return result;
 	}

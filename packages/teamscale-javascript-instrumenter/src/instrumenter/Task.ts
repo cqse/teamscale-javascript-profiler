@@ -158,7 +158,7 @@ export class OriginSourcePattern {
 		}
 
 		if (this.include) {
-			const result = micromatch.some([normalizedOriginFile], this.include ?? ['**'], MATCHER_OPTIONS);
+			const result = micromatch.some([normalizedOriginFile], this.include, MATCHER_OPTIONS);
 			if (result) {
 				this.includeMatches.add(normalizedOriginFile);
 			} else {

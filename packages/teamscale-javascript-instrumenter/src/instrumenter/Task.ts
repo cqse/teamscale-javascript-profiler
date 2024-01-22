@@ -1,6 +1,7 @@
 import { Optional } from 'typescript-optional';
 import { Contract } from '@cqse/commons';
 import micromatch from 'micromatch';
+import {valueToNode} from "@babel/types";
 
 /**
  * An abstract source map type.
@@ -82,6 +83,15 @@ export class CollectorSpecifier {
 }
 
 /**
+ * Configuration used to match paths with `micromatch`.
+ */
+const MATCHER_OPTIONS:micromatch.Options = {
+	basename: false,
+	lookbehinds: true,
+	noglobstar: false
+}
+
+/**
  * Patterns that define which parts of a given bundle to instrument or not.
  *
  * The patterns describe a set of filenames that can be found in the origin,
@@ -140,7 +150,7 @@ export class OriginSourcePattern {
 
 		const normalizedOriginFile = normalizePath(originFile);
 		if (this.exclude) {
-			const matchedToExclude = micromatch([normalizedOriginFile], this.exclude);
+			const matchedToExclude = micromatch([normalizedOriginFile], this.exclude, MATCHER_OPTIONS);
 			if (matchedToExclude.length === 1) {
 				this.excludeMatches.add(normalizedOriginFile);
 				return false;
@@ -148,7 +158,7 @@ export class OriginSourcePattern {
 		}
 
 		if (this.include) {
-			const result = micromatch.some([normalizedOriginFile], this.include ?? ['**']);
+			const result = micromatch.some([normalizedOriginFile], this.include ?? ['**'], MATCHER_OPTIONS);
 			if (result) {
 				this.includeMatches.add(normalizedOriginFile);
 			} else {
@@ -236,7 +246,20 @@ function normalizeGlobPattern(pattern: string | undefined): string | undefined {
 }
 
 function normalizePath(toNormalize: string): string {
-	return removeTrailingCurrentWorkingDir(toNormalize.replace(/\\/g, '/'));
+	return removeTrailingDirectoryTraversals(
+		removeTrailingCurrentWorkingDir(
+			toNormalize.replace(/\\/g, '/')));
+}
+
+/**
+ * `micromatch` cannot deal with leading `../`, so we remove those.
+ */
+function removeTrailingDirectoryTraversals(toNormalize: string): string {
+	let result = toNormalize;
+	while (result.startsWith("../")) {
+		result = result.substring(3);
+	}
+	return result;
 }
 
 function removeTrailingCurrentWorkingDir(removeFrom: string): string {

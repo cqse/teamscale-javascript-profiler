@@ -1,4 +1,5 @@
 import { FileExcludePattern, OriginSourcePattern } from '../../src/instrumenter/Task';
+import micromatch from "micromatch";
 
 describe('OriginSourcePattern', () => {
 	test('Include pattern without extension', () => {
@@ -9,6 +10,19 @@ describe('OriginSourcePattern', () => {
 		]);
 		expect(result).toBeTruthy();
 	});
+
+	test('Include pattern, vueJs', () => {
+		const pattern = new OriginSourcePattern(['**/*.*'], undefined);
+		const result = pattern.isAnyIncluded(['../../node_modules/@vue/shared/dist/shared.esm-bundler.js']);
+		expect(result).toBeTruthy();
+	});
+
+	test('Include pattern, vueJs, partial path', () => {
+		const pattern = new OriginSourcePattern(['**/dist/*.js'], undefined);
+		const result = pattern.isAnyIncluded(['shared/dist/shared.esm-bundler.js']);
+		expect(result).toBeTruthy();
+	});
+
 
 	test('Include pattern with extension', () => {
 		const pattern = new OriginSourcePattern(['src/app/**/*.ts'], undefined);

@@ -249,10 +249,13 @@ function normalizeGlobPattern(pattern: string | undefined): string | undefined {
 		return pattern;
 	}
 
-	return removeTrailingCurrentWorkingDir(pattern);
+	// This should be in line with the logic in `normalizePath`.
+	return removeTrailingDirectoryTraversals(
+		removeTrailingCurrentWorkingDir(pattern));
 }
 
 function normalizePath(toNormalize: string): string {
+	// This should be in line with the logic in `normalizeGlobPattern`.
 	return removeTrailingDirectoryTraversals(
 		removeTrailingCurrentWorkingDir(
 			toNormalize.replace(/\\/g, '/')));

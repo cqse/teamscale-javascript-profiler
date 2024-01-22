@@ -2,9 +2,9 @@ We use [Semantic Versioning](https://semver.org/).
 
 # New Release
 
-# 0.1.0-beta.3
-
-# 0.1.0-beta.2
+- [feature] The instrumenter provides statistics on the number of origin file names 
+    that matched the include/exclude patterns.
+- [fix] Path starting with `../` where not matched by `**`; removing this prefix now from the path to match.
 
 # 0.1.0-beta.1
 

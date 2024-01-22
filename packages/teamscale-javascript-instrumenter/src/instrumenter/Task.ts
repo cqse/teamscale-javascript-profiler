@@ -1,6 +1,7 @@
 import { Optional } from 'typescript-optional';
 import { Contract } from '@cqse/commons';
 import micromatch from 'micromatch';
+import {valueToNode} from "@babel/types";
 
 /**
  * An abstract source map type.
@@ -82,6 +83,15 @@ export class CollectorSpecifier {
 }
 
 /**
+ * Configuration used to match paths with `micromatch`.
+ */
+const MATCHER_OPTIONS:micromatch.Options = {
+	basename: false,
+	lookbehinds: true,
+	noglobstar: false
+}
+
+/**
  * Patterns that define which parts of a given bundle to instrument or not.
  *
  * The patterns describe a set of filenames that can be found in the origin,
@@ -98,9 +108,27 @@ export class OriginSourcePattern {
 	 */
 	private readonly exclude: string[] | undefined;
 
+	/**
+	 * Files that did match the `include` pattern.
+	 */
+	private readonly includeMatches: Set<string>;
+
+	/**
+	 * Files that did match the `exclude` pattern.
+	 */
+	private readonly excludeMatches: Set<string>;
+
+	/**
+	 * Files that did neither match the `exclude` nor the `include` pattern.
+	 */
+	private readonly neitherExcludedNorIncluded: Set<string>;
+
 	constructor(include: string[] | undefined, exclude: string[] | undefined) {
 		this.include = normalizePatterns(include);
 		this.exclude = normalizePatterns(exclude);
+		this.includeMatches = new Set<string>();
+		this.excludeMatches = new Set<string>();
+		this.neitherExcludedNorIncluded = new Set<string>();
 	}
 
 	/**
@@ -122,16 +150,24 @@ export class OriginSourcePattern {
 
 		const normalizedOriginFile = normalizePath(originFile);
 		if (this.exclude) {
-			const matchedToExclude = micromatch([normalizedOriginFile], this.exclude);
+			const matchedToExclude = micromatch([normalizedOriginFile], this.exclude, MATCHER_OPTIONS);
 			if (matchedToExclude.length === 1) {
+				this.excludeMatches.add(normalizedOriginFile);
 				return false;
 			}
 		}
 
 		if (this.include) {
-			return micromatch.some([normalizedOriginFile], this.include || ['**']);
+			const result = micromatch.some([normalizedOriginFile], this.include, MATCHER_OPTIONS);
+			if (result) {
+				this.includeMatches.add(normalizedOriginFile);
+			} else {
+				this.neitherExcludedNorIncluded.add(normalizedOriginFile);
+			}
+			return result;
 		}
 
+		this.neitherExcludedNorIncluded.add(normalizedOriginFile);
 		return true;
 	}
 
@@ -141,6 +177,31 @@ export class OriginSourcePattern {
 	 */
 	public isAnyIncluded(originFiles: string[]): boolean {
 		return originFiles.find(value => this.isIncluded(value)) !== undefined;
+	}
+
+	/**
+	 * Retrieve the file names that have been matching the different patterns.
+	 */
+	public retrieveMatchingFiles(): {
+		includePatterns: string[],
+		excludePatterns: string[],
+		excludeMatches: string[],
+		includeMatches: string[],
+		neitherExcludedNorIncluded: string[] } {
+		return {
+			includePatterns: this.include ?? [],
+			excludePatterns: this.exclude ?? [],
+			excludeMatches: [... this.excludeMatches],
+			includeMatches: [... this.includeMatches],
+			neitherExcludedNorIncluded: [... this.neitherExcludedNorIncluded ]
+		};
+	}
+
+	/**
+	 * Returns if include/exclude patterns are specified.
+	 */
+	public patternsSpecified(): boolean {
+		return this.include !== undefined || this.exclude !== undefined;
 	}
 }
 
@@ -188,11 +249,27 @@ function normalizeGlobPattern(pattern: string | undefined): string | undefined {
 		return pattern;
 	}
 
-	return removeTrailingCurrentWorkingDir(pattern);
+	// This should be in line with the logic in `normalizePath`.
+	return removeTrailingDirectoryTraversals(
+		removeTrailingCurrentWorkingDir(pattern));
 }
 
 function normalizePath(toNormalize: string): string {
-	return removeTrailingCurrentWorkingDir(toNormalize.replace(/\\/g, '/'));
+	// This should be in line with the logic in `normalizeGlobPattern`.
+	return removeTrailingDirectoryTraversals(
+		removeTrailingCurrentWorkingDir(
+			toNormalize.replace(/\\/g, '/')));
+}
+
+/**
+ * `micromatch` cannot deal with leading `../`, so we remove those.
+ */
+function removeTrailingDirectoryTraversals(toNormalize: string): string {
+	let result = toNormalize;
+	while (result.startsWith("../")) {
+		result = result.substring(3);
+	}
+	return result;
 }
 
 function removeTrailingCurrentWorkingDir(removeFrom: string): string {
@@ -237,18 +314,25 @@ export class InstrumentationTask {
 	 */
 	public readonly dumpOriginsFile: string | undefined;
 
+	/**
+	 * File to write the matched files to.
+	 */
+	public readonly dumpMatchedOriginsFile: string | undefined;
+
 	constructor(
 		collector: CollectorSpecifier,
 		elements: TaskElement[],
 		excludeFilesPattern: FileExcludePattern,
 		originSourcePattern: OriginSourcePattern,
-		dumpOriginsFile: string | undefined
+		dumpOriginsFile: string | undefined,
+		dumpMatchedOriginsFile: string | undefined,
 	) {
 		this.collector = Contract.requireDefined(collector);
 		this.excludeFilesPattern = Contract.requireDefined(excludeFilesPattern);
 		this.originSourcePattern = Contract.requireDefined(originSourcePattern);
 		this._elements = Contract.requireDefined(elements).slice();
 		this.dumpOriginsFile = dumpOriginsFile;
+		this.dumpMatchedOriginsFile = dumpMatchedOriginsFile;
 	}
 
 	/**
@@ -286,6 +370,9 @@ export class TaskResult {
 	/** Number of warnings that were produced during the instrumentation process */
 	public readonly warnings: number;
 
+	/** The instrumentation task for that the results were produced. */
+	public readonly task?: InstrumentationTask;
+
 	constructor(
 		translated: number,
 		excluded: number,
@@ -293,7 +380,8 @@ export class TaskResult {
 		alreadyInstrumented: number,
 		unsupported: number,
 		failed: number,
-		warnings: number
+		warnings: number,
+		task?: InstrumentationTask
 	) {
 		Contract.require(translated > -1);
 		Contract.require(excluded > -1);
@@ -309,6 +397,7 @@ export class TaskResult {
 		this.unsupported = unsupported;
 		this.failed = failed;
 		this.warnings = warnings;
+		this.task = task;
 	}
 
 	/**
@@ -324,15 +413,16 @@ export class TaskResult {
 			this.alreadyInstrumented + incBy.alreadyInstrumented,
 			this.unsupported + incBy.unsupported,
 			this.failed + incBy.failed,
-			this.warnings + incBy.warnings
+			this.warnings + incBy.warnings,
+			this.task ?? incBy.task
 		);
 	}
 
 	/**
 	 * @returns the neutral task element (adding it with {@code withIncrement} does not change the result).
 	 */
-	public static neutral(): TaskResult {
-		return new TaskResult(0, 0, 0, 0, 0, 0, 0);
+	public static neutral(task?: InstrumentationTask): TaskResult {
+		return new TaskResult(0, 0, 0, 0, 0, 0, 0, task);
 	}
 
 	/**

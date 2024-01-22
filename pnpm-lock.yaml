@@ -181,7 +181,7 @@ importers:
     dependencies:
       '@cqse/commons':
         specifier: 0.1.0-beta.2
-        version: link:../cqse-commons
+        version: 0.1.0-beta.2
       argparse:
         specifier: ^2.0.1
         version: 2.0.1
@@ -296,7 +296,7 @@ importers:
         version: 7.23.6
       '@cqse/commons':
         specifier: 0.1.0-beta.2
-        version: link:../cqse-commons
+        version: 0.1.0-beta.2
       '@teamscale/lib-instrument':
         specifier: workspace:../lib-instrument
         version: link:../lib-instrument
@@ -1674,6 +1674,12 @@ packages:
     requiresBuild: true
     dev: true
     optional: true
+
+  /@cqse/commons@0.1.0-beta.2:
+    resolution: {integrity: sha512-VuM8MHa6wi94iti47U5ddVJPbVKWt4zJ4Jqi8NkhDIrmTpDQDEEyq/R7wIOdxDcSLWtnGfyfE4V9NfO/lSHPmQ==}
+    dependencies:
+      typescript-optional: 2.0.1
+    dev: false
 
   /@cspotcode/source-map-support@0.8.1:
     resolution: {integrity: sha512-IchNf6dN4tHoMFIn/7OE8LWZ19Y6q/67Bmf6vnGREv8RSbBVb9LPJxEcnwrcwX6ixSvaiGoomAUvu4YSxXrVgw==}

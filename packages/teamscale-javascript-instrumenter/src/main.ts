@@ -13,6 +13,17 @@ App.run()
 		console.log(`\tUnsupported: ${result.unsupported}`);
 		console.log(`\tWith warning: ${result.warnings}`);
 		console.log(`\tFailed: ${result.failed}`);
+
+		if (result.task?.originSourcePattern.patternsSpecified()) {
+			const stats = result.task?.originSourcePattern.retrieveMatchingFiles();
+			console.log(`\tSource origin matches`);
+			console.log(`\t\tInclude patterns: [${stats.includePatterns}]`);
+			console.log(`\t\tExclude patterns: [${stats.excludeMatches}]`);
+			console.log(`\t\tInclude matches: ${stats.includeMatches.length}`);
+			console.log(`\t\tExclude matches: ${stats.excludeMatches.length}`);
+			console.log(`\t\tNeither matches: ${stats.neitherExcludedNorIncluded.length}`);
+		}
+
 	})
 	.catch(reason => {
 		console.log('Failed: ', reason);

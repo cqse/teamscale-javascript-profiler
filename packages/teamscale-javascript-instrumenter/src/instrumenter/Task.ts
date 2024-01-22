@@ -183,13 +183,13 @@ export class OriginSourcePattern {
 	 * Retrieve the file names that have been matching the different patterns.
 	 */
 	public retrieveMatchingFiles(): {
-		includePatters: string[],
+		includePatterns: string[],
 		excludePatterns: string[],
 		excludeMatches: string[],
 		includeMatches: string[],
 		neitherExcludedNorIncluded: string[] } {
 		return {
-			includePatters: this.include ?? [],
+			includePatterns: this.include ?? [],
 			excludePatterns: this.exclude ?? [],
 			excludeMatches: [... this.excludeMatches],
 			includeMatches: [... this.includeMatches],

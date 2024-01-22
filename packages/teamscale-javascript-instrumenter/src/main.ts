@@ -17,7 +17,7 @@ App.run()
 		const originMatching = result.task?.originSourcePattern.retrieveMatchingFiles();
 		if (originMatching) {
 			console.log(`\tSource origin matches`);
-			console.log(`\t\tInclude patterns: [${originMatching.includePatters}]`);
+			console.log(`\t\tInclude patterns: [${originMatching.includePatterns}]`);
 			console.log(`\t\tExclude patterns: [${originMatching.excludeMatches}]`);
 			console.log(`\t\tInclude matches: ${originMatching.includeMatches.length}`);
 			console.log(`\t\tExclude matches: ${originMatching.excludeMatches.length}`);

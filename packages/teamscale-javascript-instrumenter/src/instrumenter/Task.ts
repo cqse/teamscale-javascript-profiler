@@ -196,6 +196,13 @@ export class OriginSourcePattern {
 			neitherExcludedNorIncluded: [... this.neitherExcludedNorIncluded ]
 		};
 	}
+
+	/**
+	 * Returns if include/exclude patterns are specified.
+	 */
+	public patternsSpecified(): boolean {
+		return this.include !== undefined || this.exclude !== undefined;
+	}
 }
 
 /**

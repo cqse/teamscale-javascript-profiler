@@ -14,14 +14,14 @@ App.run()
 		console.log(`\tWith warning: ${result.warnings}`);
 		console.log(`\tFailed: ${result.failed}`);
 
-		const originMatching = result.task?.originSourcePattern.retrieveMatchingFiles();
-		if (originMatching) {
+		if (result.task?.originSourcePattern.patternsSpecified()) {
+			const stats = result.task?.originSourcePattern.retrieveMatchingFiles();
 			console.log(`\tSource origin matches`);
-			console.log(`\t\tInclude patterns: [${originMatching.includePatterns}]`);
-			console.log(`\t\tExclude patterns: [${originMatching.excludeMatches}]`);
-			console.log(`\t\tInclude matches: ${originMatching.includeMatches.length}`);
-			console.log(`\t\tExclude matches: ${originMatching.excludeMatches.length}`);
-			console.log(`\t\tNeither matches: ${originMatching.neitherExcludedNorIncluded.length}`);
+			console.log(`\t\tInclude patterns: [${stats.includePatterns}]`);
+			console.log(`\t\tExclude patterns: [${stats.excludeMatches}]`);
+			console.log(`\t\tInclude matches: ${stats.includeMatches.length}`);
+			console.log(`\t\tExclude matches: ${stats.excludeMatches.length}`);
+			console.log(`\t\tNeither matches: ${stats.neitherExcludedNorIncluded.length}`);
 		}
 
 	})

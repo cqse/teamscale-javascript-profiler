@@ -550,7 +550,7 @@ function buildGrafana(study) {
 
 function buildStudy(study) {
 	console.log('## Build the case study');
-	execSync('npm install', { cwd: study.rootDir });
+	execSync('npm install --force', { cwd: study.rootDir });
 	execSync('npm run clean', { cwd: study.rootDir , stdio: 'inherit'});
 	execSync('npm run build', { cwd: study.rootDir });
 }

@@ -25,8 +25,8 @@ importers:
         specifier: ^6.20.0
         version: 6.20.0(eslint@8.56.0)(typescript@5.3.3)
       commander:
-        specifier: ^11.1.0
-        version: 11.1.0
+        specifier: ^12.0.0
+        version: 12.0.0
       cypress:
         specifier: ^13.6.4
         version: 13.6.4
@@ -3568,9 +3568,9 @@ packages:
       typical: 5.2.0
     dev: true
 
-  /commander@11.1.0:
-    resolution: {integrity: sha512-yPVavfyCcRhmorC7rWlkHn15b4wDVgVmBA7kV4QVBsF7kv/9TKJAbAXVTxvTnwP8HHKjRCJDClKbciiYS7p0DQ==}
-    engines: {node: '>=16'}
+  /commander@12.0.0:
+    resolution: {integrity: sha512-MwVNWlYjDTtOjX5PiD7o5pK0UrFU/OYgcJfjjK4RaHZETNtjJqrZa9Y9ds88+A+f+d5lv+561eZ+yCKoS3gbAA==}
+    engines: {node: '>=18'}
     dev: true
 
   /commander@4.1.1:
@@ -6943,6 +6943,7 @@ packages:
   /normalize-path@3.0.0:
     resolution: {integrity: sha512-6eZs5Ls3WtCisHWp9S2GUy8dqkpGi4BVSz3GaqiE6ezub0512ESztXUwUB6C6IKbQkY2Pnb/mD4WYojCRwcwLA==}
     engines: {node: '>=0.10.0'}
+    requiresBuild: true
     dev: true
 
   /npm-run-path@4.0.1:

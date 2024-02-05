@@ -30,7 +30,7 @@
     "local-web-server": "^5.3.1",
     "mkdirp": "^3.0.1",
     "mock-http-server": "^1.4.5",
-    "prettier": "^3.2.4",
+    "prettier": "^3.2.5",
     "tempfile": "^5.0.0",
     "tree-kill": "^1.2.2",
     "ts-node": "^10.9.2",

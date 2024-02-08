@@ -32,7 +32,7 @@ Teamscale uses the coverage information, for example, to conduct a Test Gap anal
 
 ## Documentation 
 
-Please see our [HOWTO](https://docs.teamscale.com/howto/recording-test-coverage-for-javascript/) for details on using the profiler for your project.
+Please see our [HOWTO](https://docs.teamscale.com/howto/setting-up-profiler-tga/javascript/) for details on using the profiler for your project.
 
 ## Download
 

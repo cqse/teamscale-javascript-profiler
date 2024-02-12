@@ -21,6 +21,7 @@ export type ConfigurationParameters = {
 	// eslint-disable-next-line camelcase
 	source_map?: string;
 	collector: string;
+	collector_pattern?: string;
 	// eslint-disable-next-line camelcase
 	include_origin?: string[];
 	// eslint-disable-next-line camelcase

@@ -1,5 +1,5 @@
 import { ArgumentParser } from 'argparse';
-import {CollectorSpecifier, InstrumentationTask, TaskResult} from './instrumenter/Task';
+import { CollectorSpecifier, InstrumentationTask, TaskResult } from './instrumenter/Task';
 import { IInstrumenter, IstanbulInstrumenter } from './instrumenter/Instrumenter';
 import { Contract } from '@cqse/commons';
 import { ConfigurationParameters, TaskBuilder } from './instrumenter/TaskBuilder';
@@ -99,6 +99,11 @@ export class App {
 		parser.add_argument('-c', '--collector', {
 			help: 'The collector (`host:port` or `wss://host:port/` or `ws://host:port/`) to send coverage information to.',
 			default: 'ws://localhost:54678'
+		});
+		parser.add_argument('--collector-pattern', {
+			help: 'Substitution pattern used to determine the collector URL from the application hostname. Example: `a b 443 wss`.'
+				+ ' This causes the first occurrence of `a` in the application hostname to be replaced with `b`, the port changed to 443 and the protocol changed to wss.'
+				+ ' Port number and protocol are optional. May not be used in conjunction with --collector.'
 		});
 		parser.add_argument('-x', '--exclude-origin', {
 			nargs: '*',

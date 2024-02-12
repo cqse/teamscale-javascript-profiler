@@ -4,7 +4,8 @@ import {
 	OriginSourcePattern,
 	SourceMapFileReference,
 	SourceMapReference,
-	TaskElement
+	TaskElement,
+	createCollectorSpecifier
 } from './Task';
 import { Contract, InvalidConfigurationException } from '@cqse/commons';
 import * as fs from 'fs';
@@ -85,10 +86,10 @@ export class TaskBuilder {
 		this.collector = null;
 	}
 
-	/** Set the collector by extracting the information from a given string */
-	setCollectorFromString(collectorSpecification: string): this {
-		Contract.requireNonEmpty(collectorSpecification);
-		this.collector = new CollectorSpecifier(collectorSpecification);
+	/** Set the collector specification based on the command-line arguments. */
+	setCollectorFromCommandLine(commandLineUrl: string, substitutionPattern?: string): this {
+		Contract.requireNonEmpty(commandLineUrl, "The collector URL must not be empty");
+		this.collector = createCollectorSpecifier(commandLineUrl, substitutionPattern);
 		return this;
 	}
 
@@ -128,7 +129,7 @@ export class TaskBuilder {
 		const sourceMap: string | undefined = config.source_map;
 		this.dumpOriginsFile = config.dump_origins_to;
 		this.dumpMatchedOriginsFile = config.dump_origin_matches_to;
-		this.setCollectorFromString(config.collector);
+		this.setCollectorFromCommandLine(config.collector, config.collector_pattern);
 		this.setOriginSourceIncludePatterns(config.include_origin);
 		this.setOriginSourceExcludePatterns(config.exclude_origin);
 		this.setBundleExcludePatterns(config.exclude_bundle);

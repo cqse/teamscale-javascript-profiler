@@ -285,7 +285,7 @@ export class IstanbulInstrumenter implements IInstrumenter {
 	private loadVaccine(filePath: string, collector: CollectorSpecifier) {
 		// We first replace parameters in the file with the
 		// actual values, for example, the collector to send the coverage information to.
-		return fs.readFileSync(filePath, 'utf8').replace(/\$REPORT_TO_URL/g, collector.url);
+		return fs.readFileSync(filePath, 'utf8').replace(/\$COLLECTOR_SPECIFIER/g, JSON.stringify(collector));
 	}
 
 	/**

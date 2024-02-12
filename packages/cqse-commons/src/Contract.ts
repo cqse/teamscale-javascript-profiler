@@ -70,7 +70,7 @@ export class Contract {
 	 * @param regexp The regular expression to satisfy.
 	 * @param message The message describing the requirement.
 	 */
-	public static requireStringPattern(text: string, regexp: string, message?: string): string {
+	public static requireStringPattern(text: string, regexp: string | RegExp, message?: string): string {
 		this.requireDefined(text);
 		this.requireDefined(regexp);
 

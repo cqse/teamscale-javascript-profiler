@@ -1,12 +1,11 @@
 import { Optional } from 'typescript-optional';
 import { Contract } from '@cqse/commons';
 import micromatch from 'micromatch';
-import {valueToNode} from "@babel/types";
 
 /**
  * An abstract source map type.
  */
-export abstract class SourceMapReference {}
+export abstract class SourceMapReference { }
 
 type BaseBundle = { content: string; codeArguments: string[] };
 
@@ -61,31 +60,97 @@ export class TaskElement {
 	}
 }
 
-/**
- * Specifies the collector that is supposed to
- * receive the coverage information.
- */
-export class CollectorSpecifier {
-	/** The URL specifying the address the collector is reachable at. */
-	public readonly url: string;
+export interface CollectorSpecifierUrl {
+	type: "url";
+	url: string;
+}
 
-	constructor(specifier: string) {
-		if (specifier.indexOf('://') > 0) {
-			// A trailing slash will be removed
-			this.url = specifier.replace(/\/$/, '');
+/**
+ * The collector can be reached by replacing a term in document.location.hostname and optionally changing the port.
+ */
+export interface CollectorSpecifierSubstitutionPattern {
+	type: "substitutionPattern";
+	search: string;
+	replace: string;
+	port?: number;
+	useWss: boolean;
+}
+
+/**
+ * Specifies how the vaccine can reach the collector.
+ */
+export type CollectorSpecifier = CollectorSpecifierUrl | CollectorSpecifierSubstitutionPattern
+
+/**
+ * Given a command-line URL and an optional substitution pattern, create a specifier for how the vaccine can
+ * locate the connector.
+ * 
+ * If a substitution pattern is given, it is preferred, since the command-line interface always provides a URL 
+ * (the default URL in case the user didn't explicitly specify one).
+ */
+export function createCollectorSpecifier(commandLineUrl: string, substitutionPattern?: string): CollectorSpecifier {
+	if (substitutionPattern !== undefined) {
+		return parseSubstitutionPattern(substitutionPattern)
+	}
+
+	return parseCommandLineUrl(commandLineUrl)
+}
+
+/**
+ * Parses, validates and normalizes the given URL that the user provided on the command-line.
+ */
+function parseCommandLineUrl(commandLineUrl: string): CollectorSpecifierUrl {
+	let url: string;
+	if (commandLineUrl.indexOf('://') > 0) {
+		// A trailing slash will be removed
+		url = commandLineUrl.replace(/\/$/, '');
+	} else {
+		Contract.requireStringPattern(commandLineUrl, '.+:[0-9]+', 'Invalid collector pattern used!');
+		const host = commandLineUrl.split(':')[0];
+		const port = Number.parseInt(commandLineUrl.split(':')[1]);
+		url = `ws://${host}:${port}`;
+	}
+
+	return {
+		type: "url",
+		url,
+	}
+}
+
+/**
+ * Parses and validates the given substitution pattern.
+ */
+function parseSubstitutionPattern(pattern: string): CollectorSpecifierSubstitutionPattern {
+	Contract.requireStringPattern(pattern, /[^\s]+\s+[^\s]+(\s+\d+)?(\s+wss)?/i, "Invalid collector substitution pattern used!");
+	const parts = pattern.split(/\s+/);
+
+	let useWss = false;
+	let port: number | undefined = undefined;
+	if (parts.length === 3) {
+		if (parts[2].toLowerCase() === "wss") {
+			useWss = true;
 		} else {
-			Contract.requireStringPattern(specifier, '.+:[0-9]+', 'Invalid collector pattern used!');
-			const host = specifier.split(':')[0];
-			const port = Number.parseInt(specifier.split(':')[1]);
-			this.url = `ws://${host}:${port}`;
+			port = parseInt(parts[2])
 		}
 	}
+	if (parts.length === 4) {
+		port = parseInt(parts[2])
+		useWss = parts[3].toLowerCase() === "wss"
+	}
+
+	return {
+		type: "substitutionPattern",
+		search: parts[0],
+		replace: parts[1],
+		port,
+		useWss,
+	};
 }
 
 /**
  * Configuration used to match paths with `micromatch`.
  */
-const MATCHER_OPTIONS:micromatch.Options = {
+const MATCHER_OPTIONS: micromatch.Options = {
 	basename: false,
 	lookbehinds: true,
 	noglobstar: false
@@ -187,13 +252,14 @@ export class OriginSourcePattern {
 		excludePatterns: string[],
 		excludeMatches: string[],
 		includeMatches: string[],
-		neitherExcludedNorIncluded: string[] } {
+		neitherExcludedNorIncluded: string[]
+	} {
 		return {
 			includePatterns: this.include ?? [],
 			excludePatterns: this.exclude ?? [],
 			excludeMatches: [... this.excludeMatches],
 			includeMatches: [... this.includeMatches],
-			neitherExcludedNorIncluded: [... this.neitherExcludedNorIncluded ]
+			neitherExcludedNorIncluded: [... this.neitherExcludedNorIncluded]
 		};
 	}
 

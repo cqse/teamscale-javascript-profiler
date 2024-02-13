@@ -4,14 +4,40 @@
  */
 import { SocketWithRecovery } from './SocketWithRecovery';
 import { CoverageAggregator } from './CoverageAggregator';
-import {CoveredRanges} from "../types";
+import { CollectorSpecifier, CollectorSpecifierSubstitutionPattern, CoveredRanges } from "../types";
 
 console.log('Starting coverage forwarding worker.');
 
-// Create the client socket.
-// ATTENTION: Parts of the URLs, for example, $REPORT_TO_URL,
-// get replaced when injecting the code into the code to record coverage for.
-const socket = new SocketWithRecovery('$REPORT_TO_URL/socket');
+// ATTENTION: $COLLECTOR_SPECIFIER gets replaced with a JSON object when injecting the vaccine code
+// into the code to record coverage for.
+declare const $COLLECTOR_SPECIFIER: CollectorSpecifier
+
+function resolveCollectorUrl(): string {
+	const specifier = $COLLECTOR_SPECIFIER;
+	switch (specifier.type) {
+		case 'url':
+			return specifier.url;
+		case 'substitutionPattern':
+			return resolveSubstitutionPattern(specifier);
+	}
+}
+
+function resolveSubstitutionPattern(specifier: CollectorSpecifierSubstitutionPattern): string {
+	const host = location.host;
+	console.debug(`Resolved hostname ${host}, applying substitution`)
+	const newHost = host.replace(specifier.search, specifier.replace)
+	const protocol = specifier.useWss ? "wss" : "ws";
+
+	let portSection = ""
+	if (specifier.port !== undefined) {
+		portSection = `:${specifier.port}`
+	}
+	const url = `${protocol}://${newHost}${portSection}`
+	console.debug(`Resolved collector URL ${url}`)
+	return url
+}
+
+const socket = new SocketWithRecovery(`${resolveCollectorUrl()}/socket`);
 const aggregator = new CoverageAggregator(socket);
 
 // Handling of the messages the WebWorker receives

@@ -1,6 +1,7 @@
 import { Optional } from 'typescript-optional';
 import { Contract } from '@cqse/commons';
 import micromatch from 'micromatch';
+import { CollectorSpecifier, CollectorSpecifierSubstitutionPattern, CollectorSpecifierUrl } from '../vaccine/types'
 
 /**
  * An abstract source map type.
@@ -59,27 +60,6 @@ export class TaskElement {
 		return this.fromFile === this.toFile;
 	}
 }
-
-export interface CollectorSpecifierUrl {
-	type: "url";
-	url: string;
-}
-
-/**
- * The collector can be reached by replacing a term in document.location.hostname and optionally changing the port.
- */
-export interface CollectorSpecifierSubstitutionPattern {
-	type: "substitutionPattern";
-	search: string;
-	replace: string;
-	port?: number;
-	useWss: boolean;
-}
-
-/**
- * Specifies how the vaccine can reach the collector.
- */
-export type CollectorSpecifier = CollectorSpecifierUrl | CollectorSpecifierSubstitutionPattern
 
 /**
  * Given a command-line URL and an optional substitution pattern, create a specifier for how the vaccine can

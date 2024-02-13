@@ -1,5 +1,5 @@
 import {
-	CollectorSpecifier, FileExcludePattern,
+	FileExcludePattern,
 	InstrumentationTask,
 	OriginSourcePattern,
 	SourceMapFileReference,
@@ -11,6 +11,7 @@ import { Contract, InvalidConfigurationException } from '@cqse/commons';
 import * as fs from 'fs';
 import * as path from 'path';
 import { ensureExistingDirectory, expandToFileSet, isExistingDirectory, isExistingFile } from './FileSystem';
+import { CollectorSpecifier } from '@src/vaccine/types';
 
 /** The parameters the instrumenter can be configured by */
 export type ConfigurationParameters = {

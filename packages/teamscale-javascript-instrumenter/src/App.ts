@@ -1,5 +1,5 @@
 import { ArgumentParser } from 'argparse';
-import { CollectorSpecifier, InstrumentationTask, TaskResult } from './instrumenter/Task';
+import { InstrumentationTask, TaskResult } from './instrumenter/Task';
 import { IInstrumenter, IstanbulInstrumenter } from './instrumenter/Instrumenter';
 import { Contract } from '@cqse/commons';
 import { ConfigurationParameters, TaskBuilder } from './instrumenter/TaskBuilder';
@@ -8,6 +8,7 @@ import { version } from '../package.json';
 import { existsSync } from 'fs';
 import { mkdirp } from 'mkdirp';
 import Logger from 'bunyan';
+import { CollectorSpecifier } from './vaccine/types';
 
 /**
  * Entry points of the instrumenter, including command line argument parsing.

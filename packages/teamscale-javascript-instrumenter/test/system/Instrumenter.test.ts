@@ -1,5 +1,6 @@
 import * as path from 'path';
 import { App } from '../../src/App';
+import { readFileSync, readSync } from 'fs';
 
 test('Instrumentation: JS that was constructed from TS', () => {
 	const outputDir = path.join(__dirname, '..', '..', 'outputs');
@@ -130,4 +131,25 @@ test('Instrumentation: Polyfill', async () => {
 	expect(matchStats?.excludePatterns).toContain("node_modules/**/*.*")
 	expect(matchStats?.excludeMatches).toContain("node_modules/zone.js/fesm2015/zone.js")
 	expect(result).toHaveProperty('translated', 1);
+});
+
+test('Instrumented code must contain collector specification', async () => {
+	const outputDir = path.join(__dirname, '..', '..', 'outputs');
+	const result = await App.runForConfigArguments({
+		inputs: [path.join(__dirname, 'inputs', 'plain-ts-main.js')],
+		exclude_origin: ['node_modules/**/*.*'],
+		in_place: false,
+		collector: "ws://not-used-since-pattern-is-also-given",
+		collector_pattern: "foo bar 1234 wss",
+		to: outputDir
+	});
+	const matchStats = result.task?.originSourcePattern.retrieveMatchingFiles();
+
+	expect(result).toHaveProperty('translated', 1);
+
+	expect(result.task).toBeTruthy();
+	const instrumentedFile = result.task!.elements[0].toFile;
+	const instrumentedCode = readFileSync(instrumentedFile).toString();
+	expect(instrumentedCode).not.toContain("$COLLECTOR_SPECIFIER")
+	expect(instrumentedCode).toContain(`{"type":"substitutionPattern","search":"foo","replace":"bar","port":1234,"useWss":true}`)
 });

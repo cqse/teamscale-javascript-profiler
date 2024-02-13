@@ -2,6 +2,8 @@ We use [Semantic Versioning](https://semver.org/).
 
 # New Release
 
+- [feature] Add `--collector-pattern` to support Kubernetes deployments of the collector.
+
 # 0.1.0-beta.4
 
 - [feature] The instrumenter provides statistics on the number of origin file names 

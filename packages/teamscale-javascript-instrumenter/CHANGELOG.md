@@ -2,6 +2,8 @@ We use [Semantic Versioning](https://semver.org/).
 
 # New Release
 
+- [fix] Exclude patterns were not printed properly when providing the instrumentation summary.
+
 # 0.1.0-beta.4
 
 - [feature] The instrumenter provides statistics on the number of origin file names 

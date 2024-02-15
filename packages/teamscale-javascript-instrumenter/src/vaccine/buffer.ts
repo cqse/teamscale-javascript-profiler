@@ -2,8 +2,8 @@
  * Coverage collected for a given file.
  */
 export type FileCoverageBuffer = {
-    /** Covered lines (in pairs: start line, end line) */
-    lines: number[],
+    /** Covered lines */
+    lines: Set<number>,
 };
 
 /**
@@ -36,13 +36,24 @@ export function createCoverageBuffer(flushAfterMillis: number, onFlush: FlushFun
             return fileBuffer;
         }
 
-        fileBuffer = { lines: [] };
+        fileBuffer = { lines: new Set(), };
         buffer.set(fileId, fileBuffer);
         return fileBuffer;
     }
 
-    function putLineCoverage(fileId: string, startLine: number, endLine: number): void {
-        getBufferFor(fileId).lines.push(startLine, endLine);
+    function putLineCoverage(fileId: string, startLine: number, endLine?: number): void {
+        const bufferedLines = getBufferFor(fileId).lines;
+        if (endLine) {
+            for (let line=startLine; line<endLine; line++) {
+                bufferedLines.add(line);
+            }
+        } else {
+            bufferedLines.add(startLine);
+        }
+
+        if (bufferedLines.size > 1000) {
+            flush();
+        }
     }
 
     function flush(): void {

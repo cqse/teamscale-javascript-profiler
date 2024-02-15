@@ -18,7 +18,7 @@ UNIVERSE.${MOCK_COVERAGE_VARIABLE} = {
 function incrementExecutions(coverageObj, startLine) {
     coverageObj[startLine] = (coverageObj[startLine] || 0) + 1;
 }
-function _$l(fileId, startLine, startCol, endLine, endCol) {
+function _$l(fileId, startLine, endLine) {
    const typeCov = ${MOCK_COVERAGE_VARIABLE}['lines'];
    incrementExecutions(typeCov, startLine);
    

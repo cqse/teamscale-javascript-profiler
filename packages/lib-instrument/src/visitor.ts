@@ -295,14 +295,22 @@ function newLineCoverageExpression(
     originFileId: string,
     range: CodeRange
 ): CallExpression {
+    let argumentList = [
+        { type: 'Identifier', name: originFileId } as Identifier,
+        { type: 'NumericLiteral', value: range.start.line } as NumericLiteral,
+        { type: 'NumericLiteral', value: range.end.line } as NumericLiteral,
+    ];
+
+    if (range.start.line === range.end.line) {
+        // Only pass one position argument if they would be the same.
+        // See also https://v8.dev/blog/adaptor-frame for performance considerations
+        argumentList = argumentList.slice(0, argumentList.length-1);
+    }
+
     return {
         type: 'CallExpression',
         callee: { type: 'Identifier', name: '_$l' } as Identifier,
-        arguments: [
-            { type: 'Identifier', name: originFileId } as Identifier,
-            { type: 'NumericLiteral', value: range.start.line } as NumericLiteral,
-            { type: 'NumericLiteral', value: range.end.line } as NumericLiteral,
-        ]
+        arguments: argumentList
     };
 }
 

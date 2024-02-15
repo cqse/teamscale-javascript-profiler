@@ -4,7 +4,6 @@
  */
 import { SocketWithRecovery } from './SocketWithRecovery';
 import { CoverageAggregator } from './CoverageAggregator';
-import {CoveredRanges} from "../types";
 
 console.log('Starting coverage forwarding worker.');
 
@@ -19,8 +18,8 @@ onmessage = (event: MessageEvent) => {
 	if (Array.isArray(event.data)) {
 		// Handle the coverage of a code entity. The code range is looked up
 		// using the Istanbul coverage object.
-		const [fileName, ranges] = event.data as [string, CoveredRanges];
-		aggregator.addRanges(fileName, ranges);
+		const [fileName, lines] = event.data as [string, number[]];
+		aggregator.addLines(fileName, lines);
 	} else if (event.data === 'unload') {
 		// Send all information immediately
 		aggregator.flush();

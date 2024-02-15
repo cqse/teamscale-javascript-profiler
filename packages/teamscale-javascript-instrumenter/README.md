@@ -9,7 +9,7 @@ in the Teamscale Simple Coverage Format and sent to a Teamscale instance.
 The Teamscale JavaScript Profiler consists of the [Coverage Collector](https://www.npmjs.com/package/@teamscale/coverage-collector) 
 and this JavaScript Instrumenter.
 More details on using them (in combination) can be found
-in the [Teamscale Documentation](https://docs.teamscale.com/howto/recording-test-coverage-for-javascript/).
+in the [Teamscale Documentation](https://docs.teamscale.com/howto/setting-up-profiler-tga/javascript/).
 
 The Instrumenter instruments a given (set of) JavaScript file(s) such that (1) coverage 
 information is produced and (2) forwarded to the Collector.

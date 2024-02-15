@@ -18,7 +18,7 @@ App.run()
 			const stats = result.task?.originSourcePattern.retrieveMatchingFiles();
 			console.log(`\tSource origin matches`);
 			console.log(`\t\tInclude patterns: [${stats.includePatterns}]`);
-			console.log(`\t\tExclude patterns: [${stats.excludeMatches}]`);
+			console.log(`\t\tExclude patterns: [${stats.excludePatterns}]`);
 			console.log(`\t\tInclude matches: ${stats.includeMatches.length}`);
 			console.log(`\t\tExclude matches: ${stats.excludeMatches.length}`);
 			console.log(`\t\tNeither matches: ${stats.neitherExcludedNorIncluded.length}`);

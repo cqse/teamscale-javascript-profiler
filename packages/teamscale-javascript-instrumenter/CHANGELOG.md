@@ -2,6 +2,8 @@ We use [Semantic Versioning](https://semver.org/).
 
 # New Release
 
+- [fix] The instrumentation caused tab crashes when too many statements were executed in a time period.
+
 # 0.1.0-beta.4
 
 - [feature] The instrumenter provides statistics on the number of origin file names 

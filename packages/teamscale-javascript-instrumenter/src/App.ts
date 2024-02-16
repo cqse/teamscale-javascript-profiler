@@ -102,12 +102,18 @@ export class App {
 			default: 'ws://localhost:54678'
 		});
 		parser.add_argument('--collector-pattern', {
-			help: 'Substitution pattern used to determine the collector URL from the application hostname.'
+			help: 'Pattern used to determine the collector URL from the application hostname.'
 				+ ' Useful for Kubernetes deployments where the collector URL is not known at instrumentation time.'
-				+ ' Example: `app collector 443 wss`.'
-				+ ' This causes the first occurrence of `app` in the application hostname to be replaced with `collector`,'
-				+ ' the port changed to 443 and the protocol changed to wss.'
-				+ ' Port number and protocol are optional. May not be used in conjunction with --collector.'
+				+ ' Example: `replace-in-host:app collector,scheme:wss`.'
+				+ ' This causes the first occurrence of `app` in the application hostname to be replaced with `collector`'
+				+ ' and the URL scheme changed to wss.'
+				+ ' Available operations:'
+				+ ' `replace-in-host:SEARCH REPLACE` replaces the literal term SEARCH once in the hostname with REPLACE.'
+				+ ' `port:NUMBER` changes the port to NUMBER.'
+				+ ' `port:keep` keeps the port of the application (instead of using the chosen scheme\'s default port).'
+				+ ' `scheme:SCHEME` changes the URL scheme to one of ws, wss, http or https.'
+				+ ' `path:PATH` uses the URL path PATH (instead of no path).'
+
 		});
 		parser.add_argument('-x', '--exclude-origin', {
 			nargs: '*',

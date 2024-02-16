@@ -88,9 +88,9 @@ export class TaskBuilder {
 	}
 
 	/** Set the collector specification based on the command-line arguments. */
-	setCollectorFromCommandLine(commandLineUrl: string, substitutionPattern?: string): this {
+	setCollectorFromCommandLine(commandLineUrl: string, relativePattern?: string): this {
 		Contract.requireNonEmpty(commandLineUrl, "The collector URL must not be empty");
-		this.collector = createCollectorSpecifier(commandLineUrl, substitutionPattern);
+		this.collector = createCollectorSpecifier(commandLineUrl, relativePattern);
 		return this;
 	}
 

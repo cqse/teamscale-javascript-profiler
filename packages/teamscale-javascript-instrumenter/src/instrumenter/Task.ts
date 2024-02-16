@@ -1,7 +1,8 @@
 import { Optional } from 'typescript-optional';
 import { Contract } from '@cqse/commons';
 import micromatch from 'micromatch';
-import { CollectorSpecifier, CollectorSpecifierSubstitutionPattern, CollectorSpecifierUrl } from '../vaccine/types'
+import { CollectorSpecifier, CollectorSpecifierRelative, CollectorSpecifierUrl } from '../vaccine/types'
+import { RelativeCollectorPatternParser } from './RelativeCollectorPatternParser';
 
 /**
  * An abstract source map type.
@@ -62,15 +63,15 @@ export class TaskElement {
 }
 
 /**
- * Given a command-line URL and an optional substitution pattern, create a specifier for how the vaccine can
+ * Given a command-line URL and an optional relative pattern, create a specifier for how the vaccine can
  * locate the connector.
  * 
- * If a substitution pattern is given, it is preferred, since the command-line interface always provides a URL 
+ * If a relative pattern is given, it is preferred, since the command-line interface always provides a URL 
  * (the default URL in case the user didn't explicitly specify one).
  */
-export function createCollectorSpecifier(commandLineUrl: string, substitutionPattern?: string): CollectorSpecifier {
-	if (substitutionPattern !== undefined) {
-		return parseSubstitutionPattern(substitutionPattern)
+export function createCollectorSpecifier(commandLineUrl: string, relativePattern?: string): CollectorSpecifier {
+	if (relativePattern !== undefined) {
+		return RelativeCollectorPatternParser.parse(relativePattern)
 	}
 
 	return parseCommandLineUrl(commandLineUrl)
@@ -95,36 +96,6 @@ function parseCommandLineUrl(commandLineUrl: string): CollectorSpecifierUrl {
 		type: "url",
 		url,
 	}
-}
-
-/**
- * Parses and validates the given substitution pattern.
- */
-function parseSubstitutionPattern(pattern: string): CollectorSpecifierSubstitutionPattern {
-	Contract.requireStringPattern(pattern, /[^\s]+\s+[^\s]+(\s+\d+)?(\s+wss)?/i, "Invalid collector substitution pattern used!");
-	const parts = pattern.split(/\s+/);
-
-	let useWss = false;
-	let port: number | undefined = undefined;
-	if (parts.length === 3) {
-		if (parts[2].toLowerCase() === "wss") {
-			useWss = true;
-		} else {
-			port = parseInt(parts[2])
-		}
-	}
-	if (parts.length === 4) {
-		port = parseInt(parts[2])
-		useWss = parts[3].toLowerCase() === "wss"
-	}
-
-	return {
-		type: "substitutionPattern",
-		search: parts[0],
-		replace: parts[1],
-		port,
-		useWss,
-	};
 }
 
 /**

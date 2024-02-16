@@ -16,23 +16,31 @@ export interface CollectorSpecifierUrl {
 	url: string;
 }
 
-/**
- * The collector can be reached by replacing a term in location.host and optionally changing the port.
- */
-export interface CollectorSpecifierSubstitutionPattern {
-	/** Type of collector specifier. */
-	type: "substitutionPattern";
-	/** Literal string to search for in location.host. */
+/** Describes a one-time search and replace operation on a string. */
+export interface SearchReplace {
+	/** Literal string to search for. */
 	search: string;
 	/** Literal replacement string. */
 	replace: string;
+}
+
+/**
+ * The collector can be reached by replacing a term in location.host and optionally changing the port.
+ */
+export interface CollectorSpecifierRelative {
+	/** Type of collector specifier. */
+	type: "relative";
+	/** Literal replacement string. */
+	hostReplace?: SearchReplace;
 	/** Optional port. If no port is given, uses the protocol's default port. */
-	port?: number;
-	/** Whether to use ws or wss protocol. */
-	useWss: boolean;
+	port?: number | "keep";
+	/** Optional URL scheme to use. If no scheme is given, uses ws. */
+	scheme?: string;
+	/** Optional path. If no path is given, uses only the hostname. */
+	path?: string;
 }
 
 /**
  * Specifies how the vaccine can reach the collector.
  */
-export type CollectorSpecifier = CollectorSpecifierUrl | CollectorSpecifierSubstitutionPattern
+export type CollectorSpecifier = CollectorSpecifierUrl | CollectorSpecifierRelative

@@ -140,7 +140,7 @@ test('Instrumented code must contain collector specification', async () => {
 		exclude_origin: ['node_modules/**/*.*'],
 		in_place: false,
 		collector: "ws://not-used-since-pattern-is-also-given",
-		collector_pattern: "foo bar 1234 wss",
+		collector_pattern: "replace-in-host:foo bar,port:1234,scheme:wss",
 		to: outputDir
 	});
 	const matchStats = result.task?.originSourcePattern.retrieveMatchingFiles();
@@ -151,5 +151,5 @@ test('Instrumented code must contain collector specification', async () => {
 	const instrumentedFile = result.task!.elements[0].toFile;
 	const instrumentedCode = readFileSync(instrumentedFile).toString();
 	expect(instrumentedCode).not.toContain("$COLLECTOR_SPECIFIER")
-	expect(instrumentedCode).toContain(`{"type":"substitutionPattern","search":"foo","replace":"bar","port":1234,"useWss":true}`)
+	expect(instrumentedCode).toContain(`{"type":"relative","hostReplace":{"search":"foo","replace":"bar"},"port":1234,"scheme":"wss"}`)
 });

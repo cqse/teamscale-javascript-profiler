@@ -1,5 +1,4 @@
 import { SocketWithRecovery } from './SocketWithRecovery';
-import {CoveredRanges} from '../types';
 import {Countdown} from "./Countdown";
 
 /**
@@ -35,7 +34,7 @@ export class CoverageAggregator {
 	/**
 	 * The actual cache with the coverage information by source file.
 	 */
-	private cachedCoveredRanges: Map<string, CoveredRanges>;
+	private cachedCoveredRanges: Map<string, Set<number>>;
 
 	/**
 	 * Counter with the number of entries added to the cache since the last flush.
@@ -55,16 +54,16 @@ export class CoverageAggregator {
 	}
 
 	/**
-	 * Add coverage information.
+	 * Add coverage information from an array of covered lines.
 	 */
-	public addRanges(fileId: string, range: CoveredRanges): void {
-		let coveredPositions: CoveredRanges | undefined = this.cachedCoveredRanges.get(fileId);
+	public addLines(fileId: string, lines: number[]): void {
+		let coveredPositions: Set<number> | undefined = this.cachedCoveredRanges.get(fileId);
 		if (!coveredPositions) {
-			coveredPositions = { lines: [] };
+			coveredPositions = new Set<number>();
 			this.cachedCoveredRanges.set(fileId, coveredPositions);
 		}
 
-		range.lines.forEach(value => coveredPositions!.lines.push(value));
+		lines.forEach(line => coveredPositions!.add(line));
 
 		this.numberOfCachedPositions += 1;
 		this.flushCountdown.restartCountdown();
@@ -73,20 +72,10 @@ export class CoverageAggregator {
 		}
 	}
 
-	private arrayToLineCov(input: number[]) : string {
-		if (input.length % 2 !== 0) {
-			throw new Error("Unexpected length of input data.");
-		}
-
+	private arrayToLineCov(lines: Set<number>) : string {
 		const result: string[] = [];
-		for (let i= 0; i<input.length; i=i+2) {
-			const startLine = input[i];
-			const endLine = input[i+1];
-			if (startLine === endLine) {
-				result.push(`${startLine}`);
-			} else {
-				result.push(`${startLine}-${endLine}`);
-			}
+		for (const line of lines) {
+			result.push(`${line}`);
 		}
 
 		return result.join(";");
@@ -103,9 +92,9 @@ export class CoverageAggregator {
 		this.flushCountdown.stopCountdown();
 
 		const fileCoverage: string[] = [];
-		this.cachedCoveredRanges.forEach((ranges, fileName) => {
+		this.cachedCoveredRanges.forEach((lines, fileName) => {
 			fileCoverage.push(`@${fileName}`);
-			fileCoverage.push(this.arrayToLineCov(ranges.lines));
+			fileCoverage.push(this.arrayToLineCov(lines));
 		});
 
 		this.socket.send(`${MESSAGE_TYPE_COVERAGE} ${fileCoverage.join(';')}`);

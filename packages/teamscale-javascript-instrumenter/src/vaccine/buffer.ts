@@ -41,24 +41,19 @@ export function createCoverageBuffer(flushAfterMillis: number, onFlush: FlushFun
         return fileBuffer;
     }
 
-    function putLineCoverage(fileId: string, startLine: number, endLine?: number): void {
+    function putLineCoverage(fileId: string, startLine: number, endLine: number = startLine): void {
         const bufferedLines = getBufferFor(fileId).lines;
-        if (endLine) {
-            for (let line=startLine; line<endLine; line++) {
-                bufferedLines.add(line);
-            }
-        } else {
-            bufferedLines.add(startLine);
+        for (let line=startLine; line<endLine; line++) {
+            bufferedLines.add(line);
         }
 
-        if (bufferedLines.size > 1000) {
+        if (bufferedLines.size > 255) {
             flush();
         }
     }
 
     function flush(): void {
         onFlush(buffer);
-
         buffer.clear();
     }
 

@@ -101,7 +101,7 @@ export class App {
 			help: 'The collector (`host:port` or `wss://host:port/` or `ws://host:port/`) to send coverage information to.',
 			default: 'ws://localhost:54678'
 		});
-		parser.add_argument('--collector-pattern', {
+		parser.add_argument('--relative-collector', {
 			help: 'Pattern used to determine the collector URL from the application hostname.'
 				+ ' Useful for Kubernetes deployments where the collector URL is not known at instrumentation time.'
 				+ ' Example: `replace-in-host:app collector,scheme:wss`.'

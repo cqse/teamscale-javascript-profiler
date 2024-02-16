@@ -1,12 +1,4 @@
 /**
- * Information about code ranges covered.
- */
-export type CoveredRanges = {
-	/** Covered lines (in pairs: start line, end line) */
-	lines: number[]
-};
-
-/**
  * The collector URL is known at build time.
  */
 export interface CollectorSpecifierUrl {

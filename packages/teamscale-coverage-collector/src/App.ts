@@ -85,8 +85,11 @@ export class App {
 		// ATTENTION: The server is executed asynchronously
 		const serverState = server.start();
 
-		// Optionally, start a timer that dumps the coverage after a N seconds
-		const timerState = this.maybeStartDumpTimer(config, storage, logger);
+		// Optionally, start a timer that dumps the coverage after N seconds
+		const dumpTimerState = this.maybeStartDumpTimer(config, storage, logger);
+
+		// Start a timer that dumps statistics every 30s.
+		const statsTimerState = this.startStatsTimer(logger, server);
 
 		// Say bye bye on CTRL+C and exit the process
 		process.on('SIGINT', async () => {
@@ -100,10 +103,31 @@ export class App {
 		return {
 			async stop() {
 				logger.info('Stopping the collector.');
-				timerState.stop();
+				dumpTimerState.stop();
+				statsTimerState.stop();
 				await controlServerState.stop();
 				serverState.stop();
 			}
+		};
+	}
+
+	/**
+	 * Starts a timer that dumps statistics on the number of received messages every 30s.
+	 */
+	private static startStatsTimer(
+		logger: Logger,
+		server: WebSocketCollectingServer
+	): { stop: () => void } {
+		const timer = setInterval(
+			async () => {
+				const stats = server.getStatistics();
+				logger.info(`Received ${stats.totalMessages} message since start, ${stats.totalCoverageMessages} with coverage.`);
+			},
+			1000 * 30
+		);
+
+		return {
+			stop: () => clearInterval(timer)
 		};
 	}
 

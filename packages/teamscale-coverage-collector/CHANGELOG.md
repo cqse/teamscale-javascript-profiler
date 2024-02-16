@@ -2,11 +2,9 @@ We use [Semantic Versioning](https://semver.org/).
 
 # New Release
 
-# 0.1.0-beta.4
+# 0.1.0-beta.5
 
-# 0.1.0-beta.3
-
-# 0.1.0-beta.2
+- [feature] Provide statistics on the number of messages received, every 30s.
 
 # 0.1.0-beta.1
 

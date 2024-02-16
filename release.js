@@ -91,6 +91,7 @@ function createGitTag(newVersion) {
 
 function pushChanges() {
 	execSync('git push --tags');
+	execSync('git push');
 }
 
 function getCurrentGitBranch() {

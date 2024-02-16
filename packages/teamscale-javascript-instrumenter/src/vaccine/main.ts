@@ -26,7 +26,7 @@ function setWorker(worker: DataWorker): DataWorker {
 // Create a coverage buffer on the main window side.
 const coverageBuffer = createCoverageBuffer(250,(buffer: Map<string, FileCoverageBuffer>) => {
 	for (const fileEntry of buffer.entries()) {
-		getWorker().postMessage(fileEntry);
+		getWorker().postMessage([ fileEntry[0], Array.from(fileEntry[1].lines) ]);
 	}
 });
 

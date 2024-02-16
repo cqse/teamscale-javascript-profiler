@@ -4,6 +4,11 @@ We use [Semantic Versioning](https://semver.org/).
 
 - [feature] Add `--collector-pattern` to support Kubernetes deployments of the collector.
 
+# 0.1.0-beta.5
+
+- [fix] Exclude patterns were not printed properly when providing the instrumentation summary.
+- [fix] The instrumentation caused tab crashes when too many statements were executed in a time period.
+
 # 0.1.0-beta.4
 
 - [feature] The instrumenter provides statistics on the number of origin file names 

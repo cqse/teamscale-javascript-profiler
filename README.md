@@ -49,7 +49,7 @@ As any other software, the Teamscale JavaScript Profiler has known limitations:
    However, this is negligible for most application scenarios—for example, 
    if the application is idling most of the time and waiting for user inputs. 
    In many cases, it is possible to exclude parts of the application from being
-   instrumented. See the [Teamscale Documentation](https://docs.teamscale.com/howto/recording-test-coverage-for-javascript/#instrumented-app-is-slow). 
+   instrumented. See the [Teamscale Documentation](https://docs.teamscale.com/howto/setting-up-profiler-tga/javascript/#instrumented-app-is-slow). 
 2. *Bundle Sizes.* The bundle sizes increase considerably by adding the
    coverage statements and the logic for collecting coverage and mapping back to the original code.
 3. *Exposing Original File Paths.* The instrumented variants of the code include the

@@ -29,6 +29,16 @@ export class WebSocketCollectingServer {
 	private readonly logger: Logger;
 
 	/**
+	 * The number of messages that have been received.
+	 */
+	private totalNumMessagesReceived: number;
+
+	/**
+	 * The number of coverage messages that have been received.
+	 */
+	private totalNumCoverageMessagesReceived: number;
+
+	/**
 	 * Constructor.
 	 *
 	 * @param port - The port the WebSocket server should listen on.
@@ -40,6 +50,8 @@ export class WebSocketCollectingServer {
 		this.storage = Contract.requireDefined(storage);
 		this.logger = Contract.requireDefined(logger);
 		this.server = new WebSocket.Server({ port });
+		this.totalNumMessagesReceived = 0;
+		this.totalNumCoverageMessagesReceived = 0;
 	}
 
 	/**
@@ -63,6 +75,7 @@ export class WebSocketCollectingServer {
 
 			// Handle incoming messages
 			webSocket.on('message', (message: WebSocket.Data) => {
+				this.totalNumMessagesReceived += 1;
 				if (session && Buffer.isBuffer(message)) {
 					void this.handleMessage(session, message);
 				}
@@ -92,6 +105,7 @@ export class WebSocketCollectingServer {
 		try {
 			const messageType = message.toString('utf8', 0, 1);
 			if (messageType.startsWith(MESSAGE_TYPE_COVERAGE)) {
+				this.totalNumCoverageMessagesReceived += 1;
 				await this.handleCoverageMessage(session, message.subarray(1));
 			}
 		} catch (e) {
@@ -144,5 +158,15 @@ export class WebSocketCollectingServer {
 				}
 			}
 		});
+	}
+
+	/**
+	 * Returns a statistic on the number of messages received.
+	 */
+	public getStatistics(): { totalMessages: number, totalCoverageMessages: number } {
+		return {
+			totalMessages: this.totalNumMessagesReceived,
+			totalCoverageMessages: this.totalNumCoverageMessagesReceived
+		};
 	}
 }

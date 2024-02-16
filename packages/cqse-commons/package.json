@@ -1,6 +1,6 @@
 {
   "name": "@cqse/commons",
-  "version": "0.1.0-beta.4",
+  "version": "0.1.0-beta.5",
   "description": "A collection of generic functionality for TypeScript projects.",
   "author": "CQSE GmbH",
   "main": "lib/index.js",
@@ -25,7 +25,7 @@
     "@babel/core": "^7.23.9",
     "@babel/preset-env": "^7.23.9",
     "@types/jest": "^29.5.12",
-    "@types/node": "^20.11.17",
+    "@types/node": "^20.11.19",
     "babel-jest": "^29.7.0",
     "jest": "^29.7.0",
     "rimraf": "^5.0.5",

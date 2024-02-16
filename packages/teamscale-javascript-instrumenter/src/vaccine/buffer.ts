@@ -43,7 +43,7 @@ export function createCoverageBuffer(flushAfterMillis: number, onFlush: FlushFun
 
     function putLineCoverage(fileId: string, startLine: number, endLine: number = startLine): void {
         const bufferedLines = getBufferFor(fileId).lines;
-        for (let line=startLine; line<endLine; line++) {
+        for (let line=startLine; line<=endLine; line++) {
             bufferedLines.add(line);
         }
 

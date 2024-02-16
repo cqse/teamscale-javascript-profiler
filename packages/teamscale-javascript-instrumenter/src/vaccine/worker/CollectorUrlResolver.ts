@@ -1,7 +1,9 @@
 import { CollectorSpecifier, CollectorSpecifierRelative } from "../types";
 
+/** Resolves the collector URL based on the injected specifier. */
 export class CollectorUrlResolver {
 
+    /** Resolves the collector URL. */
     static resolve(specifier: CollectorSpecifier): string {
         switch (specifier.type) {
             case 'url':
@@ -11,6 +13,7 @@ export class CollectorUrlResolver {
         }
     }
 
+    /** Resolves the collector URL from a relative specifier. */
     static resolveRelative(host: string, port: string, specifier: CollectorSpecifierRelative): string {
         let newHost = host
         if (specifier.hostReplace) {

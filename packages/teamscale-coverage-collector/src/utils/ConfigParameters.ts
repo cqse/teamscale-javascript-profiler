@@ -53,6 +53,8 @@ export type ConfigParameters = {
 	enable_control_port?: number;
 	// eslint-disable-next-line camelcase
 	http_proxy?: string;
+	// eslint-disable-next-line camelcase
+	dump_silently?: boolean;
 };
 
 /**
@@ -71,6 +73,9 @@ export function buildParameterParser(): ArgumentParser {
 		help: 'Target folder for coverage files.',
 		default: 'coverage'
 	});
+	parser.add_argument('-s', '--dump-silently', { action: 'store_true',
+		help: "Do not print infos on scheduled activities, for example, uploads or statistics on received messages.",
+		default: true});
 	parser.add_argument('-k', '--keep-coverage-files', {
 		help: 'Whether to keep the coverage files on disk after a successful upload to Teamsacle',
 		action: 'store_true',

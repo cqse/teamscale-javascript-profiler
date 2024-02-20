@@ -11,7 +11,7 @@ import { StdConsoleLogger } from './utils/StdConsoleLogger';
 import { PrettyFileLogger } from './utils/PrettyFileLogger';
 import express from 'express';
 import { uploadToTeamscale } from './upload/TeamscaleUpload';
-import { UploadError } from './upload/CommonUpload';
+import {LoggerWrapper, UploadError} from './upload/CommonUpload';
 import { uploadToArtifactory } from './upload/ArtifactoryUpload';
 
 /**
@@ -88,8 +88,8 @@ export class App {
 		// Optionally, start a timer that dumps the coverage after N seconds
 		const dumpTimerState = this.maybeStartDumpTimer(config, storage, logger);
 
-		// Start a timer that dumps statistics every 30s.
-		const statsTimerState = this.startStatsTimer(logger, server);
+		// Start a timer that informs if no coverage was received within the last minute
+		const statsTimerState = this.startNoMessageTimer(logger, server);
 
 		// Say bye bye on CTRL+C and exit the process
 		process.on('SIGINT', async () => {
@@ -112,23 +112,39 @@ export class App {
 	}
 
 	/**
-	 * Starts a timer that dumps statistics on the number of received messages every 30s.
+	 * Starts a timer that shows a message every min that no coverage
+	 * was received until the opposite is the case.
 	 */
-	private static startStatsTimer(
+	private static startNoMessageTimer(
 		logger: Logger,
 		server: WebSocketCollectingServer
 	): { stop: () => void } {
+		const startTime = Date.now();
 		const timer = setInterval(
 			async () => {
 				const stats = server.getStatistics();
-				logger.info(`Received ${stats.totalMessages} message since start, ${stats.totalCoverageMessages} with coverage.`);
+				if (stats.totalCoverageMessages === 0) {
+					logger.info(`No coverage received for ${((Date.now() - startTime) / 1000.0).toFixed(0)}s.`);
+				}
 			},
-			1000 * 30
+			1000 * 60
 		);
 
 		return {
 			stop: () => clearInterval(timer)
 		};
+	}
+
+	/**
+	 * Logger that only dumps if this was enabled.
+	 */
+	private static createDumpLogger(config: ConfigParameters, logger: Logger): LoggerWrapper {
+		const devNullLogger = () => { /** intentionally left blank */ }
+		if (config.dump_silently) {
+			return { info: devNullLogger, error: devNullLogger, debug: devNullLogger } as LoggerWrapper;
+		} else {
+			return { info: logger.info, error: logger.error, debug: logger.debug }
+		}
 	}
 
 	/**
@@ -143,11 +159,12 @@ export class App {
 		storage: DataStorage,
 		logger: Logger
 	): { stop: () => void } {
+		const loggerWrapper = this.createDumpLogger(config, logger);
 		if (config.dump_after_mins > 0) {
-			logger.info(`Will dump coverage information every ${config.dump_after_mins} minute(s).`);
+			loggerWrapper.info(`Will dump coverage information every ${config.dump_after_mins} minute(s).`);
 			const timer = setInterval(
 				async () => {
-					await this.dumpCoverage(config, storage, logger);
+					await this.dumpCoverage(config, storage, loggerWrapper);
 				},
 				config.dump_after_mins * 1000 * 60
 			);
@@ -171,7 +188,7 @@ export class App {
 		};
 	}
 
-	private static async dumpCoverage(config: ConfigParameters, storage: DataStorage, logger: Logger): Promise<void> {
+	private static async dumpCoverage(config: ConfigParameters, storage: DataStorage, logger: LoggerWrapper): Promise<void> {
 		try {
 			// 1. Write coverage to a file
 			const [coverageFile, lines] = storage.dumpToSimpleCoverageFile(config.dump_to_folder, new Date());
@@ -198,7 +215,7 @@ export class App {
 		config: ConfigParameters,
 		coverageFile: string,
 		lines: number,
-		logger: Logger
+		logger: LoggerWrapper
 	): Promise<void> {
 		if (config.teamscale_server_url) {
 			await uploadToTeamscale(config, logger, coverageFile, lines);

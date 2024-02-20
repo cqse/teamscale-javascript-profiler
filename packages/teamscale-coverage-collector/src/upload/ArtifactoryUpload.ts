@@ -1,6 +1,5 @@
 import { ConfigParameters } from '../utils/ConfigParameters';
-import Logger from 'bunyan';
-import { performUpload, prepareFormData, UploadError } from './CommonUpload';
+import {LoggerWrapper, performUpload, prepareFormData, UploadError} from './CommonUpload';
 import FormData from 'form-data';
 import axios, { AxiosRequestConfig } from 'axios';
 import { extractProxyOptions } from './ProxyUpload';
@@ -10,7 +9,7 @@ import { extractProxyOptions } from './ProxyUpload';
  */
 export async function uploadToArtifactory(
 	config: ConfigParameters,
-	logger: Logger,
+	logger: LoggerWrapper,
 	coverageFile: string,
 	lines: number
 ): Promise<void> {
@@ -28,7 +27,7 @@ export async function uploadToArtifactory(
 	await performArtifactoryUpload(config, form, logger);
 }
 
-async function performArtifactoryUpload(config: ConfigParameters, form: FormData, logger: Logger) {
+async function performArtifactoryUpload(config: ConfigParameters, form: FormData, logger: LoggerWrapper) {
 	if (!config.teamscale_commit) {
 		throw new UploadError('The "--teamscale-commit" option must be set with a valid branch and timestamp.');
 	}

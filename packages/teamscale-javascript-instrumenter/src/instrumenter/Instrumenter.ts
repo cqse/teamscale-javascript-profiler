@@ -1,6 +1,5 @@
 import {
 	Bundle,
-	CollectorSpecifier,
 	FileExcludePattern,
 	GwtBundle,
 	InstrumentationTask,
@@ -23,9 +22,10 @@ import Logger from 'bunyan';
 import async from 'async';
 import { determineGwtFileUid, extractGwtCallInfos, isGwtBundle, loadInputSourceMapsGwt } from './WebToolkit';
 import { sourceMapFromMapFile } from './FileSystem';
-import {InstrumenterOptions} from "@teamscale/lib-instrument";
-import {NodePath} from "@babel/traverse";
-import {SourceLocation} from "@babel/types";
+import { InstrumenterOptions } from "@teamscale/lib-instrument";
+import { NodePath } from "@babel/traverse";
+import { SourceLocation } from "@babel/types";
+import { CollectorSpecifier } from '@src/vaccine/types';
 
 export const IS_INSTRUMENTED_TOKEN = '$IS_JS_PROFILER_INSTRUMENTED=true';
 
@@ -285,7 +285,7 @@ export class IstanbulInstrumenter implements IInstrumenter {
 	private loadVaccine(filePath: string, collector: CollectorSpecifier) {
 		// We first replace parameters in the file with the
 		// actual values, for example, the collector to send the coverage information to.
-		return fs.readFileSync(filePath, 'utf8').replace(/\$REPORT_TO_URL/g, collector.url);
+		return fs.readFileSync(filePath, 'utf8').replace(/\$COLLECTOR_SPECIFIER/g, JSON.stringify(collector));
 	}
 
 	/**

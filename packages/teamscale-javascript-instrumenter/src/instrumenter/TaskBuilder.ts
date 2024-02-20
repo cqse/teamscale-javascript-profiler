@@ -1,15 +1,17 @@
 import {
-	CollectorSpecifier, FileExcludePattern,
+	FileExcludePattern,
 	InstrumentationTask,
 	OriginSourcePattern,
 	SourceMapFileReference,
 	SourceMapReference,
-	TaskElement
+	TaskElement,
+	createCollectorSpecifier
 } from './Task';
 import { Contract, InvalidConfigurationException } from '@cqse/commons';
 import * as fs from 'fs';
 import * as path from 'path';
 import { ensureExistingDirectory, expandToFileSet, isExistingDirectory, isExistingFile } from './FileSystem';
+import { CollectorSpecifier } from '@src/vaccine/types';
 
 /** The parameters the instrumenter can be configured by */
 export type ConfigurationParameters = {
@@ -21,6 +23,7 @@ export type ConfigurationParameters = {
 	// eslint-disable-next-line camelcase
 	source_map?: string;
 	collector: string;
+	collector_pattern?: string;
 	// eslint-disable-next-line camelcase
 	include_origin?: string[];
 	// eslint-disable-next-line camelcase
@@ -84,10 +87,10 @@ export class TaskBuilder {
 		this.collector = null;
 	}
 
-	/** Set the collector by extracting the information from a given string */
-	setCollectorFromString(collectorSpecification: string): this {
-		Contract.requireNonEmpty(collectorSpecification);
-		this.collector = new CollectorSpecifier(collectorSpecification);
+	/** Set the collector specification based on the command-line arguments. */
+	setCollectorFromCommandLine(commandLineUrl: string, relativePattern?: string): this {
+		Contract.requireNonEmpty(commandLineUrl, "The collector URL must not be empty");
+		this.collector = createCollectorSpecifier(commandLineUrl, relativePattern);
 		return this;
 	}
 
@@ -127,7 +130,7 @@ export class TaskBuilder {
 		const sourceMap: string | undefined = config.source_map;
 		this.dumpOriginsFile = config.dump_origins_to;
 		this.dumpMatchedOriginsFile = config.dump_origin_matches_to;
-		this.setCollectorFromString(config.collector);
+		this.setCollectorFromCommandLine(config.collector, config.collector_pattern);
 		this.setOriginSourceIncludePatterns(config.include_origin);
 		this.setOriginSourceExcludePatterns(config.exclude_origin);
 		this.setBundleExcludePatterns(config.exclude_bundle);

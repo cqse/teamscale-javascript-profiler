@@ -75,7 +75,7 @@ export function buildParameterParser(): ArgumentParser {
 	});
 	parser.add_argument('-s', '--dump-silently', { action: 'store_true',
 		help: "Do not print infos on scheduled activities, for example, uploads or statistics on received messages.",
-		default: true});
+		default: false});
 	parser.add_argument('-k', '--keep-coverage-files', {
 		help: 'Whether to keep the coverage files on disk after a successful upload to Teamsacle',
 		action: 'store_true',

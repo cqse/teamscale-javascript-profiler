@@ -125,6 +125,9 @@ export class App {
 				const stats = server.getStatistics();
 				if (stats.totalCoverageMessages === 0) {
 					logger.info(`No coverage received for ${((Date.now() - startTime) / 1000.0).toFixed(0)}s.`);
+				} else {
+					// We can stop running the timer after we have received the first coverage.
+					clearInterval(timer);
 				}
 			},
 			1000 * 60

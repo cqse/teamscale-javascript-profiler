@@ -13,7 +13,8 @@ Please contact our support (support@teamscale.com) in case you encounter any iss
 ## Motivation
 
 Users want to do Test Gap analysis for their JavaScript/TypeScript code. 
-This is easy for unit tests, where you can just use [IstanbulJS](https://istanbul.js.org/) to get coverage. 
+This is easy for unit tests, where you can just use [IstanbulJS](https://istanbul.js.org/) 
+or [C8](https://github.com/bcoe/c8) to get coverage. 
 For automated UI tests there are existing solutions (for example, Puppeteer or Cypress) 
 to produce coverage information directly from the headless browser or the testing tool. 
 However, there are no tools to determine and collect the coverage produced by users testing the UI manually,
@@ -28,7 +29,7 @@ sent to a collecting server (the collector) once a second. Besides the coverage 
 also the source maps of the code in the browser are sent to the collector.
 The collector uses the source map to map the coverage information back to the original code
 and builds a coverage report that can be handed over to Teamscale.
-Teamscale uses the coverage information, for example, to conduct a Test Gap analysis.`
+Teamscale uses the coverage information, for example, to conduct a Test Gap analysis.
 
 ## Documentation 
 

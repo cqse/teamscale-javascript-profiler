@@ -2,6 +2,9 @@ We use [Semantic Versioning](https://semver.org/).
 
 # New Release
 
+- [feature] Inform the user if no coverage was received after one minute since startup.
+- [fix] Do not dump statistics on the number of messages received all 30s.
+
 # 0.1.0-beta.5
 
 - [feature] Provide statistics on the number of messages received, every 30s.

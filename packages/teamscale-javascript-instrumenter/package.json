@@ -48,7 +48,7 @@
     "typescript": "^5.3.3"
   },
   "dependencies": {
-    "@cqse/commons": "0.1.0-beta.5",
+    "@cqse/commons": "0.1.0-beta.6",
     "@teamscale/lib-instrument": "workspace:../lib-instrument",
     "@babel/generator": "^7.23.6",
     "@babel/parser": "^7.23.9",

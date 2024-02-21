@@ -11,7 +11,7 @@ import { StdConsoleLogger } from './utils/StdConsoleLogger';
 import { PrettyFileLogger } from './utils/PrettyFileLogger';
 import express from 'express';
 import { uploadToTeamscale } from './upload/TeamscaleUpload';
-import {LoggerWrapper, UploadError} from './upload/CommonUpload';
+import { UploadError } from './upload/CommonUpload';
 import { uploadToArtifactory } from './upload/ArtifactoryUpload';
 
 /**
@@ -139,18 +139,6 @@ export class App {
 	}
 
 	/**
-	 * Logger that only dumps if this was enabled.
-	 */
-	private static createDumpLogger(config: ConfigParameters, logger: Logger): LoggerWrapper {
-		const devNullLogger = () => { /** intentionally left blank */ }
-		if (config.dump_silently) {
-			return { info: devNullLogger, error: devNullLogger, debug: devNullLogger } as LoggerWrapper;
-		} else {
-			return { info: logger.info, error: logger.error, debug: logger.debug }
-		}
-	}
-
-	/**
 	 * Start a timer for dumping the data, depending on the configuration.
 	 *
 	 * @param config - The config that determines whether to do the timed dump or not.
@@ -162,12 +150,11 @@ export class App {
 		storage: DataStorage,
 		logger: Logger
 	): { stop: () => void } {
-		const loggerWrapper = this.createDumpLogger(config, logger);
 		if (config.dump_after_mins > 0) {
-			loggerWrapper.info(`Will dump coverage information every ${config.dump_after_mins} minute(s).`);
+			logger.info(`Will dump coverage information every ${config.dump_after_mins} minute(s).`);
 			const timer = setInterval(
 				async () => {
-					await this.dumpCoverage(config, storage, loggerWrapper);
+					await this.dumpCoverage(config, storage, logger);
 				},
 				config.dump_after_mins * 1000 * 60
 			);
@@ -191,7 +178,7 @@ export class App {
 		};
 	}
 
-	private static async dumpCoverage(config: ConfigParameters, storage: DataStorage, logger: LoggerWrapper): Promise<void> {
+	private static async dumpCoverage(config: ConfigParameters, storage: DataStorage, logger: Logger): Promise<void> {
 		try {
 			// 1. Write coverage to a file
 			const [coverageFile, lines] = storage.dumpToSimpleCoverageFile(config.dump_to_folder, new Date());
@@ -218,7 +205,7 @@ export class App {
 		config: ConfigParameters,
 		coverageFile: string,
 		lines: number,
-		logger: LoggerWrapper
+		logger: Logger
 	): Promise<void> {
 		if (config.teamscale_server_url) {
 			await uploadToTeamscale(config, logger, coverageFile, lines);

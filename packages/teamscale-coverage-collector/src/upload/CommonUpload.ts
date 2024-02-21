@@ -5,11 +5,6 @@ import axios, { AxiosRequestConfig, AxiosResponse } from 'axios';
 import { inspect } from 'util';
 
 /**
- * Fraction of a logger that can easily be overwritten for changing its behafior.
- */
-export type LoggerWrapper = Pick<Logger, 'info' | 'error' | 'debug'>;
-
-/**
  * Error that is thrown when the upload failed
  */
 export class UploadError extends Error {
@@ -38,11 +33,11 @@ export async function performUpload(
 		data?: D,
 		config?: AxiosRequestConfig<D>
 	) => Promise<R>,
-	logger: LoggerWrapper
+	logger: Logger
 ): Promise<void> {
 	try {
 		const response = await uploadFunction(url, form, config);
-		logger.info(`Upload finished with code ${response.status}.`);
+		logger.debug(`Upload finished with code ${response.status}.`);
 	} catch (error: unknown) {
 		if (axios.isAxiosError(error)) {
 			if (error.response) {
@@ -52,7 +47,7 @@ export async function performUpload(
 						`Upload failed with code ${response.status}: ${response.statusText}. Response Data: ${response.data}`
 					);
 				} else {
-					logger.info(`Upload with status code ${response.status} finished.`);
+					logger.debug(`Upload with status code ${response.status} finished.`);
 				}
 			} else if (error.request) {
 				throw new UploadError(`Upload request did not receive a response.`);

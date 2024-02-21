@@ -2,7 +2,7 @@ import { ConfigParameters } from '../utils/ConfigParameters';
 import Logger from 'bunyan';
 import QueryParameters from '../utils/QueryParameters';
 import FormData from 'form-data';
-import {prepareFormData, performUpload, UploadError, LoggerWrapper} from './CommonUpload';
+import {prepareFormData, performUpload, UploadError} from './CommonUpload';
 import axios, { AxiosRequestConfig } from 'axios';
 import {extractProxyOptions} from "./ProxyUpload";
 
@@ -11,7 +11,7 @@ import {extractProxyOptions} from "./ProxyUpload";
  */
 export async function uploadToTeamscale(
 	config: ConfigParameters,
-	logger: LoggerWrapper,
+	logger: Logger,
 	coverageFile: string,
 	lines: number
 ): Promise<void> {
@@ -23,7 +23,7 @@ export async function uploadToTeamscale(
 		return;
 	}
 
-	logger.info('Preparing upload to Teamscale');
+	logger.debug('Preparing upload to Teamscale');
 
 	const form = prepareFormData(coverageFile);
 	const queryParameters = prepareQueryParameters(config);
@@ -34,7 +34,7 @@ async function performTeamscaleUpload(
 	config: ConfigParameters,
 	parameters: QueryParameters,
 	form: FormData,
-	logger: LoggerWrapper
+	logger: Logger
 ) {
 	await performUpload(
 		`${config.teamscale_server_url?.replace(/\/$/, '')}/api/projects/${

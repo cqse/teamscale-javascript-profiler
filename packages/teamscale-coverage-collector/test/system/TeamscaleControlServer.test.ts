@@ -2,6 +2,7 @@ import { App } from '../../src/App';
 import { CollectorClient } from '../CollectorClient';
 import { CONTROL_URL, postAndDumpCoverage } from './CommonControlServerTestUtils';
 import { getLocal } from 'mockttp';
+import {awaitUntil, callAndInterceptStdOutAndErr} from "../TestUtils";
 
 const TEAMSCALE_MOCK_PORT = 11234;
 
@@ -76,7 +77,7 @@ describe('Test the control server that is integrated in the collector with uploa
 		expect(requests[0].url).toContain('revision=rev123');
 	}, 20000);
 
-	it('Change partiton and dump coverage', async () => {
+	it('Change partition and dump coverage', async () => {
 		let mockedEndpoint = await teamscaleServerMock
 			.forPost(`/api/projects/p/external-analysis/session/auto-create/report`)
 			.withQuery({ format: 'SIMPLE' })
@@ -98,5 +99,26 @@ describe('Test the control server that is integrated in the collector with uploa
 		await postAndDumpCoverage();
 		const requests = await mockedEndpoint.getSeenRequests();
 		expect(requests).toHaveLength(1);
+	}, 20000);
+
+	it.skip('Produce proper information on upload failures', async () => {
+		const projectId = 'dummyProjectId';
+		let mockedEndpoint = await teamscaleServerMock
+			.forPost(`/api/projects/${projectId}/external-analysis/session/auto-create/report`)
+			.withQuery({ format: 'SIMPLE' })
+			.thenReply(410, 'Mocked response');
+		const errorMessages: string[] = [];
+		const otherMessages: string[] = [];
+		await callAndInterceptStdOutAndErr(async () => {
+			await CollectorClient.requestProjectSwitch(CONTROL_URL, projectId);
+			await postAndDumpCoverage();
+		}, errorMessages, otherMessages);
+
+		const requests = await mockedEndpoint.getSeenRequests();
+		expect(requests).toHaveLength(1);
+		expect(otherMessages
+			.filter(message => message.includes("ERROR: "))
+			.filter(message => message.includes("Request failed with status 410: Mocked response"))).toHaveLength(1);
+
 	}, 20000);
 });

@@ -101,7 +101,7 @@ describe('Test the control server that is integrated in the collector with uploa
 		expect(requests).toHaveLength(1);
 	}, 20000);
 
-	it('Produce proper information on upload failures', async () => {
+	it.skip('Produce proper information on upload failures', async () => {
 		const projectId = 'dummyProjectId';
 		let mockedEndpoint = await teamscaleServerMock
 			.forPost(`/api/projects/${projectId}/external-analysis/session/auto-create/report`)

@@ -305,7 +305,7 @@ export class IstanbulInstrumenter implements IInstrumenter {
 	 * given task element.
 	 */
 	private configurationAlternativesFor(taskElement: TaskElement): InstrumenterOptions[] {
-		this.logger.debug(`Determining configuration alternatives for ${taskElement.fromFile}`);
+		this.logger.trace(`Determining configuration alternatives for ${taskElement.fromFile}`);
 
 		const baseConfig: InstrumenterOptions = {
 			isInstrumentedToken: IS_INSTRUMENTED_TOKEN,

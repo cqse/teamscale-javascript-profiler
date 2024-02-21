@@ -26,8 +26,8 @@ export class App {
 
 		// Build the logger
 		const logger = this.buildLogger(config);
-		logger.debug('Retrieved arguments', process.argv);
-		logger.debug('Translated arguments to config', config);
+		logger.trace('Retrieved arguments', process.argv);
+		logger.trace('Translated arguments to config', config);
 
 		// Run the instrumenter with the given configuration.
 		return this.runForConfigArguments(config, logger);

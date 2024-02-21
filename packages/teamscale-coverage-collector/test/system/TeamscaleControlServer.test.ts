@@ -37,7 +37,7 @@ describe('Test the control server that is integrated in the collector with uploa
 		// Stop the mock server
 		await teamscaleServerMock.stop();
 
-		// Stop the collectorf
+		// Stop the collector
 		await collectorState.stop();
 	});
 
@@ -113,11 +113,6 @@ describe('Test the control server that is integrated in the collector with uploa
 			await CollectorClient.requestProjectSwitch(CONTROL_URL, projectId);
 			await postAndDumpCoverage();
 		}, errorMessages, otherMessages);
-
-		// Wait until the async code has finished
-		await awaitUntil(() => {
-			return otherMessages.length > 9;
-		}, 10000);
 
 		const requests = await mockedEndpoint.getSeenRequests();
 		expect(requests).toHaveLength(1);

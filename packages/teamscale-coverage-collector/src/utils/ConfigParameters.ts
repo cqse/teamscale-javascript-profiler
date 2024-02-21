@@ -73,8 +73,8 @@ export function buildParameterParser(): ArgumentParser {
 		help: 'Target folder for coverage files.',
 		default: 'coverage'
 	});
-	parser.add_argument('-s', '--dump-silently', { action: 'store_true',
-		help: "Do not print infos on scheduled activities, for example, uploads or statistics on received messages.",
+	parser.add_argument('-s', '--silent-dump', { action: 'store_true',
+		help: "Do not print infos on regular coverage reporting activities.",
 		default: false});
 	parser.add_argument('-k', '--keep-coverage-files', {
 		help: 'Whether to keep the coverage files on disk after a successful upload to Teamsacle',

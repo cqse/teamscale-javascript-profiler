@@ -88,8 +88,8 @@ export class App {
 		// Optionally, start a timer that dumps the coverage after N seconds
 		const dumpTimerState = this.maybeStartDumpTimer(config, storage, logger);
 
-		// Start a timer that dumps statistics every 30s.
-		const statsTimerState = this.startStatsTimer(logger, server);
+		// Start a timer that informs if no coverage was received within the last minute
+		const statsTimerState = this.startNoMessageTimer(logger, server);
 
 		// Say bye bye on CTRL+C and exit the process
 		process.on('SIGINT', async () => {
@@ -112,18 +112,25 @@ export class App {
 	}
 
 	/**
-	 * Starts a timer that dumps statistics on the number of received messages every 30s.
+	 * Starts a timer that shows a message every min that no coverage
+	 * was received until the opposite is the case.
 	 */
-	private static startStatsTimer(
+	private static startNoMessageTimer(
 		logger: Logger,
 		server: WebSocketCollectingServer
 	): { stop: () => void } {
+		const startTime = Date.now();
 		const timer = setInterval(
 			async () => {
 				const stats = server.getStatistics();
-				logger.info(`Received ${stats.totalMessages} message since start, ${stats.totalCoverageMessages} with coverage.`);
+				if (stats.totalCoverageMessages === 0) {
+					logger.info(`No coverage received for ${((Date.now() - startTime) / 1000.0).toFixed(0)}s.`);
+				} else {
+					// We can stop running the timer after we have received the first coverage.
+					clearInterval(timer);
+				}
 			},
-			1000 * 30
+			1000 * 60
 		);
 
 		return {

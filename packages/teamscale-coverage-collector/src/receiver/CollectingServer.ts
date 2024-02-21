@@ -63,13 +63,13 @@ export class WebSocketCollectingServer {
 		// Handle new connections from clients
 		this.server?.on('connection', (webSocket: WebSocket, req: IncomingMessage) => {
 			let session: Session | null = new Session(req.socket, this.storage, this.logger);
-			this.logger.debug(`Connection from: ${req.socket.remoteAddress}`);
+			this.logger.trace(`Connection from: ${req.socket.remoteAddress}`);
 
 			// Handle disconnecting clients
 			webSocket.on('close', code => {
 				if (session) {
 					session = null;
-					this.logger.debug(`Closing with code ${code}`);
+					this.logger.trace(`Closing with code ${code}`);
 				}
 			});
 

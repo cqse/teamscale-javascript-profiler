@@ -5,5 +5,5 @@ module.exports = defineConfig({
     video: false,
     e2e: {
         supportFile: false
-    },
+    }
 })

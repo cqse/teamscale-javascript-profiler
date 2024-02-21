@@ -181,7 +181,7 @@ export class DataStorage implements IDataStorage {
 		}
 		coveredOriginalLines.forEach(line => projectCoverage?.putLine(sourceFilePath, line));
 
-		this.logger.debug(`Mapped Coverage: ${project} ${uniformPath} ${coveredOriginalLines}`);
+		this.logger.trace(`Mapped Coverage: ${project} ${uniformPath} ${coveredOriginalLines}`);
 	}
 
 	/**
@@ -201,7 +201,7 @@ export class DataStorage implements IDataStorage {
 		// Currently only implemented to log the missing information.
 		this.timesUnmappedCoverage++;
 		if (this.timesUnmappedCoverage === 1) {
-			this.logger.debug(`Received unmapped coverage for project "${project}"`);
+			this.logger.trace(`Received unmapped coverage for project "${project}"`);
 		}
 	}
 

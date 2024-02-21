@@ -1,5 +1,5 @@
 import { ArgumentParser } from 'argparse';
-import {CollectorSpecifier, InstrumentationTask, TaskResult} from './instrumenter/Task';
+import { InstrumentationTask, TaskResult } from './instrumenter/Task';
 import { IInstrumenter, IstanbulInstrumenter } from './instrumenter/Instrumenter';
 import { Contract } from '@cqse/commons';
 import { ConfigurationParameters, TaskBuilder } from './instrumenter/TaskBuilder';
@@ -8,6 +8,7 @@ import { version } from '../package.json';
 import { existsSync } from 'fs';
 import { mkdirp } from 'mkdirp';
 import Logger from 'bunyan';
+import { CollectorSpecifier } from './vaccine/types';
 
 /**
  * Entry points of the instrumenter, including command line argument parsing.
@@ -25,8 +26,8 @@ export class App {
 
 		// Build the logger
 		const logger = this.buildLogger(config);
-		logger.debug('Retrieved arguments', process.argv);
-		logger.debug('Translated arguments to config', config);
+		logger.trace('Retrieved arguments', process.argv);
+		logger.trace('Translated arguments to config', config);
 
 		// Run the instrumenter with the given configuration.
 		return this.runForConfigArguments(config, logger);
@@ -99,6 +100,20 @@ export class App {
 		parser.add_argument('-c', '--collector', {
 			help: 'The collector (`host:port` or `wss://host:port/` or `ws://host:port/`) to send coverage information to.',
 			default: 'ws://localhost:54678'
+		});
+		parser.add_argument('--relative-collector', {
+			help: 'Pattern used to determine the collector URL from the application hostname.'
+				+ ' Useful for Kubernetes deployments where the collector URL is not known at instrumentation time.'
+				+ ' Example: `replace-in-host:app collector,scheme:wss`.'
+				+ ' This causes the first occurrence of `app` in the application hostname to be replaced with `collector`'
+				+ ' and the URL scheme changed to wss.'
+				+ ' Available operations:'
+				+ ' `replace-in-host:SEARCH REPLACE` replaces the literal term SEARCH once in the hostname with REPLACE.'
+				+ ' `port:NUMBER` changes the port to NUMBER.'
+				+ ' `port:keep` keeps the port of the application (instead of using the chosen scheme\'s default port).'
+				+ ' `scheme:SCHEME` changes the URL scheme to one of ws, wss, http or https.'
+				+ ' `path:PATH` uses the URL path PATH (instead of no path).'
+
 		});
 		parser.add_argument('-x', '--exclude-origin', {
 			nargs: '*',

@@ -2,7 +2,7 @@ import { ConfigParameters } from '../utils/ConfigParameters';
 import Logger from 'bunyan';
 import QueryParameters from '../utils/QueryParameters';
 import FormData from 'form-data';
-import { prepareFormData, performUpload, UploadError } from './CommonUpload';
+import {prepareFormData, performUpload, UploadError} from './CommonUpload';
 import axios, { AxiosRequestConfig } from 'axios';
 import {extractProxyOptions} from "./ProxyUpload";
 
@@ -23,7 +23,7 @@ export async function uploadToTeamscale(
 		return;
 	}
 
-	logger.info('Preparing upload to Teamscale');
+	logger.debug('Preparing upload to Teamscale');
 
 	const form = prepareFormData(coverageFile);
 	const queryParameters = prepareQueryParameters(config);

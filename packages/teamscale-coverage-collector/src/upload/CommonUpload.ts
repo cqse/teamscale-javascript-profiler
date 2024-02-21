@@ -37,7 +37,7 @@ export async function performUpload(
 ): Promise<void> {
 	try {
 		const response = await uploadFunction(url, form, config);
-		logger.info(`Upload finished with code ${response.status}.`);
+		logger.debug(`Upload finished with code ${response.status}.`);
 	} catch (error: unknown) {
 		if (axios.isAxiosError(error)) {
 			let userMessage;

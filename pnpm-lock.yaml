@@ -28,8 +28,8 @@ importers:
         specifier: ^12.0.0
         version: 12.0.0
       cypress:
-        specifier: ^13.6.4
-        version: 13.6.4
+        specifier: ^13.6.5
+        version: 13.6.5
       eslint:
         specifier: ^8.56.0
         version: 8.56.0
@@ -3732,8 +3732,8 @@ packages:
     engines: {node: '>=12.17'}
     dev: true
 
-  /cypress@13.6.4:
-    resolution: {integrity: sha512-pYJjCfDYB+hoOoZuhysbbYhEmNW7DEDsqn+ToCLwuVowxUXppIWRr7qk4TVRIU471ksfzyZcH+mkoF0CQUKnpw==}
+  /cypress@13.6.5:
+    resolution: {integrity: sha512-2NxSDcO2zHw5kTcosc6dzv2zppEqiXrFFhZw5cx/EWrSNZABTzpr/EyvYzGgrWm46o5173JUfuJfDQcaiZZPVQ==}
     engines: {node: ^16.0.0 || ^18.0.0 || >=20.0.0}
     hasBin: true
     requiresBuild: true

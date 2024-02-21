@@ -147,3 +147,10 @@ dist
 
 # generated during test execution
 packages/teamscale-javascript-instrumenter/outputs/
+**/bench-perf-stats.dat
+**/test-results.xml
+**/.angular/
+**/dist-inst*/**/*.*
+
+# Memory profilings
+**/mprofile_*.dat

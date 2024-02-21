@@ -2,6 +2,8 @@ We use [Semantic Versioning](https://semver.org/).
 
 # New Release
 
+- [feature] Add `--collector-pattern` to support Kubernetes deployments of the collector.
+
 # 0.1.0-beta.5
 
 - [fix] Exclude patterns were not printed properly when providing the instrumentation summary.

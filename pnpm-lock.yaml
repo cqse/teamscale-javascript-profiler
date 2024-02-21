@@ -180,7 +180,7 @@ importers:
   packages/teamscale-coverage-collector:
     dependencies:
       '@cqse/commons':
-        specifier: 0.1.0-beta.5
+        specifier: 0.1.0-beta.6
         version: link:../cqse-commons
       argparse:
         specifier: ^2.0.1
@@ -295,7 +295,7 @@ importers:
         specifier: ^7.23.9
         version: 7.23.9
       '@cqse/commons':
-        specifier: 0.1.0-beta.5
+        specifier: 0.1.0-beta.6
         version: link:../cqse-commons
       '@teamscale/lib-instrument':
         specifier: workspace:../lib-instrument

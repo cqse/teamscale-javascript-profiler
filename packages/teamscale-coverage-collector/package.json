@@ -22,7 +22,7 @@
     "dist/**/*"
   ],
   "dependencies": {
-    "@cqse/commons": "0.1.0-beta.5",
+    "@cqse/commons": "0.1.0-beta.6",
     "argparse": "^2.0.1",
     "async": "^3.2.5",
     "axios": "^1.6.7",

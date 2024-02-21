@@ -115,7 +115,7 @@ describe('Test the control server that is integrated in the collector with uploa
 		}, errorMessages, otherMessages);
 
 		// Wait until the async code has finished
-		awaitUntil(() => otherMessages.length > 10, 10000);
+		await awaitUntil(() => otherMessages.length > 10, 10000);
 
 		const requests = await mockedEndpoint.getSeenRequests();
 		expect(requests).toHaveLength(1);

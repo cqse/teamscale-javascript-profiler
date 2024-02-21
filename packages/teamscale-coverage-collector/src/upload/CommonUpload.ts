@@ -40,7 +40,7 @@ export async function performUpload(
 		logger.info(`Upload finished with code ${response.status}.`);
 	} catch (error: unknown) {
 		if (axios.isAxiosError(error)) {
-			let detailedMessage;
+			let userMessage;
 
 			if (error.message) {
 				logger.error(`Upload error ${error.status ?? 'UNDEFINED'}: ${error.message}`);
@@ -53,17 +53,17 @@ export async function performUpload(
 				logger.error('Upload error response status:', error.response.status);
 				logger.error('Upload error response headers:', JSON.stringify(error.response.headers));
 
-				detailedMessage = `Request failed with status ${error.response.status}: ${error.response.data ?? ''}`;
+				userMessage = `Request failed with status ${error.response.status}: ${error.response.data ?? ''}`;
 			} else if (error.request) {
 				// The request was made but no response was received
-				detailedMessage = 'No response received for the request.';
+				userMessage = 'No response received for the request.';
 			} else {
 				// Something happened in setting up the request that triggered an Error
-				detailedMessage = 'Request setup failed.';
+				userMessage = 'Request setup failed.';
 			}
 
 			// Provide a more specific message if possible
-			throw new UploadError(`Something went wrong when uploading data: ${detailedMessage}`);
+			throw new UploadError(`Something went wrong when uploading data: ${userMessage}`);
 		}
 
 		throw new UploadError(`Something went wrong when uploading data: ${inspect(error)}`);

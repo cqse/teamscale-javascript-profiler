@@ -22,10 +22,10 @@
     "typescript-optional": "^2.0.1"
   },
   "devDependencies": {
-    "@babel/core": "^7.23.9",
-    "@babel/preset-env": "^7.23.9",
+    "@babel/core": "^7.24.0",
+    "@babel/preset-env": "^7.24.0",
     "@types/jest": "^29.5.12",
-    "@types/node": "^20.11.20",
+    "@types/node": "^20.11.22",
     "babel-jest": "^29.7.0",
     "jest": "^29.7.0",
     "rimraf": "^5.0.5",

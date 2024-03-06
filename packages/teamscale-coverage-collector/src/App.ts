@@ -182,7 +182,7 @@ export class App {
 		try {
 			// 1. Write coverage to a file
 			const [coverageFile, lines] = storage.dumpToSimpleCoverageFile(config.dump_to_folder, new Date());
-			logger.info(`Dumped ${lines} lines of coverage to ${coverageFile}.`);
+			logger.debug(`Dumped ${lines} lines of coverage to ${coverageFile}.`);
 
 			// 2. Upload to Teamscale or Artifactory if configured
 			if (config.teamscale_server_url || config.artifactory_server_url) {

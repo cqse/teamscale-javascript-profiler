@@ -140,7 +140,7 @@ test('Instrumented code must contain collector specification', async () => {
 		exclude_origin: ['node_modules/**/*.*'],
 		in_place: false,
 		collector: "ws://not-used-since-pattern-is-also-given",
-		collector_pattern: "replace-in-host:foo bar,port:1234,scheme:wss",
+		relative_collector: "replace-in-host:foo bar,port:1234,scheme:wss",
 		to: outputDir
 	});
 	const matchStats = result.task?.originSourcePattern.retrieveMatchingFiles();

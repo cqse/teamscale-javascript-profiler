@@ -23,7 +23,8 @@ export type ConfigurationParameters = {
 	// eslint-disable-next-line camelcase
 	source_map?: string;
 	collector: string;
-	collector_pattern?: string;
+	// eslint-disable-next-line camelcase
+	relative_collector?: string;
 	// eslint-disable-next-line camelcase
 	include_origin?: string[];
 	// eslint-disable-next-line camelcase
@@ -130,7 +131,7 @@ export class TaskBuilder {
 		const sourceMap: string | undefined = config.source_map;
 		this.dumpOriginsFile = config.dump_origins_to;
 		this.dumpMatchedOriginsFile = config.dump_origin_matches_to;
-		this.setCollectorFromCommandLine(config.collector, config.collector_pattern);
+		this.setCollectorFromCommandLine(config.collector, config.relative_collector);
 		this.setOriginSourceIncludePatterns(config.include_origin);
 		this.setOriginSourceExcludePatterns(config.exclude_origin);
 		this.setBundleExcludePatterns(config.exclude_bundle);

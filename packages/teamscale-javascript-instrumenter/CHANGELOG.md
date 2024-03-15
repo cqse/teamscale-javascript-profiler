@@ -2,9 +2,11 @@ We use [Semantic Versioning](https://semver.org/).
 
 # New Release
 
+- [fix] `--relative-collector` option was not parsed correctly.
+
 # 0.1.0-beta.6
 
-- [feature] Add `--collector-pattern` to support Kubernetes deployments of the collector.
+- [feature] Add `--relative-collector` to support Kubernetes deployments of the collector.
 
 # 0.1.0-beta.5
 

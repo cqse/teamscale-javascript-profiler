@@ -19,10 +19,7 @@ export class App {
 	 * Parses the command line options and the instrumentation accordingly.
 	 */
 	public static async run(): Promise<TaskResult> {
-		// Parsing of command line arguments:
-		// Build the configuration object from the command line arguments.
-		const parser: ArgumentParser = this.buildParser();
-		const config: ConfigurationParameters = parser.parse_args();
+		const config = this.parseCommandLine();
 
 		// Build the logger
 		const logger = this.buildLogger(config);
@@ -31,6 +28,17 @@ export class App {
 
 		// Run the instrumenter with the given configuration.
 		return this.runForConfigArguments(config, logger);
+	}
+
+	/**
+	 * Parses the command-line arguments.
+	 * 
+	 * @param args Optional. For testing. If given, uses this as the arguments to parse and does not exit the process on errors.
+	 *   If not given, uses the NodeJS process's arguments and exits on errors.
+	 */
+	public static parseCommandLine(args?: string[]): ConfigurationParameters {
+		const parser: ArgumentParser = this.buildParser();
+		return parser.parse_args(args);
 	}
 
 	/**
@@ -82,7 +90,7 @@ export class App {
 	 */
 	private static buildParser(): ArgumentParser {
 		const parser = new ArgumentParser({
-			description: 'Instrumenter of the Teamscale JavaScript Profiler'
+			description: 'Instrumenter of the Teamscale JavaScript Profiler',
 		});
 
 		parser.add_argument('-v', '--version', { action: 'version', version });

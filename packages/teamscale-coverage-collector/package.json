@@ -22,10 +22,10 @@
     "dist/**/*"
   ],
   "dependencies": {
-    "@cqse/commons": "0.1.0-beta.6",
+    "@cqse/commons": "0.1.0-beta.7",
     "argparse": "^2.0.1",
     "async": "^3.2.5",
-    "axios": "^1.6.7",
+    "axios": "^1.6.8",
     "bunyan": "^1.8.15",
     "date-and-time": "^3.1.1",
     "dotenv": "^16.4.5",

@@ -35,7 +35,7 @@
     "@types/glob": "^8.1.0",
     "@types/istanbul-lib-instrument": "^1.7.7",
     "@types/jest": "^29.5.12",
-    "@types/node": "^20.11.29",
+    "@types/node": "^20.11.30",
     "@types/ws": "^8.5.10",
     "babel-jest": "^29.7.0",
     "esbuild": "^0.20.2",

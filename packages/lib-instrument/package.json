@@ -19,15 +19,15 @@
     "test": "pnpm build && NODE_OPTIONS='--experimental-vm-modules --max-old-space-size=8192' jest --forceExit --coverage --silent=true --detectOpenHandles"
   },
   "dependencies": {
-    "@babel/core": "^7.24.0",
-    "@babel/parser": "^7.24.0",
-    "@babel/traverse": "^7.24.0",
+    "@babel/core": "^7.24.1",
+    "@babel/parser": "^7.24.1",
+    "@babel/traverse": "^7.24.1",
     "@types/node": "^20.11.29",
     "source-map": "^0.7.4",
     "typescript": "^5.4.2"
   },
   "devDependencies": {
-    "@babel/cli": "^7.23.9",
+    "@babel/cli": "^7.24.1",
     "@babel/types": "^7.24.0",
     "@types/babel__core": "^7.20.5",
     "@types/clone": "^2.1.4",

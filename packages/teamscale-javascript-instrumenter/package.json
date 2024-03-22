@@ -23,10 +23,10 @@
     "dist/**/*"
   ],
   "devDependencies": {
-    "@babel/core": "^7.24.1",
+    "@babel/core": "^7.24.3",
     "@babel/plugin-transform-modules-commonjs": "^7.24.1",
-    "@babel/preset-env": "^7.24.1",
-    "@types/argparse": "^2.0.15",
+    "@babel/preset-env": "^7.24.3",
+    "@types/argparse": "^2.0.16",
     "@types/async": "^3.2.24",
     "@types/babel__generator": "^7.6.8",
     "@types/babel__traverse": "^7.20.5",
@@ -45,7 +45,7 @@
     "ts-jest": "^29.1.2",
     "ts-node": "^10.9.2",
     "tslib": "^2.6.2",
-    "typescript": "^5.4.2"
+    "typescript": "^5.4.3"
   },
   "dependencies": {
     "@cqse/commons": "0.1.0-beta.7",

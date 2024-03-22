@@ -17,7 +17,7 @@
     "@typescript-eslint/eslint-plugin": "^7.3.1",
     "@typescript-eslint/parser": "^7.3.1",
     "commander": "^12.0.0",
-    "cypress": "^13.7.0",
+    "cypress": "^13.7.1",
     "eslint": "^8.57.0",
     "eslint-config-prettier": "^9.1.0",
     "eslint-plugin-import": "^2.29.1",
@@ -34,7 +34,7 @@
     "tempfile": "^5.0.0",
     "tree-kill": "^1.2.2",
     "ts-node": "^10.9.2",
-    "typescript": "^5.4.2"
+    "typescript": "^5.4.3"
   },
   "pnpm": {
     "overrides": {

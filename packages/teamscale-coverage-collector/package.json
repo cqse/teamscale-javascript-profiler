@@ -29,7 +29,7 @@
     "bunyan": "^1.8.15",
     "date-and-time": "^3.1.1",
     "dotenv": "^16.4.5",
-    "express": "^4.19.1",
+    "express": "^4.19.2",
     "form-data": "^4.0.0",
     "mkdirp": "^3.0.1",
     "rxjs": "^7.8.1",

@@ -43,7 +43,7 @@
       "@types/babel__traverse>@babel/types": "7.23.9"
     },
     "patchedDependencies": {
-      "mockttp@3.10.1": "patches/mockttp@3.10.1.patch"
+      "mockttp@3.10.2": "patches/mockttp@3.10.2.patch"
     }
   }
 }

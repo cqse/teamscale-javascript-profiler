@@ -15,6 +15,7 @@ export class SocketWithRecovery {
 	/** The messages that have been cached */
 	private cachedMessages: string[] = [];
 
+	/** Connects to the given URL. */
 	connect(url: string) {
 		this.url = url;
 		this.socket = this.createSocket();

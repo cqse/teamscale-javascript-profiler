@@ -2,7 +2,8 @@
 // @ts-ignore: DataWorker import is handled by Esbuild---see `esbuild.mjs` and `workers.d.ts`
 import DataWorker from './worker/vaccine.worker.ts';
 import { getWindow, universe, universeAttribute } from './utils';
-import {createCoverageBuffer, FileCoverageBuffer} from "./buffer";
+import { createCoverageBuffer, FileCoverageBuffer } from "./buffer";
+import { LocationMessage } from './types.ts';
 
 // Prepare our global JavaScript object. This will hold
 // a reference to the WebWorker thread.
@@ -24,9 +25,9 @@ function setWorker(worker: DataWorker): DataWorker {
 }
 
 // Create a coverage buffer on the main window side.
-const coverageBuffer = createCoverageBuffer(250,(buffer: Map<string, FileCoverageBuffer>) => {
+const coverageBuffer = createCoverageBuffer(250, (buffer: Map<string, FileCoverageBuffer>) => {
 	for (const fileEntry of buffer.entries()) {
-		getWorker().postMessage([ fileEntry[0], Array.from(fileEntry[1].lines) ]);
+		getWorker().postMessage([fileEntry[0], Array.from(fileEntry[1].lines)]);
 	}
 });
 
@@ -40,6 +41,9 @@ if (!getWorker()) {
 	// Create the worker with the worker code
 	// (we use the tool 'rollup' to produce this object---see rollup.config.js)
 	const worker = setWorker(new DataWorker());
+
+	const message: LocationMessage = { type: 'location', host: document.location.host, port: document.location.port }
+	worker.postMessage(message);
 
 	(function handleUnloading() {
 		const vaccineUnloadHandler = () => {

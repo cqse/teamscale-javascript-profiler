@@ -36,3 +36,11 @@ export interface CollectorSpecifierRelative {
  * Specifies how the vaccine can reach the collector.
  */
 export type CollectorSpecifier = CollectorSpecifierUrl | CollectorSpecifierRelative
+
+export interface LocationMessage {
+	type: 'location';
+	host: string;
+	port: string;
+}
+
+export type WorkerMessage = LocationMessage

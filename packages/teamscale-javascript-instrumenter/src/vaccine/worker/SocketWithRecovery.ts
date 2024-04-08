@@ -1,24 +1,21 @@
 /**
  * A socket wrapper that caches messages in case
  * the connection was lost or not yet established.
+ * 
+ * Callers must call #connect() to establish the initial connection.
  */
 export class SocketWithRecovery {
 
 	/** The target URL to send messages to. */
-	private readonly url: string;
+	private url: string;
 
 	/** The wrapped WebSocket */
-	private socket: WebSocket;
+	private socket: WebSocket | null;
 
 	/** The messages that have been cached */
 	private cachedMessages: string[] = [];
 
-	/**
-	 * Constructor.
-	 *
-	 * @param url - The URL to send messages to.
-	 */
-	constructor(url: string) {
+	connect(url: string) {
 		this.url = url;
 		this.socket = this.createSocket();
 	}
@@ -46,7 +43,7 @@ export class SocketWithRecovery {
 	private onopen() {
 		// eslint-disable-next-line no-console
 		console.log('Connection to Coverage Collector established.');
-		this.cachedMessages.forEach(message => this.socket.send(message));
+		this.cachedMessages.forEach(message => this.socket!!.send(message));
 		this.cachedMessages = [];
 	}
 
@@ -55,7 +52,7 @@ export class SocketWithRecovery {
 	 * has not yet been established.
 	 */
 	public send(message: string): void {
-		if (this.socket.readyState === WebSocket.OPEN) {
+		if (this.socket !== null && this.socket.readyState === WebSocket.OPEN) {
 			this.socket.send(message);
 		} else {
 			// socket has not been opened yet for the first time

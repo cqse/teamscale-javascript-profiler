@@ -28,7 +28,7 @@ onmessage = (event: MessageEvent) => {
 		aggregator.flush();
 	} else if (event.data.type === "location") {
 		const locationMessage = event.data as LocationMessage;
-		const url = CollectorUrlResolver.resolve($COLLECTOR_SPECIFIER, locationMessage.host, locationMessage.port)
+		const url = CollectorUrlResolver.resolve($COLLECTOR_SPECIFIER, locationMessage.hostname, locationMessage.port)
 		socket.connect(`${url}/socket`);
 	} else {
 		console.error(`No handler for message: ${event.data}`);

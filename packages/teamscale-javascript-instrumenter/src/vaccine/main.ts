@@ -42,7 +42,7 @@ if (!getWorker()) {
 	// (we use the tool 'rollup' to produce this object---see rollup.config.js)
 	const worker = setWorker(new DataWorker());
 
-	const message: LocationMessage = { type: 'location', host: document.location.host, port: document.location.port }
+	const message: LocationMessage = { type: 'location', hostname: document.location.hostname, port: document.location.port }
 	worker.postMessage(message);
 
 	(function handleUnloading() {

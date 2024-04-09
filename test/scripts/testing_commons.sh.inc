@@ -16,6 +16,9 @@ store_results() {
   fi
 
   # Collect and compute the results
+  # Only consider the first line of the input file with the measurement data;
+  # the lines before somtimes hint on non-zero exit codes, which are not relevant
+  # because we compare the produced coverage in the end.
   PERF_INFOS=$(tail -n1 "$INPUT_FILE")
   DURATION_SECS=$(echo "$PERF_INFOS" | cut -f2 -d" ")
   PEAK_MEM_MB=$(expr "$(echo "$PERF_INFOS" | cut -f1 -d" ")" / 1024)

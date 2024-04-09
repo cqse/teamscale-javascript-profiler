@@ -46,13 +46,4 @@ gnutime -o "$PROFILING_RESULTS_FILE"  -f "%M %e" \
         --collector "ws://localhost:$COLLECTOR_PORT" \
         "${@:4}"
 
-<<<<<<< Updated upstream
-# Collect and compute the results
-DURATION_SECS=$(cut -f2 -d" " < $PROFILING_RESULTS_FILE)
-PEAK_MEM_MB=$(expr "$(cut -f1 -d" " < $PROFILING_RESULTS_FILE)" / 1024)
-
-# Write the results to a JSON file
-echo "{ \"duration_secs\": $DURATION_SECS, \"memory_mb_peak\": $PEAK_MEM_MB }" > $OUTPUT_FILE
-=======
 store_results "$PROFILING_RESULTS_FILE" "$OUTPUT_FILE"
->>>>>>> Stashed changes

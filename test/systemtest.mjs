@@ -315,6 +315,10 @@ function startWebServer(distributionFolder) {
 		console.log(`webserver process exited with code ${code}`);
 	});
 
+	webserver.on('exit', function(code){
+		console.error('webserver process (spawn) terminated with exit code', code);
+	});
+
 	return webserver;
 }
 

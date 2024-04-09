@@ -2,6 +2,7 @@
 
 SCRIPT_DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
 source "$SCRIPT_DIR"/common.sh.inc
+source "$SCRIPT_DIR"/testing_commons.sh.inc
 
 if [ ! -f "tsconfig.vaccine.json" ]
 then
@@ -36,6 +37,8 @@ then
   rm $PROFILING_RESULTS_FILE
 fi
 
+cd packags/teamscale-javascript-instrumenter/
+
 # Run the instrumenter with the memory profiler attached
 gnutime -o "$PROFILING_RESULTS_FILE"  -f "%M %e" \
     node --max-old-space-size=12000 ./dist/src/main.js \
@@ -43,9 +46,13 @@ gnutime -o "$PROFILING_RESULTS_FILE"  -f "%M %e" \
         --collector "ws://localhost:$COLLECTOR_PORT" \
         "${@:4}"
 
+<<<<<<< Updated upstream
 # Collect and compute the results
 DURATION_SECS=$(cut -f2 -d" " < $PROFILING_RESULTS_FILE)
 PEAK_MEM_MB=$(expr "$(cut -f1 -d" " < $PROFILING_RESULTS_FILE)" / 1024)
 
 # Write the results to a JSON file
 echo "{ \"duration_secs\": $DURATION_SECS, \"memory_mb_peak\": $PEAK_MEM_MB }" > $OUTPUT_FILE
+=======
+store_results "$PROFILING_RESULTS_FILE" "$OUTPUT_FILE"
+>>>>>>> Stashed changes

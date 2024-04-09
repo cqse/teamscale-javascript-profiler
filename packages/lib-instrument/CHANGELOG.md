@@ -2,6 +2,8 @@ We use [Semantic Versioning](https://semver.org/).
 
 # New Release
 
+# 0.1.0-beta.8
+
 # 0.1.0-beta.7
 
 # 0.1.0-beta.6

@@ -4,7 +4,7 @@
  */
 import { SocketWithRecovery } from './SocketWithRecovery';
 import { CoverageAggregator } from './CoverageAggregator';
-import { CollectorSpecifier } from "../types";
+import { CollectorSpecifier, LocationMessage } from "../types";
 import { CollectorUrlResolver } from './CollectorUrlResolver';
 
 console.log('Starting coverage forwarding worker.');
@@ -13,7 +13,7 @@ console.log('Starting coverage forwarding worker.');
 // into the code to record coverage for.
 declare const $COLLECTOR_SPECIFIER: CollectorSpecifier
 
-const socket = new SocketWithRecovery(`${CollectorUrlResolver.resolve($COLLECTOR_SPECIFIER)}/socket`);
+const socket = new SocketWithRecovery();
 const aggregator = new CoverageAggregator(socket);
 
 // Handling of the messages the WebWorker receives
@@ -26,6 +26,10 @@ onmessage = (event: MessageEvent) => {
 	} else if (event.data === 'unload') {
 		// Send all information immediately
 		aggregator.flush();
+	} else if (event.data.type === "location") {
+		const locationMessage = event.data as LocationMessage;
+		const url = CollectorUrlResolver.resolve($COLLECTOR_SPECIFIER, locationMessage.hostname, locationMessage.port)
+		socket.connect(`${url}/socket`);
 	} else {
 		console.error(`No handler for message: ${event.data}`);
 	}

@@ -4,12 +4,12 @@ import { CollectorSpecifier, CollectorSpecifierRelative } from "../types";
 export class CollectorUrlResolver {
 
     /** Resolves the collector URL. */
-    static resolve(specifier: CollectorSpecifier): string {
+    static resolve(specifier: CollectorSpecifier, host: string, port: string): string {
         switch (specifier.type) {
             case 'url':
                 return specifier.url;
             case 'relative':
-                return CollectorUrlResolver.resolveRelative(location.host, location.port, specifier);
+                return CollectorUrlResolver.resolveRelative(host, port, specifier);
         }
     }
 

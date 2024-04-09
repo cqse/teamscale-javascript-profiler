@@ -22,7 +22,7 @@
     "@babel/core": "^7.24.4",
     "@babel/parser": "^7.24.4",
     "@babel/traverse": "^7.24.1",
-    "@types/node": "^20.12.5",
+    "@types/node": "^20.12.6",
     "source-map": "^0.7.4",
     "typescript": "^5.4.4"
   },

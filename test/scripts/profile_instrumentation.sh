@@ -37,8 +37,6 @@ then
   rm $PROFILING_RESULTS_FILE
 fi
 
-cd packags/teamscale-javascript-instrumenter/
-
 # Run the instrumenter with the memory profiler attached
 gnutime -o "$PROFILING_RESULTS_FILE"  -f "%M %e" \
     node --max-old-space-size=12000 ./dist/src/main.js \

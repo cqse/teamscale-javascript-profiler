@@ -1,6 +1,6 @@
 # -- build image --
 
-FROM node:21-slim AS build
+FROM node:21.7.3-slim AS build
 
 COPY . /collector
 WORKDIR /collector

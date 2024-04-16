@@ -41,7 +41,7 @@ fi
 gnutime -o "$PROFILING_RESULTS_FILE"  -f "%M %e" \
     node --max-old-space-size=12000 ./dist/src/main.js \
         --in-place "${DIST_DIR}" \
-        --collector "ws://localhost:$COLLECTOR_PORT" \
+        --relative-collector "port:$COLLECTOR_PORT" \
         "${@:4}"
 
 store_results "$PROFILING_RESULTS_FILE" "$OUTPUT_FILE"

@@ -36,3 +36,18 @@ export interface CollectorSpecifierRelative {
  * Specifies how the vaccine can reach the collector.
  */
 export type CollectorSpecifier = CollectorSpecifierUrl | CollectorSpecifierRelative
+
+/**
+ * Message to the worker to report the location of the profiled document.
+ */
+export interface LocationMessage {
+	/** Message type. */
+	type: 'location';
+	/** Hostname of the profiled document, e.g. "localhost". */
+	hostname: string;
+	/** Port of the profiled document, e.g. "1234" */
+	port: string;
+}
+
+/** Enumerates all types of messages to the worker. */
+export type WorkerMessage = LocationMessage

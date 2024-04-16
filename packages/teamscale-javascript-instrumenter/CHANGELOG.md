@@ -2,6 +2,10 @@ We use [Semantic Versioning](https://semver.org/).
 
 # New Release
 
+# 0.1.0-beta.8
+
+- [fix] `--relative-collector` option was not applied correctly due to empty `location` field
+
 # 0.1.0-beta.7
 
 - [fix] `--relative-collector` option was not parsed correctly.

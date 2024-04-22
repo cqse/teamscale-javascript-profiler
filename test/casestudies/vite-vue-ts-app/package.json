@@ -8,15 +8,15 @@
     "serve": "vite preview"
   },
   "dependencies": {
-    "vue": "^3.4.22"
+    "vue": "^3.4.24"
   },
   "devDependencies": {
     "@babel/types": "^7.24.0",
     "@vitejs/plugin-vue": "^5.0.4",
-    "@vue/compiler-sfc": "^3.4.22",
+    "@vue/compiler-sfc": "^3.4.24",
     "rimraf": "^5.0.5",
     "typescript": "^5.4.5",
-    "vite": "^5.2.9",
-    "vue-tsc": "^2.0.13"
+    "vite": "^5.2.10",
+    "vue-tsc": "^2.0.14"
   }
 }

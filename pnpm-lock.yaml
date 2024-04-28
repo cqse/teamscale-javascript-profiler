@@ -222,8 +222,8 @@ importers:
         specifier: ^2.0.1
         version: 2.0.1
       ws:
-        specifier: ^8.16.0
-        version: 8.16.0
+        specifier: ^8.17.0
+        version: 8.17.0
     devDependencies:
       '@babel/core':
         specifier: ^7.24.4
@@ -1997,7 +1997,7 @@ packages:
       graphql: 15.8.0
       iterall: 1.3.0
       symbol-observable: 1.2.0
-      ws: 8.16.0
+      ws: 8.17.0
     transitivePeerDependencies:
       - bufferutil
       - utf-8-validate
@@ -2009,10 +2009,10 @@ packages:
       '@types/ws': 8.5.10
       duplexify: 3.7.1
       inherits: 2.0.4
-      isomorphic-ws: 4.0.1(ws@8.16.0)
+      isomorphic-ws: 4.0.1(ws@8.17.0)
       readable-stream: 2.3.8
       safe-buffer: 5.2.1
-      ws: 8.16.0
+      ws: 8.17.0
       xtend: 4.0.2
     transitivePeerDependencies:
       - bufferutil
@@ -5665,12 +5665,12 @@ packages:
   /isexe@2.0.0:
     resolution: {integrity: sha512-RHxMLp9lnKHGHRng9QFhRCMbYAcVpn69smSGcq3f36xjgVVWThj4qqLbTLlq7Ssj8B+fIQ1EuCEGI2lKsyQeIw==}
 
-  /isomorphic-ws@4.0.1(ws@8.16.0):
+  /isomorphic-ws@4.0.1(ws@8.17.0):
     resolution: {integrity: sha512-BhBvN2MBpWTaSHdWRb/bwdZJ1WaehQ2L1KngkCkfLUGF0mAWAT1sQUQacEmQ0jXkFw/czDXPNQSL5u2/Krsz1w==}
     peerDependencies:
       ws: '*'
     dependencies:
-      ws: 8.16.0
+      ws: 8.17.0
     dev: true
 
   /isstream@0.1.2:
@@ -6895,7 +6895,7 @@ packages:
       http-encoding: 1.5.1
       http2-wrapper: 2.2.1
       https-proxy-agent: 5.0.1
-      isomorphic-ws: 4.0.1(ws@8.16.0)
+      isomorphic-ws: 4.0.1(ws@8.17.0)
       lodash: 4.17.21
       lru-cache: 7.18.3
       native-duplexpair: 1.0.0
@@ -6909,7 +6909,7 @@ packages:
       socks-proxy-agent: 7.0.0
       typed-error: 3.2.2
       uuid: 8.3.2
-      ws: 8.16.0
+      ws: 8.17.0
     transitivePeerDependencies:
       - bufferutil
       - encoding
@@ -8784,8 +8784,8 @@ packages:
       signal-exit: 3.0.7
     dev: true
 
-  /ws@8.16.0:
-    resolution: {integrity: sha512-HS0c//TP7Ina87TfiPUz1rQzMhHrl/SG2guqRcTOIUYD2q8uhUdNHZYJUaQ8aTGPzCh+c6oawMKW35nFl1dxyQ==}
+  /ws@8.17.0:
+    resolution: {integrity: sha512-uJq6108EgZMAl20KagGkzCKfMEjxmKvZHG7Tlq0Z6nOky7YF7aq4mOx6xK8TJ/i1LeK4Qus7INktacctDgY8Ow==}
     engines: {node: '>=10.0.0'}
     peerDependencies:
       bufferutil: ^4.0.1

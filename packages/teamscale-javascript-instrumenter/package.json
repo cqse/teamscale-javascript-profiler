@@ -23,9 +23,9 @@
     "dist/**/*"
   ],
   "devDependencies": {
-    "@babel/core": "^7.24.4",
+    "@babel/core": "^7.24.5",
     "@babel/plugin-transform-modules-commonjs": "^7.24.1",
-    "@babel/preset-env": "^7.24.4",
+    "@babel/preset-env": "^7.24.5",
     "@types/argparse": "^2.0.16",
     "@types/async": "^3.2.24",
     "@types/babel__generator": "^7.6.8",
@@ -50,10 +50,10 @@
   "dependencies": {
     "@cqse/commons": "0.1.0-beta.8",
     "@teamscale/lib-instrument": "workspace:../lib-instrument",
-    "@babel/generator": "^7.24.4",
-    "@babel/parser": "^7.24.4",
-    "@babel/traverse": "^7.24.1",
-    "@babel/types": "^7.24.0",
+    "@babel/generator": "^7.24.5",
+    "@babel/parser": "^7.24.5",
+    "@babel/traverse": "^7.24.5",
+    "@babel/types": "^7.24.5",
     "@types/micromatch": "^4.0.7",
     "argparse": "^2.0.1",
     "async": "^3.2.5",

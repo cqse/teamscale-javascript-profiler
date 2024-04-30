@@ -39,8 +39,8 @@
     "ws": "^8.17.0"
   },
   "devDependencies": {
-    "@babel/core": "^7.24.4",
-    "@babel/preset-env": "^7.24.4",
+    "@babel/core": "^7.24.5",
+    "@babel/preset-env": "^7.24.5",
     "@types/argparse": "^2.0.16",
     "@types/async": "^3.2.24",
     "@types/bunyan": "^1.8.11",

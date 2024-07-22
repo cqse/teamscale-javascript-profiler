@@ -4,7 +4,7 @@
 
 This is a mono repository that includes all components to instrument 
 JavaScript applications in order to collect coverage information and the tools
-for aggregating this information and sending it to [Teamscale](https://www.cqse.eu/en/teamscale/).
+for aggregating this information and sending it to [Teamscale](https://teamscale.com/product-overview).
 
 **Public Beta.** The Teamscale JavaScript Profiler is still in the public beta phase. 
 Your development and testing environment might not yet be fully supported by this approach. 

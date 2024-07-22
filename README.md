@@ -98,5 +98,3 @@ be used in combination and that are compatible to each other.
 
 We welcome any contributions to this project. Feel free to send us pull requests,
 bug tickets, or feature requests.
-
-See our [Developer Guideline](CONTRIBUTING.md) for details on how to contribute.
